@@ -1,0 +1,108 @@
+Description
+-----------
+pcwsr is Free Software(http://www.gnu.org) to read the PC weathersensor 
+receiver sold by ELV (http://www.elv.de, ELV Part No. 68-390-61). Different
+types of weather sensors like temperature, humidity, air pressure, wind, rain
+or brightness transmit measured values wireless (at 433MHz). The receiver is 
+connected thru the serial port. The communication with the computing equipment
+is unidirectional, i.e. the receiver writes the sensor data to the serial port
+once they are received from the wireless sensors.
+
+               radio transmission                            serial
+      sensor <--------------------> weathersensor receiver  --------> computer
+               at 433 MHz                                    comm.
+                              computer
+
+
+The communication protocol has been published by ELV (ELV Journal 6/2000). It
+has been reproduced elsewhere (http://wth.berlios.de/station-protocol.txt).
+
+The communication software pcwsr opens the serial port, sets the serial
+configuration right, then loops to receive data from the serial port.
+
+
+Screenshots
+-----------
+A typical screenshot of pcwsr looks like this:
+
+volker@ikarus pcwsr-0.1.2 > ./pcwsr /dev/ttyS0
+pcwsr 0.1 - experimental test version
+Wed Nov 21 2001 19:54:49 |     wind (version 11 at address 0x07) | Speed[km/s] 1.5 | Direction [°] 95 +/- 45.0
+Wed Nov 21 2001 20:00:37 |   indoor (version 11 at address 0x07) | T[°C] 18.1 | H[% rel.hum] 44 | P[hPa] 974
+
+
+using the raw option the byte strings are dumped as received:
+
+volker@ikarus pcwsr-0.1.2 > ./pcwsr -r /dev/ttyS0
+pcwsr 0.1 - experimental test version
+option: raw
+Wed Nov 21 2001 20:13:32 : 8 bytes read |2|a7|8c|b4|80|80|80|3|
+Wed Nov 21 2001 20:14:04 : 8 bytes read |2|c7|81|b5|ac|87|ce|3|
+Wed Nov 21 2001 20:16:22 : 8 bytes read |2|a7|8c|b4|80|80|80|3|
+Wed Nov 21 2001 20:16:46 : 8 bytes read |2|c7|81|b5|ac|87|ce|3|
+
+
+
+Serial communication
+--------------------
+A crucial point in the development of the code was to get the serial communication
+parameters right. In the first place, serial line snooping has been used to test
+the PC software which comes with the weathersensor receiver 
+(http://wth.berlios.de/SerialSnooping.html). The following settings for the
+serial port have been found useful:
+
+speed 19200 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
+eol2 = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
+lnext = ^V; flush = ^O; min = 1; time = 5;
+parenb parodd cs8 hupcl cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff
+-iuclc -ixany -imaxbel
+-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0
+ff0
+-isig -icanon iexten -echo -echoe echok -echonl -noflsh -xcase -tostop -echoprt
+echoctl echoke
+
+The serial has to be configured to 19200 Baud, 2 stop bits and odd parity. Also
+it has to be set to raw mode for input and output by turning off ICANON, ISIG, ECHO
+ECHOE and OPOST.
+
+The data can most simply be received by
+cat </dev/ttyS0 >>/tmp/raus
+
+Each read will return 8 characters in case everything has been configured right.
+
+
+Types of sensors
+----------------
+The following sensors have been tested so far successfully:
+
+S2000A  outdoor temperature and humidity sensor
+S2000W  wind sensor for speed and direction detection
+S2000R  rain sensor 
+S2000I  indoor sensor for temperature and humidity
+S2000ID indoor sensor for temperature, humidity and air pressure
+
+
+Unknown stuff
+-------------
+If the serialline is snooped using the WS-EMpfaenger.exe binary
+which comes with the receiver it is noted that the software sends two byte strings 
+to the PC weathersensor receiver. The two strings are 9 bytes long
+
+01 ff 00 00 00 00 00 80 04
+01 ff 00 00 00 00 00 80 04
+
+I don't know howto interpret this.
+
+
+Licensing
+---------
+The pcwsr code is Copyright (c) 2001, Volker Jahns (Volker.Jahns@thalreit.de). It
+is Free Software and is put under the GPL (http://www.gnu.org for further details).
+
+$Id: README,v 1.1 2001/11/23 07:29:45 jahns Exp jahns $
+$Revision: 1.1 $
+
+
+
