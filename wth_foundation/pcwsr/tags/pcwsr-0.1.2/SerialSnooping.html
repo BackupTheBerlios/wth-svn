@@ -1,0 +1,205 @@
+<html>
+<head>
+<title>Snooping on serial communication</title>
+</head>
+
+<body>
+<h1>Snooping the serial communication of a PC weathersensor receiver</h1>
+<hr>
+
+<h2>Abstract</h2>
+I needed a serialline snooper to figure out the communication between a piece 
+of windows software and a PC weather sensor receiver. Greppling thru the 
+Internet turned up the <kbd>snooper</kbd> tool which runs under FreeBSD.
+While here is described howto snoop a serial line using a computer running 
+FreeBSD other tools for LINUX might be available.
+<hr>
+
+<h2>Installation</h2>
+<h3>Hardware</h3>
+<p>All you need is a computer running FreeBSD which has two serial ports 
+available and a nullmodem serial cable. 
+
+In the original situation the equipment (here the weathersensor receiver) is 
+connected to the PC w/ a serial cable.</p>
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+        serial line
+  PC  <------------> Equipment
+</pre>
+</td></tr>
+</table>
+
+<p>
+To intercept the serial line communication a FreeBSD computer is switched in 
+between the PC and the equipment.
+</p>
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+        nullmodem                                       serial line
+  PC  <------------> [/dev/ttyd0] FreeBSD [/dev/ttyd1] <------------> Equipment
+                     [COM1]               [COM2]
+</pre>
+</td></tr>
+</table>
+
+<p>The FreeBSD computer is connected w/ the PC using a nullmodem serial cable.
+The original cable plugs into the second serial port of the FreeBSD computer.
+It is not necessary which serial port to use for either cable. Just chosse 
+one free port and plug the other cable into the second port of the FreeBSD
+computer.
+
+
+<h3>Software</h3>
+Install the <kbd>snooper</kbd> tool on the FreeBSD computer either via the
+ports collection (category comms) or as a package. To find it go to the
+<a href="http://http://www.freebsd.org/ports/index.html">FreeBSD ports 
+index</a>.
+<hr>
+
+<h2>Running</h2>
+First start the serial line snooper on the FreebSD computer. As the PC software
+might try to initialize the equipment by sending a few bytes to it you
+might loss a necessary piece of information in case the snooper is not online.
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+snooper -b19200 /dev/ttyd0 /dev/ttyd1
+</pre>
+</td></tr>
+</table>
+
+The option -b determines the baudrate to use for the serial communication.
+
+Start execution of the PC software and watch as the bytes flow thru the serial
+line:
+
+
+
+<hr>
+
+<h2>Troubleshooting</h2>
+<h3>Serial communication parameters</h3>
+The serial snoop did not work in the first place when the PC weathersensor 
+was attached and the PC software was running. The problem in this case was
+the configuration options for the serial line were not set correctly. The 
+appropriate operation of the <kbd>stty</kbd> command solved the problem:
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+stty -f /dev/ttyd0 cstopb parenb parodd -isig -icanon
+stty -f /dev/ttyd0 cstopb parenb parodd -isig -icanon
+</pre>
+</td></tr>
+</table>
+
+The serial line had be configured w/ 2 stop bits and odd parity. Also
+it had to be set into raw mode by turing off icanon and isig.
+Please note that it took most of the time to get these few settings right.
+In fact there many more options you can set by executing <kbd>stty</kbd>
+on the FreeBSD box.
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+jahns@eagle jahns > stty -f /dev/ttyd0 -a
+speed 9600 baud; 0 rows; 0 columns;
+lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
+        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
+        -nokerninfo -extproc
+iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
+        -brkint -inpck -ignpar -parmrk
+oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
+cflags: cread cs8 -parenb -parodd hupcl -clocal -cstopb -crtscts -dsrflow
+        -dtrflow -mdmbuf
+cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
+        eol2 = <undef>; erase = ^?; erase2 = ^H; intr = ^C; kill = ^U;
+        lnext = ^V; min = 1; quit = ^\; reprint = ^R; start = ^Q;
+        status = ^T; stop = ^S; susp = ^Z; time = 0; werase = ^W;
+</pre>
+</td></tr>
+</table>
+
+<p>Once the serial line was configured correctly everything 
+worked as a breeze.
+
+
+<h3>wine</h3>
+I also tried wine to start the executable directly from LINUX. However the 
+binary crashed.
+<hr>
+
+<h2>Other software</h2>
+There might be other software which could be used on e.g. LINUX as operating
+system to snoop the serial communication. It simply happened to me that there 
+was computing equipment available which ran FreeBSD.
+<hr>
+
+<h2>Using LINUX to read the PC weathersensor</h2>
+<p>Once the serial line was configured correctly the PC was exchanged by a 
+LINUX system. The communication w/ the weathersensor receiver is 
+unidirectional. The receiver writes the bytestrings of the received sensors 
+to the serial line.
+
+As a first shot <kbd>stty</kbd> was used on the LINUX box to get the serial 
+parmeters right (please note the difference in the commandline options to
+stty on LINUX and FreeBSD :-( </p>
+
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+stty -F /dev/ttyS0 -a
+speed 19200 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
+eol2 = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
+lnext = ^V; flush = ^O; min = 1; time = 5;
+parenb parodd cs8 hupcl cstopb cread clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff
+-iuclc -ixany -imaxbel
+-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0
+ff0
+-isig -icanon iexten -echo -echoe echok -echonl -noflsh -xcase -tostop -echoprt
+echoctl echoke
+</pre>
+</td></tr>
+</table>
+
+<p>In order to receive characters use simply</p>
+<table bgcolor=#F0F8FF>
+<tr><td>
+<pre>
+cat &lt;/dev/ttyS0 &gt;&gt;/tmp/raus
+</pre>
+</td></tr>
+</table>
+
+<p>Each read will return 8 characters as you will notice when looking at the 
+size of the capture file. Don't forget to configure the serial devices on 
+the snooper system correctly!</p>
+
+<pre>
+$Id: SerialSnooping.html,v 1.1 2001/11/22 12:35:38 jahns Exp $
+$Revision: 1.1 $
+</pre>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
