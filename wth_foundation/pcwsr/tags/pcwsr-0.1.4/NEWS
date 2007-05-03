@@ -1,0 +1,20 @@
+News from Martin Johnson ( Sun, December 21, 2003 6:16 pm)
+
+PCWSR for the ELV weatherstations
+
+I have one of these systems, and PCWSR is working for me.  I have edited the
+source code of pcwsr v0.1.2 to add a "-p" (Pipeline) command option which
+produces this kind of output to STDOUT:
+
+'2003-12-21 15:56:23',Wind,0x0f,V,0.0,D,185,+-,0.0
+'2003-12-21 15:57:14',Indoor,0x0f,T,22.0,H,34,P,1008
+'2003-12-21 15:58:12',Brightness,0x0f,187
+'2003-12-21 15:58:16',Rain,0x0f,1341
+'2003-12-21 15:58:23',Outdoor,0x08,T,4.9,H,74
+
+On STDERR, you still see the original human-readable output from v0.1.2.
+
+My next job is to write a process to read the STDOUT pipeline data, and
+import it into a PostGreSQL database.  After that, I hope to write some PHP
+code to show interesting data and plot graphs with GD.
+

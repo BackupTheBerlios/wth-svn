@@ -1,0 +1,38 @@
+Andreas' raw log
+----------------
+
+pcwsr 0.1.3 - experimental test version
+Copyright (C) 2002, 2003 Volker Jahns, Volker.Jahns@thalreit.de
+option: raw
+/dev/ttyS0
+Sun Nov 09 2003 23:59:00 : 8 bytes read |2|cf|81|e0|b3|87|e6|3|
+Mon Nov 10 2003 00:01:24 : 8 bytes read |2|98|80|dc|80|80|80|3|
+Mon Nov 10 2003 00:01:42 : 8 bytes read |2|cf|81|e0|b3|87|e6|3|
+Mon Nov 10 2003 00:04:21 : 8 bytes read |2|98|80|db|80|80|80|3|
+Mon Nov 10 2003 00:04:23 : 8 bytes read |2|cf|81|e0|b3|87|e6|3|
+Mon Nov 10 2003 00:07:05 : 8 bytes read |2|cf|81|e0|b3|87|e6|3|
+Mon Nov 10 2003 00:07:18 : 8 bytes read |2|98|80|db|80|80|80|3|
+
+
+Andreas' log
+------------
+
+
+pcwsr 0.1.3 - experimental test version
+Copyright (C) 2002, 2003 Volker Jahns, Volker.Jahns@thalreit.de
+/dev/ttyS0
+Sun Nov 09 2003 23:52:33 |  outdoor (version 12 at address 0x08) | T[°C] 9.3 | H[% rel.hum] 0
+Sun Nov 09 2003 23:53:37 |   indoor (version 12 at address 0x0f) | T[°C] 0.2 | H[% rel.hum] 51 | P[hPa] 998
+Sun Nov 09 2003 23:55:30 |  outdoor (version 12 at address 0x08) | T[°C] 9.3 | H[% rel.hum] 0
+Sun Nov 09 2003 23:56:19 |   indoor (version 12 at address 0x0f) | T[°C] 0.2 | H[% rel.hum] 51 | P[hPa] 998
+Sun Nov 09 2003 23:58:27 |  outdoor (version 12 at address 0x08) | T[°C] 9.2 | H[% rel.hum] 0
+
+
+Volker's log
+------------
+Sun Nov 09 2003 14:13:53 |  outdoor (version 11 at address 0x02) | T[°C] 18.9 | H[% rel.hum] 43
+Sun Nov 09 2003 14:15:20 |   indoor (version 11 at address 0x07) | T[°C] 21.1 | H[% rel.hum] 40 | P[hPa] 968
+Sun Nov 09 2003 14:16:49 |  outdoor (version 11 at address 0x02) | T[°C] 18.9 | H[% rel.hum] 43
+Sun Nov 09 2003 14:18:01 |   indoor (version 11 at address 0x07) | T[°C] 20.8 | H[% rel.hum] 40 | P[hPa] 968
+Sun Nov 09 2003 14:19:45 |  outdoor (version 11 at address 0x02) | T[°C] 18.9 | H[% rel.hum] 43
+

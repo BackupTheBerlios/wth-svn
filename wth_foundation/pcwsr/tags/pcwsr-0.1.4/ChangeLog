@@ -1,0 +1,21 @@
+Version 0.1.4. 
+  SIGHUP and SIGINT trapping, non-blocking IO, output format options
+  rain is 0.37 times output impulses in mm
+	
+Version 0.1.3.
+  Bug fixed: negative temperatures, IO redirection
+
+Version 0.1.2.
+  Handling all types of sensors (untested!)
+  timestamp compiles w/o error
+  optional raw dumping of serial data, seperated from debug output
+
+Version 0.1.1
+  Problem w/ insufficient access rights to serial line fixed
+  display nicer now
+
+
+Version 0.1
+  first working solution
+  only two sensors T/H resp T/H/P are displayed correctly
+  contents of all sensors can be dumped by setting debug to 1 in the source  

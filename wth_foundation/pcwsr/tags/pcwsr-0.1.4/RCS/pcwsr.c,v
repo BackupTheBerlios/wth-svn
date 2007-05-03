@@ -1,0 +1,1316 @@
+head	1.7;
+access;
+symbols;
+locks
+	jahns:1.7; strict;
+comment	@ * @;
+
+
+1.7
+date	2004.05.26.11.53.20;	author jahns;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2004.05.19.06.43.14;	author jahns;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2003.11.10.13.38.35;	author jahns;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2001.11.22.08.50.47;	author jahns;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2001.11.21.15.36.33;	author jahns;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2001.11.16.10.46.01;	author jahns;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2001.11.16.06.47.39;	author jahns;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.7
+log
+@rain impulses corrected: Martin Johnson's hint
+@
+text
+@/* pcwsr.c
+
+   serial line communication w/ PC weathersensor receiver
+
+   $Id: pcwsr.c,v 1.4 2001/11/22 08:50:47 jahns Exp jahns $
+   $Revision: 1.4 $
+
+   Copyright (C) 2001-2004 Volker Jahns <Volker.Jahns@@thalreit.de>
+
+   v0.1.4: "-p" Pipeline-mode patch, etc: (December 2003)
+   Martin Johnson, pcwsr@@martinshouse.com
+
+   v0.1.3: negative temperature patch:
+   Ulrich Vigenschow, vigger@@t-online.de
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+
+*/
+
+/*
+ *  Update v0.1.4 (December 2003, Martin Johnson pcwsr@@martinshouse.com) :-
+ *
+ *  1. Changed serial comms processing to do a little more checking, and to
+ *     avoid blocking (see 2.).
+ *
+ *  2. Caught signals HUP and INT, and made them close down cleanly.
+ *
+ *  3. Changed all existing output to go to STDOUT by default,
+ *     but to STDERR if "-p" is used.
+ *
+ *  4. Added command-line option "-p" to send "pipeline-compatible" output
+ *     to STDOUT.  The output format style of "-p" is a simple comma-delimited
+ *     format, which you can use like this:
+ *          pcwsr -p /dev/cuaa0 | pcwsr_to_postgresql
+ *     to place sensor data into a PostgreSQL database, for later web display
+ *     with PHP and GD.
+ *
+ *     (Martin is writing pcwsr_to_postgresql!  Please don't hassle Volker
+ *     about that. Email pcwsr@@martinshouse.com instead.)
+ *
+ *     If you use -p to send data to a pipe, you will still see
+ *     the normal human-readable output on STDERR.
+ *
+ *  5. Removed extra "\n" newlines in output.
+ *     Reformatted output values from Brightness and Pyranometer sensors.
+ */
+
+#include <termios.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <time.h>
+#include <string.h>
+#include <signal.h>
+
+#define BAUDRATE B19200
+#define MAXBUFF 1024
+#define TIMEOUT 200
+#define FRAMELEN 8
+#define DEBUG 1
+
+#define STX 0x02
+#define ETX 0x03
+
+
+FILE *console = NULL;
+
+/*  initserial
+
+  opens serial port for communication
+  serial port settings:
+     19200, 8, odd parity,  2stop
+
+*/
+static int 
+initserial (struct termios *newtio, struct termios *oldtio, char *sdevice ) {
+  int pfd;
+
+  if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) == -1 ) {
+    perror("Unable to open serial device");
+    exit(-1);
+  } 
+  
+  /* Make the file descriptor asynchronous (the manual page says only 
+     O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
+  fcntl(pfd, F_SETFL, FASYNC); 
+  
+  /* save current port settings */
+  tcgetattr(pfd,oldtio);
+  
+  /* prefill port settings */
+  tcgetattr(pfd,newtio);
+
+  /* set communication link parameters */
+  cfsetispeed(newtio, BAUDRATE);  
+  cfsetospeed(newtio, BAUDRATE);
+
+  
+  newtio->c_cflag |= PARENB;
+  newtio->c_cflag |= PARODD;
+  newtio->c_cflag |= CLOCAL;
+  newtio->c_cflag |= CREAD;
+  newtio->c_cflag |= CS8;
+  newtio->c_cflag |= CSTOPB;
+  newtio->c_cflag |= CSIZE; 
+  
+  newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+  newtio->c_oflag &= ~OPOST;
+
+  /* (v0.1.4):
+     When reading from the serial port, return after 3 tenths of a second,
+     even if only 0 bytes were received.  This avoids blocking the main
+     loop, so that we can respond quickly to SIGHUP and SIGINT.
+  */
+  newtio->c_cc[VMIN]=0;       /* Was: 1 */
+  newtio->c_cc[VTIME]=3;      /* Was: 5 */
+
+  tcsetattr(pfd,TCSANOW,newtio);
+
+  return(pfd);
+}
+
+
+/*
+   closeserial
+
+   restore the old port settings
+   close port
+
+*/
+static int closeserial( int fd, struct termios *oldtio) {
+
+    /* restore old port settings */
+    tcsetattr(fd,TCSANOW,oldtio);
+	
+    /* close serial port */
+    close(fd);
+    return(0);
+}
+
+
+
+char
+*sname(int snum)
+{
+  static char *name[] = {
+    "outdoor", "outdoor", 
+    "rain", "wind",
+    "indoor", "brightness", 
+    "radiation power", "undef"
+  };
+  return ( snum < 0 || snum >6 ) ? name[7] : name[snum];
+}
+
+
+/* v0.1.4
+   Trap HUP and INTR signals, and close down cleanly.
+ */
+static int bTimeToQuit = 0;
+void MySigHupHandler(int sig)
+{
+    fflush(stdout);
+    fprintf(console,"SIGHUP received: ");
+    bTimeToQuit = 1;
+};
+void MySigIntHandler(int sig)
+{
+    fflush(stdout);
+    fprintf(console,"SIGINT received: ");
+    bTimeToQuit = 1;
+};
+
+
+/*
+   get raw data from serial interface
+*/
+int 
+main( int argc, char *argv[]) {
+    int c, i, fd, err;              /* filedescriptor serial port */
+    int hi, lo, dummy;
+    int mask = 0x7f;
+    int shift = 0x7;
+    int styp, saddr, sver;       /* sensor typ, address and version */
+    float t, wspd, wdev;
+    int h, p, wdir, r, b, rad, mul, imul;
+    int debug=0, raw=0, pipeline=0;
+
+    struct termios newtio,oldtio; /* termios structures to set comm parameters */
+    unsigned char data[MAXBUFF];
+    char clk[MAXBUFF];
+    char buf[MAXBUFF];
+    char pipelinebuf[MAXBUFF];
+    char pipelineclk[MAXBUFF];
+    char *name;  /* sensor typ spec */
+
+    time_t mtime;
+    struct tm *ctm;
+
+    console = stdout;   // Write human-readable messages to stdout by default...
+
+    // ... but always print opening message to stderr,
+    //     because we haven't read the flags yet,
+    //     and pipeline-mode output flag) is not disturbed
+    fprintf(stderr,"pcwsr 0.1.4 - experimental test version\n");
+
+    while ( --argc > 0 && (*++argv)[0] == '-')
+      while ( c = *++argv[0] )
+	switch (c) {
+	case 'p':
+	  pipeline= 1;
+	  console=stderr;  // switch human-readable messages from stdout to stderr
+          fprintf(console,"option: pipeline\n");
+	  break;
+	case 'r':
+	  raw = 1;
+          fprintf(console,"option: raw\n");
+	  break;
+	case 'd':
+	  debug= 1;
+          fprintf(console,"option: debug\n");
+	  break;
+	default:
+	  fprintf(console,"Illegal option: %c\n", c);
+	  argc = 0;
+	  break;
+	}
+
+    if (argc !=1 ) {
+      fprintf(console,"Usage: pcwsr -r -d -p <serial device>\n");
+      fprintf(console,"\twhere <options> include:\n");
+      fprintf(console,"\t-r:\tdump raw data frames\n");
+      fprintf(console,"\t-d:\taddtl. debug output\n");
+      fprintf(console,"\t-p:\tpipeline-compatible output to stdout, suitable for piping to 'pcwsr_to_postgresql'\n");
+      exit(-1);
+    }
+
+  
+    fprintf(console,"Using serialport: %s\n", *argv);
+    fflush(console);
+
+    tzset();                                   /* setting timezone */
+    fd = initserial(&newtio, &oldtio, *argv); /* serial initialization */ 
+    
+
+    
+    if (signal(SIGHUP, MySigHupHandler) == SIG_ERR)  
+    {
+    	fprintf(console, "Can't install SIGHUP handler: exit!\n");
+	exit(1);
+    };
+    if (signal(SIGINT, MySigIntHandler) == SIG_ERR)  
+    {
+    	fprintf(console, "Can't install SIGINT handler: exit!\n");
+    };
+     
+    for ( ;; ) {
+    
+      // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
+      // Need to be careful, as STX and ETX might occur inside the data.
+      
+      int len=0;
+      memset(data, 0, FRAMELEN);
+      fflush(stdout);
+      while (!bTimeToQuit  &&  len < 8)
+      {
+        unsigned char ch=0;
+      	if (err=read(fd, &ch, 1)!=1)
+		continue;	// Loop until a byte is read.
+	if (len==0  &&  ch!=STX)
+		continue;	// Loop until first byte is STX
+	data[len++] = ch;
+      };
+      
+      if (bTimeToQuit) 
+      {
+        fflush(stdout);
+      	fprintf(console, "quitting..\n");
+	break;
+      };
+ 
+      time(&mtime);
+      ctm = gmtime(&mtime);
+      strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); // Wed Oct 08 2003 20:59:32
+      strftime(pipelineclk, sizeof(pipelineclk), "'%Y-%m-%d %H:%M:%S'", ctm); 	// 1999-01-08 04:05:06
+
+      if (raw) {
+	fprintf(console,"%s : %d bytes read |", clk, err);
+	for ( i = 0; i<8; i++) {
+	  fprintf(console,"%x|", data[i]);
+	}
+	fprintf(console,"\n");
+      }
+
+      // When we get here, we should have 8 bytes starting with STX and ending with ETX.
+      if (data[0]!=STX)
+      {
+        fflush(stdout);
+      	fprintf(console, "No STX seen - can't happen!  Skipping..\n");
+	continue;
+      };
+      if (data[7]!=ETX)
+      {
+        fflush(stdout);
+      	fprintf(console, "No ETX seen - skipping to next STX..\n");
+	continue;
+      };
+	      
+      /* figure sensor type and address */
+      dummy = data[1] & mask;
+      styp  = dummy & 0xf0;
+      styp  = styp >> 4;
+      saddr = dummy & 0xf;
+      name = sname(styp);
+      strcpy(buf,"");
+      strcpy(pipelinebuf,"");
+     
+
+      sver = 0x12;
+      if ( ( styp < 0x5 ) && ( saddr < 0x8)) {
+	  sver = 0x11;
+      }
+
+      if (debug) {
+	fprintf(console,"dummy :%x, styp :%x, saddr:%x\n", dummy, styp, saddr);      
+	fprintf(console,"sname: %s, styp  :%x, sver :%x\n", name, styp, sver);
+      }
+
+      /* handle sensors */
+      /* outdoor (temperature only) */
+      if ( styp == 0x0 ) {
+	/* temperature */
+	hi = data[2] & mask ;
+        hi = hi << 9;
+	lo = data[3] & mask;
+	lo = lo << 2;
+	dummy = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
+
+	if (debug) {
+	  fprintf(console,"Temperature\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+	}
+        
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (address 0x0%x) | T[C] %.1f",
+	    clk, name, saddr, t);
+        }
+	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',Outdoor_Temp,0x0f,T,12.3"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Outdoor_Temp,0x0%x,T,%.1f",
+	    pipelineclk, saddr, t);
+	}
+      }
+      /* outdoor (temperature, humidity) */
+      else if ( styp == 0x1 ) {
+	/* temperature */
+	hi = data[2] & mask ;
+        hi = hi << 9;
+	lo = data[3] & mask;
+	lo = lo << 2;
+	dummy = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
+
+	/* humidity */
+	h = data[4] & mask;
+
+	if (debug) {
+	  fprintf(console,"Temperature\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+	  fprintf(console,"Humidity\n");
+	  fprintf(console,"W3: %x\n", data[4]);
+	  fprintf(console,"Hum: %d\n\n", h);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d",
+	    clk, name, sver, saddr, t, h);
+        }
+	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',Outdoor,0x0f,T,12.3,H,42"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Outdoor,0x0%x,T,%.1f,H,%d",
+	    pipelineclk, saddr, t, h);
+	}
+      } 
+      /* rain */
+      else if ( styp == 0x2 ) {
+	hi = data[2] & 0x1f ;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	r  = hi + lo ;
+
+	if (debug) {
+	  fprintf(console,"Rain\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Rain: %d\n\n", hi, lo, r);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | [Impulses * 0.37mm] %d",
+	    clk, name, sver, saddr, r);
+        }
+	if (pipeline) {
+	  // The impulse counter wraps around to zero eventually.
+	  // Example: "'2003-10-08 21:09:30',Rain,0x0f,123"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Rain,0x0%x,%d",
+	    pipelineclk, saddr, r);
+	}
+      }
+      /* wind */
+      else if ( styp == 0x3 ) {
+	/* wind speed*/
+	hi = data[2] & mask ;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	wspd  = ( hi + lo ) / 10.0 ;
+
+	/* wind deviation */
+	dummy = data[4] & mask;
+        wdev  = (dummy * 45 );
+        wdev  = 0.5 * wdev;
+
+	/* wind direction */
+	hi = data[5] & mask ;
+        hi = hi << shift;
+	lo = data[6] & mask;
+	wdir = hi + lo ;
+
+	if (debug) {
+	  fprintf(console,"Windspeed\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Windspd: %.1f\n\n", hi, lo, wspd);
+	  fprintf(console,"Wind Deviation\n");
+	  fprintf(console,"W3: %x\n", data[4]);
+	  fprintf(console,"Wind deviation: %f\n\n", wdev);
+	  fprintf(console,"Wind Direction\n");
+	  fprintf(console,"W4: %x, W5: %x\n", data[5], data[6]);
+	  fprintf(console,"Wind direction: %d\n\n", wdir);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | Speed[km/h] %.1f | Direction [] %d +/- %.1f",
+	    clk, name, sver, saddr, wspd, wdir, wdev);
+        }
+	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',Wind,0x0f,V,12.3,D,270,+-,22.5"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Wind,0x0%x,V,%.1f,D,%d,+-,%.1f",
+	    pipelineclk, saddr, wspd, wdir, wdev);
+	}
+      } 
+      /* indoor (temperature, humidity, pressure) */
+      else if ( styp == 0x4) {  
+	/* temperature */
+	hi = data[2] & mask;
+        hi = hi << 9;
+	lo = data[3] & mask;
+	lo = lo << 2;
+	dummy  = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
+
+	/* humidity */
+	h = data[4] & mask;
+
+	/* pressure */
+	dummy  = data[5] & mask;
+	hi = dummy << shift;
+	lo = data[6] & mask;
+	p  = hi + lo;
+
+        if (debug) {
+	  fprintf(console,"Temperature\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+	  fprintf(console,"Humidity\n");
+	  fprintf(console,"W3: %x\n", data[4]);
+	  fprintf(console,"Hum: %d\n\n", h);
+	  fprintf(console,"Pressure\n");
+	  fprintf(console,"W4: %x, W5: %x\n", data[5], data[6]);
+	  fprintf(console,"dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, p);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d | P[hPa] %d",
+	    clk, name, sver, saddr, t, h, p);
+        }
+	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',Indoor,0x0f,T,21.5,H,44,P,1009"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Indoor,0x0%x,T,%.1f,H,%d,P,%d",
+	    pipelineclk, saddr, t,h,p);
+	}
+      }
+      /* brightness */
+      else if ( styp == 0x5) {  
+	/* brightness */
+	hi = data[2] & mask;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	b  = hi + lo ;
+
+	/* multiplicator */
+	mul = data[4] & 0x3;
+        // New info 2003/10: From English instructions... 
+        // Units are "lux", multiplier x1, x10, x100 or x1000. Resolution 3 digits. Accuracy +- 10%.
+	imul = 1;
+	switch(mul)
+	{
+	case 0: imul=   1; break;
+	case 1: imul=  10; break;
+	case 2: imul= 100; break;
+	case 3: imul=1000; break;
+	default: ; 
+	};
+
+        if (debug) {
+	  fprintf(console,"Brightness\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, brightness: %d\n\n", hi, lo, b);
+	  fprintf(console,"Multiplicator\n");
+	  fprintf(console,"W3: %x\n", data[4]);
+          fprintf(console,"mul: %d\n", mul);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | [klx] %d",
+	    clk, name, sver, saddr, b * imul);
+        }
+    	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',Brightness,0x0f,123"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,Brightness,0x0%x,%d",
+	    pipelineclk, saddr, b * imul);
+	}
+      }
+      /* pyranometer */
+      else if ( styp == 0x6) {  
+	/* pyranometer */
+	hi = data[2] & mask;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	rad  = hi + lo;
+
+	/* multiplicator */
+	mul = data[4] & 0x3;
+	imul = 1;
+	switch(mul)
+	{
+	case 0: imul=   1; break;
+	case 1: imul=  10; break;
+	case 2: imul= 100; break;
+	case 3: imul=1000; break;
+	default: ; 
+	};
+
+        if (debug) {
+	  fprintf(console,"Pyranometer\n");
+	  fprintf(console,"W1: %x, W2: %x\n", data[2], data[3]);
+	  fprintf(console,"hi : %x, lo: %x, Radiation Power: %d\n\n", hi, lo, rad);
+	  fprintf(console,"Multiplicator\n");
+	  fprintf(console,"W3: %x\n", data[4]);
+	  fprintf(console,"mul: %d\n\n", h);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d",
+	    clk, name, sver, saddr, rad * imul);
+        }
+    	if (pipeline) {
+	  // Example: "'2003-10-08 21:09:30',RadPower,0x0f,123"
+          snprintf(pipelinebuf, sizeof(pipelinebuf),
+            "%s,RadPower,0x0%x,%d",
+	    pipelineclk, saddr, rad * imul);
+	}
+      }
+      /* sensor unknown ?! */
+      else {
+
+	snprintf(buf, sizeof(buf), "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@@thalreit.de",
+		clk, sver, saddr);
+      }
+      if (!raw     && (buf[0]        !='\0')) fprintf(console,"%s\n", buf);
+      if (pipeline && (pipelinebuf[0]!='\0')) fprintf(stdout, "%s\n", pipelinebuf);
+      fflush(stdout);
+    }
+    /* leave serial line in good state */
+    closeserial(fd, &oldtio); 
+    return(0);
+}
+
+
+
+
+
+
+
+
+
+@
+
+
+1.6
+log
+@stdout flushing OK w this version
+@
+text
+@a0 1
+bg
+d5 2
+a6 2
+   $Id: pcwsr.c,v 1.5 2003/11/10 13:38:35 jahns Exp jahns $
+   $Revision: 1.5 $
+d8 3
+a10 1
+   v0.1.4: data read improved (December 2003)
+d14 1
+a14 3
+   Ulrich Vigenschow, vigger@@t-online.de 
+
+   Copyright (C) 2001-2004 Volker Jahns <Volker.Jahns@@thalreit.de>
+d29 1
+a29 1
+ 
+d32 28
+a68 1
+#define SDEVICE "/dev/ttyS0"
+d75 3
+d79 1
+a79 2
+#define STX 0x02 
+#define ETX 0x03
+d92 4
+a95 6
+  /* open the device to be non-blocking (read will return immediatly) */
+  if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) == -1 ) 
+    {
+      perror("Unable to open serial device");
+      exit(-1);
+    } 
+d109 1
+a109 1
+  cfsetospeed(newtio, BAUDRATE);	
+a122 1
+
+d128 2
+a129 2
+  newtio->c_cc[VMIN]  = 0;
+  newtio->c_cc[VTIME] = 3;
+d161 1
+a161 1
+    "rain", "wind", 
+d168 17
+a184 18
+/* v0.1.4                                                
+   Trap HUP and INTR signals, and close down cleanly.    
+ */                                                      
+static int bTimeToQuit = 0;                              
+
+void MySigHupHandler(int sig)                            
+{                                                        
+    fflush(stdout);                                      
+    printf("SIGHUP received: ");
+    bTimeToQuit = 1;                                     
+};                                                       
+
+void MySigIntHandler(int sig)                            
+{                                                        
+    fflush(stdout);                                      
+    printf("SIGINT received: ");
+    bTimeToQuit = 1;                                     
+};                                                       
+d187 1
+a187 1
+/*  
+d192 1
+a192 1
+    int c, i, fd, err, len;
+d198 2
+a199 2
+    int h, p, wdir, r, b, rad, mul;
+    int debug, raw;
+d201 1
+a201 1
+    struct termios newtio,oldtio;
+d205 3
+a207 1
+    char *name;                  /* sensor typ spec */
+d212 1
+d214 4
+a217 3
+    printf("pcwsr 0.1.4 - experimental test version\n");
+    debug = 0;
+    raw   = 0;
+d222 5
+d229 1
+a229 1
+          printf("option: raw\n");
+d233 1
+a233 1
+          printf("option: debug\n");
+d236 1
+a236 1
+	  printf("Illegal option: %c\n", c);
+d242 5
+a246 4
+      printf("Usage: pcwsr -r -d <serial device>\n");
+      printf("\twhere <options> include:\n");
+      printf("\t-r:\tdump raw data frames\n");
+      printf("\t-d:\taddtl. debug output\n");
+d251 2
+a252 2
+    printf("Using serialport %s\n", *argv);
+    fflush(stdout);
+d254 3
+a256 2
+    tzset();
+    fd = initserial(&newtio, &oldtio, *argv);
+d258 4
+a261 8
+    if (signal(SIGHUP, MySigHupHandler) == SIG_ERR)           
+      {                                                         
+	printf("Can't install SIGHUP handler: exit!\n");
+        exit(1);
+      };                                                        
+    if (signal(SIGINT, MySigIntHandler) == SIG_ERR)           
+      {                                                         
+	printf("Can't install SIGINT handler: exit!\n"); 
+d263 6
+a268 2
+      };                                                        
+
+d270 24
+a293 23
+
+      /* read weather station resonse from serial port */
+      len = 0;
+      memset(data, 0 , FRAMELEN);
+      while (!bTimeToQuit  &&  len < 8)                            
+      {                                                            
+        unsigned char ch=0;                                        
+        if (err=read(fd, &ch, 1)!=1)                               
+                continue;       // Loop until a byte is read.      
+        if (len==0  &&  ch!=STX)                                   
+                continue;       // Loop until first byte is STX    
+        data[len++] = ch;                                          
+      };                                                           
+                                                                   
+      if (bTimeToQuit)                                             
+      {                                                            
+        fflush(stdout);                                            
+        printf("quitting..\n");            
+        break;                                                     
+      };             
+
+      err = read(fd, data, FRAMELEN);
+
+d296 2
+a297 1
+      strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm);
+d300 1
+a300 1
+	printf("%s : %d bytes read |", clk, err);
+d302 1
+a302 1
+	  printf("%x|", data[i]);
+d304 1
+a304 1
+	printf("\n");
+d311 1
+a311 1
+      	printf("No STX seen - can't happen!  Skipping..\n");
+d317 1
+a317 1
+      	printf("No ETX seen - skipping to next STX..\n");
+d320 1
+a320 2
+
+
+d326 6
+a331 3
+      name  = sname(styp);
+ 
+      sver  = 0x12;
+d337 2
+a338 2
+	printf("dummy :%x, styp :%x, saddr:%x\n", dummy, styp, saddr);      
+	printf("sname: %s, styp  :%x, sver :%x\n", name, styp, sver);
+d356 3
+a358 3
+	  printf("Temperature\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+d363 1
+a363 1
+            "%s | %8s (address 0x0%x) | T[°C] %.1f\n",
+d366 6
+d390 6
+a395 6
+	  printf("Temperature\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+	  printf("Humidity\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("Hum: %d\n\n", h);
+d400 1
+a400 1
+            "%s | %8s (version %x at address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d\n",
+d403 6
+d418 3
+a420 3
+	  printf("Rain\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Rain: %d\n\n", hi, lo, r);
+d425 1
+a425 1
+            "%s | %8s (version %x at address 0x0%x) | [Impulses] %d\n",
+d428 8
+a435 1
+      } 
+d456 9
+a464 9
+	  printf("Windspeed\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Windspd: %.1f\n\n", hi, lo, wspd);
+	  printf("Wind Deviation\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("Wind deviation: %f\n\n", wdev);
+	  printf("Wind Direction\n");
+	  printf("W4: %x, W5: %x\n", data[5], data[6]);
+	  printf("Wind direction: %d\n\n", wdir);
+d469 1
+a469 1
+            "%s | %8s (version %x at address 0x0%x) | Speed[km/s] %.1f | Direction [°] %d +/- %.1f\n",
+d472 6
+d502 9
+a510 9
+	  printf("Temperature\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+	  printf("Humidity\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("Hum: %d\n\n", h);
+	  printf("Pressure\n");
+	  printf("W4: %x, W5: %x\n", data[5], data[6]);
+	  printf("dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, p);
+d515 1
+a515 1
+            "%s | %8s (version %x at address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d | P[hPa] %d\n",
+d518 6
+d535 11
+d548 6
+a553 6
+	  printf("Brightness\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, brightness: %d\n\n", hi, lo, b);
+	  printf("Multiplicator\n");
+	  printf("W3: %x\n", data[4]);
+          printf("mul: %d\n", mul);
+d558 2
+a559 2
+            "%s | %8s (version %x at address 0x0%x) | [arb.units] %d x %d\n",
+	    clk, name, sver, saddr, b, mul);
+d561 6
+d578 9
+d589 6
+a594 6
+	  printf("Pyranometer\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Radiation Power: %d\n\n", hi, lo, rad);
+	  printf("Multiplicator\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("mul: %d\n\n", h);
+d599 2
+a600 2
+            "%s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d x %d\n",
+	    clk, name, sver, saddr, rad, mul);
+d602 6
+d612 1
+a612 1
+	snprintf(buf, sizeof(buf), "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@@thalreit.de\n",
+d615 2
+a616 1
+      if (!raw) printf("%s\n", buf);
+d619 1
+a619 1
+    /* leave serial line in good state */ 
+@
+
+
+1.5
+log
+@negative temperatures
+@
+text
+@d1 1
+d6 2
+a7 2
+   $Id: pcwsr.c,v 1.4 2001/11/22 08:50:47 jahns Exp jahns $
+   $Revision: 1.4 $
+d9 4
+a12 1
+   negative temperature patch:
+d15 1
+a15 1
+   Copyright (C) 2001,2002, 2003 Volker Jahns <Volker.Jahns@@thalreit.de>
+d40 1
+d50 2
+d65 5
+a69 4
+  if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) == -1 ) {
+    perror("Unable to open serial device");
+    exit(-1);
+  } 
+d97 8
+a104 2
+  newtio->c_cc[VMIN]=1;
+  newtio->c_cc[VTIME]=5;
+d143 18
+a160 2
+
+
+d168 1
+a168 1
+    int c, i, fd, err;              /* filedescriptor serial port */
+d177 1
+a177 1
+    struct termios newtio,oldtio; /* termios structures to set comm parameters */
+d181 1
+a181 1
+    char *name;  /* sensor typ spec */
+d187 1
+a187 3
+
+    printf("pcwsr 0.1.3 - experimental test version\n");
+    printf("Copyright (C) 2002, 2003 Volker Jahns, Volker.Jahns@@thalreit.de\n");
+d217 1
+a217 1
+    printf("%s\n", *argv);
+d220 13
+a232 2
+    tzset();                                   /* setting timezone */
+    fd = initserial(&newtio, &oldtio, *argv); /* serial initialization */ 
+d235 1
+d237 19
+d270 15
+@
+
+
+1.4
+log
+@minimum cmdline parsing added
+@
+text
+@d5 2
+a6 2
+   $Id: pcwsr.c,v 1.3 2001/11/21 15:36:33 jahns Exp jahns $
+   $Revision: 1.3 $
+d8 4
+a11 1
+   Copyright (C) 2001 Volker Jahns <Volker.Jahns@@thalreit.de>
+d158 2
+a159 1
+    printf("pcwsr 0.1 - experimental test version\n");
+d190 1
+d216 3
+a218 3
+      name = sname(styp);
+
+      sver = 0x12;
+d233 1
+a233 1
+        hi = hi << shift;
+d235 6
+a240 1
+	t  = ( hi + lo ) / 10.0 ;
+d258 1
+a258 1
+        hi = hi << shift;
+d260 6
+a265 1
+	t  = ( hi + lo ) / 10.0 ;
+d345 1
+a345 1
+        hi = hi << shift;
+d347 6
+a352 1
+	t  = ( hi + lo ) / 10.0 ;
+d440 1
+@
+
+
+1.3
+log
+@handling all sensors (untested!)
+raw /debug output
+@
+text
+@d5 2
+a6 2
+   $Id: pcwsr.c,v 1.1 2001/11/21 15:26:16 jahns Exp jahns $
+   $Revision: 1.1 $
+d134 2
+a135 2
+main( int argc, char **argv) {
+    int i, fd, err;              /* filedescriptor serial port */
+d157 1
+a157 1
+    raw   = 1;
+d159 19
+a177 2
+    if (argc < 2) {
+      printf("Usage: $0 <serial device> <options>\n");
+d179 2
+a180 1
+      printf("\traw: dump raw data frames\n");
+d184 2
+a185 1
+    if ( argv[2] == "raw" ) raw = 1;
+d188 1
+a188 1
+    fd = initserial(&newtio, &oldtio, argv[1]); /* serial initialization */ 
+@
+
+
+1.2
+log
+@- 1st working version
+- handles only 3 types of sensors
+- reading data needs to be worked on
+@
+text
+@d5 1
+a5 1
+   $Id: pcwsr.c,v 1.1 2001/11/16 06:47:39 jahns Exp jahns $
+d32 1
+d35 1
+a35 1
+#define BAUDRATE 19200
+d51 1
+a51 1
+initserial (struct termios *newtio, struct termios *oldtio ) {
+d55 4
+a58 1
+  pfd = open(SDEVICE, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK ); 
+a70 1
+  
+d84 1
+d120 2
+a121 2
+    "indoor", "Helligkeit", 
+    "Pyranometer", "undef"
+a125 62
+/*
+  readdata
+
+  reading data from serial port
+
+*/
+static int 
+readdata (int rfd)
+{
+  int err, i, n;
+  int maxfd;
+  int loop = 1;
+  fd_set readfs;
+  unsigned char *rbuf;
+  struct timeval tv;
+  
+  err = -1;
+  maxfd = rfd +1;
+
+  
+  for ( i = 0; i < 254; i++ ){
+      rbuf[i] = 0;
+  }
+
+  /* loop until input is available */
+  while ( loop) {
+        
+        FD_ZERO(&readfs);
+        FD_SET(rfd, &readfs);
+
+        tv.tv_sec  = TIMEOUT;
+        /* tv.tv_usec = 0; */
+        
+        n = select(maxfd, &readfs, NULL, NULL, &tv);
+        switch (n) {
+        case -1:
+          perror("select");
+          return(-1);
+        case 0:
+          printf("select\t\t: Timeout\n");
+          return(-1);
+        default:
+          
+          /* loop until err = 0 */
+          while ( ( rbuf[err-1] != 3) && ( err != 8)) {
+                err = read(rfd, rbuf, MAXBUFF);
+                perror("read returned");
+                printf("read\t\t: errno: %d\n", errno);
+
+                printf("read\t\t: err %d: rbuf: |", err);
+                for ( i = 0; i < err; i++) {
+                  printf("%d|", rbuf[i]);
+                }
+                printf("\n");
+                loop=0;
+          }
+          break;
+        }
+  }
+  return(0);
+}
+
+d134 1
+a134 1
+main (int argc, char **argv) {
+d140 3
+a142 3
+    float t;
+    int h, p;
+    int debug;
+d147 2
+a148 1
+    char *name;
+d153 3
+a155 2
+    tzset();                           /* setting timezone */
+    fd = initserial(&newtio, &oldtio); /* serial initialization */ 
+d157 10
+d168 4
+a171 1
+    for ( ;;) {
+a172 1
+      /*  err = readdata(fd);*/
+d174 1
+d177 1
+a177 1
+      strftime(clk, sizeof(clk), "%c", ctm);
+d179 2
+a180 2
+      if (debug) {
+	printf("%s : err: %d  |", clk, err);
+d204 1
+a204 1
+      /* handle different type of sensors */
+a216 3
+	  printf("Humidity\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("Hum: %d\n\n", h);
+d218 6
+a223 3
+
+        printf("%s | %8s at addr %x | T[°C] %.1f\n",
+	       clk, name, saddr, t);
+d245 18
+a262 2
+        printf("%s | %8s at addr %x | T[°C] %.1f | H[%% rel.hum] %d\n",	
+	       clk, name, saddr, t, h);
+d264 42
+d336 60
+a395 2
+        printf("%s | %8s at addr %x | T[°C] %.1f | H[%% rel.hum] %d| P[hPa] %d\n",
+	       clk, name, saddr, t, h, p);
+d397 2
+d400 1
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 2
+a6 2
+   $Id$
+   $Revision$
+d38 3
+d110 12
+d194 1
+a194 1
+    int hi, lo, t;
+d197 4
+a200 1
+    float val;
+d202 1
+a202 2
+    struct termios newtio,oldtio;   /* termios structures to set 
+                                     comm parameters */
+d205 1
+d210 3
+a212 4
+    tzset(); /* setting timezone */
+    /* serial initialization */
+    fd = initserial(&newtio, &oldtio);
+    
+d221 24
+a244 3
+      printf("%s : err: %d  |", clk, err);
+      for ( i = 0; i<8; i++) {
+	printf("%x|", data[i]);
+a245 1
+      printf("\n");
+d247 17
+a263 22
+      /* temperature */
+      printf("Temperature\n");
+      printf("W1: %x, W2: %x\n", data[2], data[3]);
+      hi = data[2] & mask << shift;
+      lo = data[3] & mask;
+      val = ( hi + lo ) / 10.0 ;
+      printf("hi : %x, lo: %x, val: %.1f\n\n", hi, lo, val);
+
+      /* humidity */
+      printf("Humidity\n");
+      printf("W3: %x\n", data[4]);
+      lo = data[4] & mask;
+      printf("lo: %d\n\n", lo);
+
+      /* pressure */
+      printf("Pressure\n");
+      printf("W4: %x, W5: %x\n", data[5], data[6]);
+      t  = data[5] & mask;
+      hi = t << shift;
+      lo = data[6] & mask;
+      val = hi + lo;
+      printf("t: %x, hi : %x, lo: %x, val: %.1f\n", t, hi, lo, val);
+d265 60
+@
