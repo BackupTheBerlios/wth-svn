@@ -1,162 +1,56 @@
-wine started WS_Empfaenger, but crashed
----------------------------------------
-stty -F /dev/ttyS0 -a
-speed 19200 baud; rows 0; columns 0; line = 0;
-intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
-eol2 = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
-lnext = ^V; flush = ^O; min = 0; time = 1;
-parenb parodd cs8 -hupcl cstopb cread clocal -crtscts
-ignbrk -brkint -ignpar -parmrk inpck -istrip -inlcr -igncr -icrnl -ixon -ixoff
--iuclc -ixany -imaxbel
--opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0
-ff0
--isig -icanon iexten -echo echoe echok -echonl noflsh -xcase -tostop -echoprt
-echoctl echoke
+Description
+-----------
+pcwsr is Free Software(http://www.gnu.org) to read the PC weathersensor 
+receiver sold by ELV (http://www.elv.de, ELV Part No. 68-390-61). Different
+types of weather sensors like temperature, humidity, air pressure, wind, rain
+or brightness transmit measured values wireless (at 433MHz). The receiver is 
+connected thru the serial port. The communication with the computing equipment
+is unidirectional, i.e. the receiver writes the sensor data to the serial port
+once they are received from the wireless sensors.
 
-this how it worked once
------------------------
-stty -F /dev/ttyS0 speed 19200 parenb parodd cstopb
-stty -F /dev/ttyS0 ignbrk inpck -icrnl -ixon -opost -isig -icanon iexten -echo echoe echok -echonl noflsh -xcase -tostop -echoprt
+               radio transmission                            serial
+      sensor <--------------------> weathersensor receiver  --------> computer
+               at 433 MHz                                    comm.
+                              computer
 
 
+The communication protocol has been published by ELV (ELV Journal 6/2000). It
+has been reproduced elsewhere (http://wth.berlios.de/station-protocol.txt).
 
-settings after bootup
----------------------
-stty -F /dev/ttyS0 -a
-speed 9600 baud; rows 0; columns 0; line = 0;
-intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
-eol2 = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
-lnext = ^V; flush = ^O; min = 1; time = 0;
--parenb -parodd cs8 hupcl -cstopb cread clocal -crtscts
--ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff
--iuclc -ixany -imaxbel
-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
-isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt
-echoctl echoke
+The communication software pcwsr opens the serial port, sets the serial
+configuration right, then loops to receive data from the serial port.
 
 
-setting only c-flags and i-flags seems to be sufficient
--------------------------------------------------------
-stty -F /dev/ttyS0 speed 19200 parenb parodd cstopb
-stty -F /dev/ttyS0 -isig -icanon 
+Screenshots
+-----------
+A typical screenshot of pcwsr looks like this:
+
+volker@ikarus pcwsr-0.1.2 > ./pcwsr /dev/ttyS0
+pcwsr 0.1 - experimental test version
+Wed Nov 21 2001 19:54:49 |     wind (version 11 at address 0x07) | Speed[km/s] 1.5 | Direction [°] 95 +/- 45.0
+Wed Nov 21 2001 20:00:37 |   indoor (version 11 at address 0x07) | T[°C] 18.1 | H[% rel.hum] 44 | P[hPa] 974
 
 
-these settings work
--------------------
-stty -F /dev/ttyS0 -a
-speed 19200 baud; rows 0; columns 0; line = 0;
-intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; start = ^Q;
-stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W; lnext = ^V; flush = ^O; min = 1; time = 0;
-parenb parodd cs8 hupcl cstopb cread clocal -crtscts
--ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff -iuclc -ixany -imaxbel
-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0
--isig -icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke
+using the raw option the byte strings are dumped as received:
 
-
-data reading on the serial line configured as above will return only
-5 Byte long strings instead of the specified 8 bytes. This happens
-when using
-	select
-	blocking I/O
-	simple cat </dev/ttyS0 >outf (if you look at the length of outf 
-		it is 5 bytes long after the first read, 10 bytes after the 
-		second and so on).
+volker@ikarus pcwsr-0.1.2 > ./pcwsr -r /dev/ttyS0
+pcwsr 0.1 - experimental test version
+option: raw
+Wed Nov 21 2001 20:13:32 : 8 bytes read |2|a7|8c|b4|80|80|80|3|
+Wed Nov 21 2001 20:14:04 : 8 bytes read |2|c7|81|b5|ac|87|ce|3|
+Wed Nov 21 2001 20:16:22 : 8 bytes read |2|a7|8c|b4|80|80|80|3|
+Wed Nov 21 2001 20:16:46 : 8 bytes read |2|c7|81|b5|ac|87|ce|3|
 
 
 
+Serial communication
+--------------------
+A crucial point in the development of the code was to get the serial communication
+parameters right. In the first place, serial line snooping has been used to test
+the PC software which comes with the weathersensor receiver 
+(http://wth.berlios.de/SerialSnooping.html). The following settings for the
+serial port have been found useful:
 
-the following setup of /dev/ttyd0 and /dev/ttyd1 for serial line snooping
-w/ snooper gets data off the weather sensor receiver:
-
-/dev/ttyd0
-----------
-speed 9600 baud; 0 rows; 0 columns;
-lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
-        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
-        -nokerninfo -extproc
-iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
-        -brkint -inpck -ignpar -parmrk
-oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
-cflags: cread cs8 parenb -parodd -hupcl clocal cstopb -crtscts -dsrflow
-        -dtrflow -mdmbuf
-cchars: discard = ^@; dsusp = ^@; eof = ^@; eol = ^@; eol2 = ^@;
-        erase = ^@; erase2 = ^@; intr = ^@; kill = ^@; lnext = ^@;
-        min = 0; quit = ^@; reprint = ^@; start = ^@; status = ^@;
-        stop = ^@; susp = ^@; time = 10; werase = ^@;
-
-/dev/ttyd1
-----------
-speed 19200 baud; 0 rows; 0 columns;
-lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
-        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
-        -nokerninfo -extproc
-iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
-        -brkint -inpck -ignpar -parmrk
-oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
-cflags: cread cs8 parenb parodd -hupcl clocal cstopb -crtscts -dsrflow
-        -dtrflow -mdmbuf
-cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
-        eol2 = <undef>; erase = ^?; erase2 = ^H; intr = ^C; kill = ^U;
-        lnext = ^V; min = 1; quit = ^\; reprint = ^R; start = ^Q;
-        status = ^T; stop = ^S; susp = ^Z; time = 5; werase = ^W;
-
-to use the serial line snooper
-/usr/local/bin/snooper -b19200 /dev/ttyd0 /dev/ttyd1
-
-to configure the serial lines, simple reset them to their bootup default
-then use stty to set 2 stop bits and parity:
-stty -f /dev/ttyd[01-] cstopb
-stty -f /dev/ttyd[01-] parenb
-stty -f /dev/ttyd[01-] parodd
-
-
-
-this is working solution LINUX and FreeBSD only
------------------------------------------------
-
-FreeBSD
--------
-snooper -b19200 /dev/ttyd0 /dev/ttyd1
-stty -f /dev/ttyd[01-] cstopb
-stty -f /dev/ttyd[01-] parenb
-stty -f /dev/ttyd[01-] parodd
-
-w/ the following settings on /dev/ttyd0 and /dev/ttyd1
-jahns@eagle jahns > stty -f /dev/ttyd0 -a
-speed 19200 baud; 0 rows; 0 columns;
-lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
-        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
-        -nokerninfo -extproc
-iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
-        -brkint -inpck -ignpar -parmrk
-oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
-cflags: cread cs8 parenb parodd -hupcl clocal cstopb -crtscts -dsrflow
-        -dtrflow -mdmbuf
-cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
-        eol2 = <undef>; erase = ^?; erase2 = ^H; intr = ^C; kill = ^U;
-        lnext = ^V; min = 1; quit = ^\; reprint = ^R; start = ^Q;
-        status = ^T; stop = ^S; susp = ^Z; time = 5; werase = ^W;
-
-jahns@eagle jahns > stty -f /dev/ttyd1 -a
-speed 19200 baud; 0 rows; 0 columns;
-lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
-        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
-        -nokerninfo -extproc
-iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
-        -brkint -inpck -ignpar -parmrk
-oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
-cflags: cread cs8 parenb parodd -hupcl clocal cstopb -crtscts -dsrflow
-        -dtrflow -mdmbuf
-cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
-        eol2 = <undef>; erase = ^?; erase2 = ^H; intr = ^C; kill = ^U;
-        lnext = ^V; min = 1; quit = ^\; reprint = ^R; start = ^Q;
-        status = ^T; stop = ^S; susp = ^Z; time = 5; werase = ^W;
-
-
-LINUX
------
-set serialline to the following settings:
-stty -F /dev/ttyS0 -a
 speed 19200 baud; rows 0; columns 0; line = 0;
 intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = <undef>;
 eol2 = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
@@ -169,117 +63,46 @@ ff0
 -isig -icanon iexten -echo -echoe echok -echonl -noflsh -xcase -tostop -echoprt
 echoctl echoke
 
-to receive characters use simply
+The serial has to be configured to 19200 Baud, 2 stop bits and odd parity. Also
+it has to be set to raw mode for input and output by turning off ICANON, ISIG, ECHO
+ECHOE and OPOST.
+
+The data can most simply be received by
 cat </dev/ttyS0 >>/tmp/raus
 
-each read will return 8 characters
-
-don't forget to get the serial devices on the snooper correct!
-i.e. when snooper -b19200 /dev/ttyd0 /dev/ttyd1 runs
-the serial lines must be configured as:
-
-stty -f /dev/ttyd[0-1] -a
--------------------------
-speed 19200 baud; 0 rows; 0 columns;
-lflags: -icanon -isig -iexten -echo -echoe -echok -echoke -echonl
-        -echoctl -echoprt -altwerase -noflsh -tostop -flusho -pendin
-        -nokerninfo -extproc
-iflags: -istrip -icrnl -inlcr -igncr -ixon -ixoff -ixany -imaxbel -ignbrk
-        -brkint -inpck -ignpar -parmrk
-oflags: -opost -onlcr -ocrnl -oxtabs -onocr -onlret
-cflags: cread cs8 parenb parodd -hupcl clocal cstopb -crtscts -dsrflow
-        -dtrflow -mdmbuf
-cchars: discard = ^O; dsusp = ^Y; eof = ^D; eol = <undef>;
-        eol2 = <undef>; erase = ^?; erase2 = ^H; intr = ^C; kill = ^U;
-        lnext = ^V; min = 1; quit = ^\; reprint = ^R; start = ^Q;
-        status = ^T; stop = ^S; susp = ^Z; time = 5; werase = ^W;
+Each read will return 8 characters in case everything has been configured right.
 
 
-captured output of the pc weathersensor receiver
-------------------------------------------------
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|221|161|128|128|3|
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|222|161|128|128|3|
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|222|161|128|128|3|
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|222|161|128|128|3|
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|222|161|128|128|3|
-read returned: Invalid argument
-read            : errno: 22
-read            : err 8: rbuf: |2|146|129|222|160|128|128|3|
+Types of sensors
+----------------
+The following sensors have been tested so far successfully:
 
-
-
-The snooper is a serial line snooping tool used for snooping communication
-between two devices that communicate with an RS232C serial line.
-
-An typical machine configuration involving three computers is:
-
-                partyA          a computer 
-                partyB          computer/modem/digi-cam/whatever
-                console         The computer you are using to snoop
-                                the communication between A and B.
-
-        Say, you would like to snoop the following configuration.
-                partyA ---cableAB--- partyB
-        In that case you should connect "console" between partyA and
-        cableAB, as follows:
-                partyA ---cableX--- console ---cableAB--- party B
-        cableX must be cross-cable (a cable to connect two computers).
-
-Command-line options
-        % snooper [-options] dev0 dev1
-                -bBAUD  specifies baud rate.
-                -u      don't use uucp locking (questionable option)
-                dev0    name of serial device 0.
-                dev1    name of serial device 1.
-
-stty reset script
------------------
-#!/bin/sh
-
-#
-# resetting serial line to bootup settings
-#
-stty -F /dev/ttyS0 speed 9600 \
--parenb -parodd cs8 hupcl -cstopb cread clocal -crtscts \
--ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff \
--iuclc -ixany -imaxbel \
-opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0  \
-isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt \
-echoctl echoke
----
-end stty reset script
+S2000A  outdoor temperature and humidity sensor
+S2000W  wind sensor for speed and direction detection
+S2000R  rain sensor 
+S2000I  indoor sensor for temperature and humidity
+S2000ID indoor sensor for temperature, humidity and air pressure
 
 
 Unknown stuff
 -------------
 If the serialline is snooped using the WS-EMpfaenger.exe binary
-the software sends two byte strings to the PC Wettersensor empfaenger
-The strings are 9 bytes long
+which comes with the receiver it is noted that the software sends two byte strings 
+to the PC weathersensor receiver. The two strings are 9 bytes long
 
 01 ff 00 00 00 00 00 80 04
 01 ff 00 00 00 00 00 80 04
 
-Types of sensors
-----------------
-
-The following sensors have been tested so far:
-
-S2000I  WS_empfaenger interprets as Aussen[2]  Typ byte is 0x92
-S2000ID WS_empfaenger interprets as Innen[7]   Typ byte is 0xc7
+I don't know howto interpret this.
 
 
-Technischer Kundendienst ELV
-----------------------------
-Tel. 0491 6008 245
-Entwickler-Email: steinmetzs@elv.de (Fr.Steinmetz)
+Licensing
+---------
+The pcwsr code is Copyright (c) 2001, Volker Jahns (Volker.Jahns@thalreit.de). It
+is Free Software and is put under the GPL (http://www.gnu.org for further details).
+
+$Id: README,v 1.1 2001/11/23 07:29:45 jahns Exp jahns $
+$Revision: 1.1 $
+
+
 

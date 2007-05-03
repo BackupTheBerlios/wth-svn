@@ -2,8 +2,8 @@
 
    serial line communication w/ PC weathersensor receiver
 
-   $Id: pcwsr.c,v 1.2 2001/11/16 10:46:01 jahns Exp jahns $
-   $Revision: 1.2 $
+   $Id: pcwsr.c,v 1.4 2001/11/22 08:50:47 jahns Exp jahns $
+   $Revision: 1.4 $
 
    Copyright (C) 2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
@@ -131,8 +131,8 @@ char
    get raw data from serial interface
 */
 int 
-main( int argc, char **argv) {
-    int i, fd, err;              /* filedescriptor serial port */
+main( int argc, char *argv[]) {
+    int c, i, fd, err;              /* filedescriptor serial port */
     int hi, lo, dummy;
     int mask = 0x7f;
     int shift = 0x7;
@@ -154,19 +154,38 @@ main( int argc, char **argv) {
 
     printf("pcwsr 0.1 - experimental test version\n");
     debug = 0;
-    raw   = 1;
+    raw   = 0;
 
-    if (argc < 2) {
-      printf("Usage: $0 <serial device> <options>\n");
+    while ( --argc > 0 && (*++argv)[0] == '-')
+      while ( c = *++argv[0] )
+	switch (c) {
+	case 'r':
+	  raw = 1;
+          printf("option: raw\n");
+	  break;
+	case 'd':
+	  debug= 1;
+          printf("option: debug\n");
+	  break;
+	default:
+	  printf("Illegal option: %c\n", c);
+	  argc = 0;
+	  break;
+	}
+
+    if (argc !=1 ) {
+      printf("Usage: pcwsr -r -d <serial device>\n");
       printf("\twhere <options> include:\n");
-      printf("\traw: dump raw data frames\n");
+      printf("\t-r:\tdump raw data frames\n");
+      printf("\t-d:\taddtl. debug output\n");
       exit(-1);
     }
 
-    if ( argv[2] == "raw" ) raw = 1;
+  
+    printf("%s\n", *argv);
 
     tzset();                                   /* setting timezone */
-    fd = initserial(&newtio, &oldtio, argv[1]); /* serial initialization */ 
+    fd = initserial(&newtio, &oldtio, *argv); /* serial initialization */ 
 
     for ( ;; ) {
       /* read weather station resonse from serial port */
