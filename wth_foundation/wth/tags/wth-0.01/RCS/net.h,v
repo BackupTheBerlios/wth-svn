@@ -1,0 +1,27 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2001.02.06.15.56.49;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@FreeBSD OK
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* net.h */
+
+int getnrd(char *data, int *mdat, struct cmd *pcmd);
+@

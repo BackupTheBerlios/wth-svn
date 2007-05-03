@@ -1,0 +1,265 @@
+head	1.3;
+access;
+symbols;
+locks
+	volker:1.3; strict;
+comment	@ * @;
+
+
+1.3
+date	2001.02.06.15.55.29;	author volker;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2001.01.18.13.39.11;	author volker;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2001.01.18.11.51.02;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@1st version
+,
+@
+
+
+1.3
+log
+@FreeBSD OK
+@
+text
+@#include "wthlib.h"
+
+int main (int argc, char **argv) {
+  int err;                        /* return value of functions, 
+                                     useful for errorhandling */  
+  int setno;                      /* number of datasets */
+
+  /* used for commandline parsing */
+  int c;
+  extern int optind;              
+  extern char *optarg;
+  struct cmd cmd;                 /* command structure */
+
+  /* used for storing data */
+  struct sensor sens[MAXSENSORS]; /* structure contains sensor status, type 
+                                     and data */
+
+  openlog(argv[0], LOG_PID , LOGFACILITY);
+
+  /* initialize structure sens which holds *all* information on the
+     sensors */
+  err =  initsens(sens);
+  syslog(LOG_DEBUG, "Initializing datastructure sens : %d\n", err);
+                                                                    
+
+  /* initialize struct cmd */
+  cmd.netflg = -1;
+  cmd.port   = WPORT; 
+  
+  /* parsing command line arguments */
+  while (( c = getopt(argc, argv, "c:h:i:p:s")) != -1 ) {
+      switch (c) {
+	  case 'c':
+              cmd.command = atoi(optarg);
+	      break;
+	  case 'h':
+	      cmd.hostname = optarg;
+              cmd.netflg = 1;
+	      break;
+	  case 'i':
+              cmd.argcmd = atoi(optarg);
+	      break;
+	  case 'p':
+              cmd.port = optarg;
+	      break;
+          case 's':
+	      if ( cmd.netflg != -1 )
+		  usage(1,"specify serial OR internet connection","");
+	      cmd.netflg = 0;
+	      break;
+          case '?':
+	      usage(1, "Commandline error", "");
+	      break;
+          default:
+	      usage(0,"", "");
+       }
+   }
+   
+
+  /* check if intervall time has been set 
+     in case cmd.command is request to set intervall time */
+  if ( cmd.command == 6 ) {
+      if ((cmd.argcmd < 1) || (cmd.argcmd >60))
+	  usage(1,"interval time not been specified or out of range", "");
+  }
+
+  /* check on serial/internet connection is been chosen correctly */
+  if ( cmd.netflg == -1 )
+      usage(1, "specify serial OR internet connection","");
+
+
+  /* sending command to weather station */
+  err = wcmd(sens, &cmd, &setno); 
+  /* printf("Barsch OK\n"); */
+  syslog(LOG_DEBUG, "wthc : return code wcmd :%d\n", err);
+  closelog();
+  return(0);
+
+  
+} 
+
+
+
+@
+
+
+1.2
+log
+@getsubopt version
+doesn't make sense at this time as suboptions have to be sperated by commas
+@
+text
+@a3 3
+  int i;
+  int cm;                         /* command sent to weather station */
+  int argcm;                      /* command argument sent to weather station */
+a11 11
+  char *options, *value;
+  char buf[1024];
+  char *subopts[] = {
+  #define COLOR 0
+      "color",
+  #define SOLID 1
+      "solid",
+      NULL
+
+  };
+
+a13 1
+
+a14 1
+  struct DCFstruct DCF;           /* DCF status and synchronous */
+d18 11
+a29 2
+
+
+d31 1
+a31 1
+  while (( c = getopt(argc, argv, "c:h:p:s")) != -1 ) {
+d34 1
+a34 28
+              options = optarg;
+	      
+              /* process command argument */
+              while ( *options != '\0') {
+		  switch (getsubopt(&options, subopts, &value)) {
+		  case COLOR:
+			  if ( value != NULL ) {
+			      strcpy(buf, "color: ");
+			      strcat(buf, value);
+			  }
+		          else {
+			      strcat(buf, "missing color");
+			  }
+
+
+
+			  printf("cmdln: %s\n", buf);
+                    	  break;
+		  case SOLID:
+		      printf("solid\n");
+		      break;
+		  default:
+		      strcpy(buf, "unknown option: ");
+		      strcat(buf, value);
+		      printf("cmdln: %s\n", buf);
+		      break;
+		  }
+	      }
+d37 5
+a41 3
+ 	      strcpy(buf, "h :");
+	      strcat(buf, optarg);
+              printf("cmdln: %s\n",buf);
+d44 6
+a49 3
+ 	      strcpy(buf, "p :");
+	      strcat(buf, optarg);
+              printf("cmdln: %s\n",buf);
+d52 1
+a52 1
+	      printf("Commandline error\n");
+d54 2
+d60 6
+a65 12
+/*
+  if ( (argc != 2) && (argc != 3) ) {
+      printf("Usage: wthc --host <hostname/ipaddress> --command <command> <command argument>, where\n");
+      printf("<command> takes the values\n");
+      printf("\t0\tPoll DCF Time\n");
+      printf("\t1\tRequest dataset\n");
+      printf("\t2\tSelect next dataset\n");
+      printf("\t3\tActivate 9 temperature sensors\n");
+      printf("\t4\tActivate 16 temperature sensors\n");
+      printf("\t5\tRequest status\n");
+      printf("\t6\tSet interval time to <commandargument>\n");
+      printf("\t12\tRequest all available data recursively\n");
+d67 3
+a69 3
+      exit(1);
+  }
+*/
+a71 16
+/*   if ( argc == 3 ) {   */
+  	  /* argcm is a commandargument byte sent to weatherstation */
+          /* 
+             the only command which currently needs this argument is
+             6 : set intervall time
+          */
+ 
+/*          argcm = atoi(argv[2]);
+  } 
+
+  cm = atoi(argv[1]);
+
+  cmd.command = cm;
+  cmd.argcmd  = argcm;
+  cmd.netflg  = 1;
+*/
+d73 2
+a74 1
+  /* err = wcmd(sens, &cmd, &setno);  */
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d11 19
+d33 2
+a34 1
+  struct cmd cmd;                 /* command structure */
+d38 50
+d102 2
+d105 1
+a105 1
+  if ( argc == 3 ) {  
+d110 3
+a112 2
+          */ 
+          argcm = atoi(argv[2]);
+d120 1
+a120 1
+
+d122 1
+a122 1
+  err = wcmd(sens, &cmd, &setno);  
+@
