@@ -1,0 +1,37 @@
+ <?xml version="1.0" ?>
+ <weather>
+  <time_stamp zone="eastern">  December 04, 2001 14:23:52.42</time_stamp>
+  <copyright>  Copyright 2001 Accu-Weather, Inc.</copyright>
+   <current>
+    <citycode>012</citycode>
+     <day>
+      <name>today</name>
+       <conditions>M/CLOUDY</conditions>
+       <temperature unit="F">49</temperature>
+       <aparent_temperature unit="F">50</aparent_temperature>
+       <wind_chill unit="F">42</wind_chill>
+       <humidity>56</humidity>
+       <wind_from>W</wind_from>
+       <wind_speed unit="MPH">7</wind_speed>
+       <pressure unit="IN/HG">30.17</pressure>
+       <visibility unit="Mi">10</visibility>
+       <icon>06</icon>
+     </day>
+   </current>
+   <current>
+    <citycode>015</citycode>
+     <day>
+      <name>today</name>
+       <conditions>SUNNY</conditions>
+       <temperature unit="F">50</temperature>
+       <aparent_temperature unit="F">53</aparent_temperature>
+       <wind_chill unit="F">50</wind_chill>
+       <humidity>58</humidity>
+       <wind_from>N</wind_from>
+       <wind_speed unit="MPH">4</wind_speed>
+       <pressure unit="IN/HG">30.20</pressure>
+       <visibility unit="Mi">10</visibility>
+       <icon>01</icon>
+     </day>
+   </current>
+</weather>

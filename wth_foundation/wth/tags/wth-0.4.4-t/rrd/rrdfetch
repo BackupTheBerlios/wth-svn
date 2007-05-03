@@ -1,0 +1,7 @@
+#!/bin/sh
+
+rrdtool fetch sens4.rrd \
+	AVERAGE \
+	--start 974293700 \
+	--end 974296500
+

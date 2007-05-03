@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+
+#
+# create rrd's and fill them w/ data
+#
+LOGDIR="/proj/wetter/logs/"
+TMPLOG="$LOGDIR/wthlog"
+SENSORS="4 5"
+RRDTOOL="/usr/local/bin/rrdtool"
+RRD="$LOGDIR/sens"
+AWK="/bin/gawk"
+
+#
+# loop over sensors
+#
+for s in $SENSORS 
+do
+  cat $TMPLOG |\
+	$AWK -vrrdpath="$RRD" -vsensor=$s ' BEGIN {
+			cnt = 0;
+			rrd = "rrdtool update " rrdpath sensor ".rrd " ;
+		     }
+
+               /^'"$s"\\t'/ { cnt = cnt + 1;
+                    # negative temperatures have 1 in column 6
+	            if ($2 == "temp" && $6 == 1) {
+                        tmp = sprintf("%d:%.1f ", $5, -$7);
+                        rrd = rrd tmp;
+	       	    }
+	       	    else {
+                        tmp = sprintf("%d:%.1f ", $5, $7);
+	       	        rrd = rrd  tmp;
+                    }
+                    if (cnt == 3 ) {
+			system(rrd);
+			
+	                cnt = 0;
+                        rrd = "rrdtool update " rrdpath sensor ".rrd ";
+	       	    } 
+	       }
+
+               END {
+                        system(rrd);
+                   }'
+done
+
+
