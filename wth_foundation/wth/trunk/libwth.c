@@ -254,13 +254,14 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     /* wind sensor */
     rw->sens[17].status  = data[9];
     rw->sens[18].status  = data[9];
+    rw->sens[19].status  = data[9];
     /* indoor sensor : temp, hum, press */
-    rw->sens[19].status  = data[10];
     rw->sens[20].status  = data[10];
     rw->sens[21].status  = data[10];
+    rw->sens[22].status  = data[10];
         
     /* status of temperature/humidity sensor 9 to 15 */
-    for ( i = 11; i < 18; i++) {
+    for ( i = 12; i < 18; i++) {
 	  rw->sens[2*i].status   = data[i];
 	  rw->sens[2*i+1].status = data[i];
     }
@@ -290,7 +291,7 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
 
     /* number of sensors */
     if ( getbits(data[19],2,1) == 0 ) { 
-        rw->wstat.nsens = 22;
+        rw->wstat.nsens = 23;
     }
     else if ( getbits(data[19],2,1) == 1 ) {
         rw->wstat.nsens = 42;

@@ -1,9 +1,0 @@
-XML-RPC Fault: HTTP error #-1 occurred
-Fatal Error: connect operation failed (Connection refused) (-504)
-
-XML-fault method not implemented
-
-jahns@nemo wth-0.4.2 > wthxc -c1 -h localhost -x
-pcmd->command: 5
-xmlrpc_data.c:794: assertion failed
-

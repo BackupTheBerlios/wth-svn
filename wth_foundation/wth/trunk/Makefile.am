@@ -1,4 +1,4 @@
-CFLAGS = -O2
+AM_CFLAGS= -O2
 
 bin_PROGRAMS = wthc wthd wthxc wthxmld
 
@@ -34,11 +34,14 @@ wthxmld_LDADD =  $(top_builddir)/libwthxml.a -lxmlrpc -lxmlrpc_abyss \
 		-lwwwtrans -lwwwutils -lxmlrpc \
 		-lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
 
-noinst_HEADERS = wth.h wthnet.h wthprv.h
+include_HEADERS= wth.h
+noinst_HEADERS = wthnet.h wthprv.h
 
 lib_LIBRARIES = libwth.a libwthxml.a
 libwth_a_SOURCES = libwth.c data.c serial.c net.c wth.h wthnet.h wthprv.h 
 libwthxml_a_SOURCES = libwth.c dataxml.c serial.c net.c xml.c wth.h wthnet.h wthprv.h 
+
+man_MANS = wthc.1 wthd.1 wth.conf.5
 
 xmltest: wthxmld wthxc
 	-killall wthxmld
@@ -55,4 +58,4 @@ xmltest: wthxmld wthxc
 	-wthxc -c5 -h localhost -x
 	-killall wthxmld
 
-EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc
+EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc wthc.1 wthd.1 wth.conf.5

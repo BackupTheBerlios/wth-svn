@@ -382,7 +382,8 @@ int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     /* echo raw dataframe */
     if ( echodata(data, *mdat) == -1)
 	  return(-1);
-    
+
+    sleep(3);    
    /* leave serial line in good state */ 
     if ( closeserial(fd, &oldtio) == -1)
 	  return(-1);
