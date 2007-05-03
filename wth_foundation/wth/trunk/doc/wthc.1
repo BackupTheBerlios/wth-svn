@@ -1,0 +1,78 @@
+.TH WTHC 1 "20 July 2001"
+.SH NAME
+wthc \- control serial/network interface of weatherstation
+.SH SYNOPSIS
+\fBwthc\fP [ -c \fIcommand \fP ] [ -s | -n ] [ -h \fIhostname \fP]  [ -i \fBintervall \fP] [ -p \fBportnumber]
+.SH DESCRIPTION
+\fIwthc\fP controls the serial or network interface to a weatherstation
+module.  It is possible to read data like
+temperature, humidity, air pressure, wind speed, wind direction and 
+rain fall. The DCF77 receiver can be read as well as current status 
+information.
+If the module is connected by a serial line,  
+data is read directly from a 64kB ring buffer. 
+For network access a server process must run
+on the system where the weatherstation module is locally attached. 
+.SS OPTIONS
+.TP
+\fB-c \fIcommand\fR
+specifies the command to be executed, where \fIcommand\fP can take 
+values as described in section COMMAND PARAMETERS.
+.TP
+\fB-h \fIhostname\fP
+hostname or IP address to connect to remote server, in case 
+weatherstation is not locally connected to serial port.
+.TP
+\fB-i \fIintervall\fP
+intervall time of data sets collected by weatherstation. This option
+is only needed in conjunction with command 6.
+.TP
+\fB-p \fIportnumber\fP
+use portnumber to connect to remote server, default is 3963.
+.TP
+\fB-s\fP
+use local serial connection for readout
+.TP
+\fB-n\fP
+use network connection for readout, this needs an extra parameter
+\fIh\fP.
+.SH COMMAND PARAMETERS
+this section lists the command parameters available to set the values
+of command. 
+.SS command
+.TP
+\fB0\fP
+read current time of DCF 77 receiver. If the receiver is not synchronized
+with DCF77 sender, the user is notified appropriately.
+.TP
+\fB1\fP
+read topmost dataset off the ringbuffer, if available.
+.TP
+\fB2\fP
+pop topmost dataset off the ringbuffer and advance to read next 
+available dataset. The next dataset can be read by issuing command 1.
+.TP
+\fB3\fP
+activate 9 temperature/humidity sensors.
+.TP
+\fB4\fP
+activate 16 temperature/humidity sensors.
+.TP
+\fB5\fP
+read status of weatherstation
+.TP
+\fB6\fP
+set intervall time, this requires an extra parameter -i intervall time
+.TP
+\fB12\fP
+read all datasets of the weatherstation interface. This is a
+recursive combination of command 1 and 2.
+.SH FILES
+.TP
+\fI/etc/wth/wth.conf\fR
+wthc configuration file
+.SH "SEE ALSO"
+wthd(1)
+.SH BUGS
+Prototype version. Network code probably unreliable.
+

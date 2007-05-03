@@ -1,74 +1,101 @@
 /* libwth.c
 
-   all functions related to data time evaluation
+   $Id: libwth.c,v 0.4 2001/09/14 15:38:56 jahns Exp jahns $
+   $Revision: 0.4 $
 
-   $Id: libwth.c,v 0.2 2001/03/01 06:29:08 volker Exp jahns $
-   $Revision: 0.2 $
+   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ 
    
 */
 
 #include "wth.h"
 
-/* datacorr
+
+/* demasq
   
    dataframe correction: STX, ETX and ENQ are masqued in the
    raw frame sent by the weather station. 
 
-   function datacorr demasquerades these bytes.
+   function demasq demasquerades these bytes
+   
+   before calculating the checksum the dataframe 
+   has to corrected for masqueraded STX, ETX and ENQ:
 
-   STX is masqued as ENQ DC2 in raw data
-   ETX is masqued as ENQ DC3 in raw data
-   ENQ is masqued as ENQ NAK in raw data
+	   <STX> is masqueraded in raw frame as <ENQ><DC2>
+	   <ETX> is masqueraded in raw frame as <ENQ><DC3>
+	   <ENQ> is masquerared in raw frame as <ENQ><NAK>
+
+   don't know what happens if checksum equals STX, ETX or ENQ
+   it should be masqueraded in the dataframe
 
 */
-int datacorr(u_char *data, int *mdat) {
+
+
+int demasq(unsigned char *data, int *mdat) {
     int i;
     int j;
 
-    syslog(LOG_DEBUG, "datacorr : length dataframe : %d\n", *mdat);
+    syslog(LOG_DEBUG, "demasq : length dataframe : %d\n", *mdat);
 
     /* process all data but first and last byte */
-    syslog(LOG_DEBUG, "datacorr : comparing data\n");
     for ( i = 1; i < *mdat - 2; i++ ) {
-        syslog(LOG_DEBUG, "datacorr : i %d: data[i] %x: data[i+1] %x\n", i, data[i], data[i+1]);
-
         if ( data[i] == ENQ && data[i+1] == DC2 ) {
-            syslog(LOG_INFO, "datacorr : STX found\n");
+            syslog(LOG_DEBUG, 
+		   "demasq : STX found: i %d: data[i] %x: data[i+1] %x\n",
+		   i, data[i], data [i+1]);
             data[i] = STX;
             for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
             *mdat -=1;
         }
         if ( data[i] == ENQ && data[i+1] == DC3 ) {
-            syslog(LOG_INFO, "datacorr : ETX found\n");
+            syslog(LOG_DEBUG, 
+		   "demasq : ETX found: i %d: data[i] %x: data[i+1] %x\n",
+		   i, data[i], data [i+1]);
             data[i] = ETX;
             for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
             *mdat -= 1; 
         }
         if ( data[i] == ENQ && data[i+1] == NAK ) {
-            syslog(LOG_INFO, "datacorr : ENQ found\n");
+            syslog(LOG_DEBUG, 
+		   "demasq : ENQ found: i %d: data[i] %x: data[i+1] %x\n",
+		   i, data[i], data [i+1]);
             data[i] = ENQ;
             for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
             *mdat -= 1;
         }
 
     }
-    syslog(LOG_INFO, "datacorr : data length after corr :%d\n", *mdat);
+    syslog(LOG_DEBUG, "demasq : length dataframe after corr :%d\n", *mdat);
     return(0);
 } 
 
 
 /* chkframe
-  
-   dataframe consistency checks:
 
-   STX 1st byte in dataframe
-   ETX last byte in dataframe
-   framelength OK
-   messagelength OK
-   check NAK received.
+   dataframe format is
 
+   <STX><length>[message]<checksum><ETX>
+     1      1       n        1       1
+
+   i.e. the data frame contains the data messsage + 2 start bytes + 2 end bytes
+   message is also denoted as weatherstation response
+	 
 */
-int chkframe(u_char *data, int *mdat, struct cmd *pcmd) {
+int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int chksum;
     int ldat;
@@ -76,69 +103,80 @@ int chkframe(u_char *data, int *mdat, struct cmd *pcmd) {
 
     ldat = *mdat;
 
-  
-    syslog(LOG_INFO, "chkframe\n");
-
     /* check fist byte is STX */
     if ( data[0]      == STX ) 
-	syslog(LOG_INFO, "chkframe : STX OK\n");
+	  syslog(LOG_DEBUG, "chkframe : STX OK\n");
+    else {
+	  syslog(LOG_DEBUG, "chkframe : STX NOK\n");
+	  werrno = ECHKSUM;
+	  return(-1);
+	}
 
     /* check last byte is ETX */
     if ( data[ldat-1] == ETX ) 
-	syslog(LOG_INFO, "chkframe : ETX OK\n");
+	  syslog(LOG_DEBUG, "chkframe : ETX OK\n");
+    else {
+	  syslog(LOG_DEBUG, "chkframe : ETX NOK\n");
+	  return(-1);
+	}
 
     /* check length of dataframe :
 
-       mdat is length of data array
+       mdat is number of elements in array data
        calculate length by function wstrlen and compare both integers
     */
     if ( wstrlen(data) == ldat ) 
-	syslog(LOG_INFO, "chkframe : frame length OK\n");
+	  syslog(LOG_DEBUG, "chkframe : frame length OK\n");
+	else {
+	  syslog(LOG_DEBUG, "chkframe : frame length NOK\n");
+	  return(-1);
+	}
+	
+    /* to calculate checksum demasquerade <STX, <ETX> and <ENQ> first */
+    demasq(data, &ldat);
 
-
-    /* before calculating the checksum the dataframe 
-       has to corrected for masqueraded STX, ETX and ENQ 
-
-       don't know what happens if checksum equals STX, ETX or ENQ
-       it should be masqueraded in the dataframe
-
-    */
-    datacorr(data, &ldat);
-
-    /* calculate chksum */
+    /* calculate checksum */
     chksum = 0;
     for ( i = 0; i < ldat - 2; i++ ) {
-	chksum = chksum + data[i];
-        syslog(LOG_DEBUG, "chkframe : data %d: chksum %d\n",data[i], 256 - chksum);
+	    chksum = chksum + data[i];
     }
-	chksum = ( 256 - chksum ) & 0xff ;
-    if ( chksum == data[ldat - 2] ) syslog(LOG_INFO, "chkframe : checksum match OK\n");
+    chksum = ( 256 - chksum ) & 0xff;
+	if ( chksum == data[ldat - 2] )
+	  syslog(LOG_DEBUG, "chkframe : checksum match OK\n");
+	else {
+	  syslog(LOG_DEBUG, "chkframe : checksum match NOK\n");
+	  werrno = ECHKSUM;
+	  return(-1);
+	}
 
 
-    /* check length of data string 
+    /* check length of message 
 
-       length of message is stored in data[1] , 2nd byte   
-       length of dataframe is mdat 
-     
-       dataframe format is <STX><length><message><chksum><ETX>
+       actual length of message is returned in data[1], 2nd byte of dataframe  
+       expected length of message is defined in structure Ckey c 
 
-       i.e. length of dataframe = 4 + length of message 
-    */
+	   as response length for command 1 can have 3 different values
+	   depending on state of weatherstation c.clen serves as an upper bound
+	   
+    */        
+    syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
+    syslog(LOG_DEBUG, "chkframe : expected length: %d\n",
+		   c(pcmd->command)->id);
 
-        
-    syslog(LOG_DEBUG, "chkframe : length of data :%d\n", data[1]);
-    syslog(LOG_DEBUG, "chkframe : length dataframe : %d\n",ldat);
+    if ( data[1] <= c(pcmd->command)->id )
+	  syslog(LOG_DEBUG, "chkframe : response and expected length OK\n"); 
+    else {
+	  syslog(LOG_INFO, "chkframe : response and expected length NOK\n");
+	  werrno = ECHKLEN;
+	  return(-1);
+	}
 	
-    printf("data: %d\n", data[1]);
-    printf("clen: %d\n", c(5)->clen);
-    printf("cmd: %d\n", pcmd->command);
-
-    if ( data[1] == (ldat - 4) ) syslog(LOG_INFO, "chkframe : message length OK\n"); 
-
     /* check if NAK dataframe has been received */
     if ( !strcmp(data,nakfram) ) {
-	syslog(LOG_EMERG, "chkframe : NAK received : faulty data reception\n");
-	printf("Weatherstation response : <NAK> : faulty data reception\n");
+	  syslog(LOG_INFO, 
+		 "chkframe : NAK received : faulty data reception\n");
+	  werrno = ERCPT;
+	  return(-1);
     }
     *mdat = ldat;
     return(0);
@@ -150,15 +188,14 @@ int chkframe(u_char *data, int *mdat, struct cmd *pcmd) {
 
    get raw data
 */
-int getrd (char *data, int *mdat, struct cmd *pcmd) {
+int getrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     int err;
 
-    /* read answer of weather station from serial port */
-    if ( pcmd->netflg == 0 ) {
+    if ( pcmd->netflg == 0 ) /* read serial interface */ {
 	  if ( ( err = getsrd(data, mdat, pcmd)) == -1)
 		return(-1);
     }
-    else if (pcmd->netflg == 1 ) {
+    else if (pcmd->netflg == 1 ) /* read network interface */ {
 	  if ( ( err = getnrd(data, mdat, pcmd)) == -1)
 		return(-1);
     }
@@ -171,7 +208,7 @@ int getrd (char *data, int *mdat, struct cmd *pcmd) {
 
    get corrected data
 */
-int getcd (char *data, int *mdat, struct cmd *pcmd) {
+int getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int err;
 
@@ -184,17 +221,19 @@ int getcd (char *data, int *mdat, struct cmd *pcmd) {
     
     /* check data frame and do 
     	 data correction for masqueraded bytes */
-    err = chkframe(data, mdat, pcmd);
+    if ( ( err = chkframe(data, mdat, pcmd)) == -1)
+	  return(-1);
     
     /* echo raw demasqueraded dataframe */
     err = echodata(data, *mdat);
 
+    /* extract message: eliminiate first and last 2 bytes */
     for ( i = 0; i < *mdat - 4; i++ ) {
         data[i] = data[i+2];
     }
     *mdat = *mdat - 4;
 
-    syslog(LOG_INFO, "getcd : Data length getcd : %d\n", *mdat);
+    syslog(LOG_DEBUG, "getcd : Data length getcd : %d\n", *mdat);
     return(0);
 }
 
@@ -206,66 +245,127 @@ int getcd (char *data, int *mdat, struct cmd *pcmd) {
    commandword is 5
 
 */
-int wstat(char *data, int mdat, struct DCFstruct *DCF, struct sensor sens[], struct wstatus *setting) {
+char *
+wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     int i;
-    int rlen = 21;
-
-    if ( mdat == rlen ) syslog(LOG_INFO, "wstat : status response length OK\n");
+    char frame[255] = "";
+    char sf[3] = "";
+	char *t = "";
+	static char *s;
 
     /* status of first 8 temperature/humidity sensors */
     for ( i = 0; i < 8; i++) {
-        sens[2*i].status   = data[i];
-        sens[2*i+1].status = data[i];
-	syslog(LOG_INFO, "wstat : status sensor %d : %d\n", i, data[i]);
+        rw->sens[2*i].status   = data[i];
+        rw->sens[2*i+1].status = data[i];
     }
     
     /* rain sensor */
-    sens[16].status  = data[8];
+    rw->sens[16].status  = data[8];
     /* wind sensor */
-    sens[17].status  = data[9];
-    sens[18].status  = data[9];
+    rw->sens[17].status  = data[9];
+    rw->sens[18].status  = data[9];
     /* indoor sensor : temp, hum, press */
-    sens[19].status  = data[10];
-    sens[20].status  = data[10];
-    sens[21].status  = data[10];
+    rw->sens[19].status  = data[10];
+    rw->sens[20].status  = data[10];
+    rw->sens[21].status  = data[10];
         
     /* status of temperature/humidity sensor 9 to 15 */
     for ( i = 11; i < 18; i++) {
-        sens[2*i].status   = data[i];
-        sens[2*i+1].status = data[i];
-	syslog(LOG_INFO, "wstat : status sensor %d : %d\n", i, data[i]);
+	  rw->sens[2*i].status   = data[i];
+	  rw->sens[2*i+1].status = data[i];
     }
 
-    setting->intv = data[18];
-    syslog(LOG_INFO, "wstat : Intervall time [min] : %d\n", data[18]);
-    syslog(LOG_INFO, "wstat : DCF Status   Bit 0 : %d\n", getbits(data[19],0,1));
-    syslog(LOG_INFO, "wstat : HF Status    Bit 1 : %d\n", getbits(data[19],1,1));
-    syslog(LOG_INFO, "wstat : 8/16 Sensor  Bit 2 : %d\n", getbits(data[19],2,1));
-    syslog(LOG_INFO, "wstat : DCF sync     Bit 3 : %d\n", getbits(data[19],3,1));
-    
-    syslog(LOG_INFO, "wstat : bit 4  : %d\n", getbits(data[19],4,1));
-    syslog(LOG_INFO, "wstat : bit 5  : %d\n", getbits(data[19],5,1));
-    syslog(LOG_INFO, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
-    syslog(LOG_INFO, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
+	for ( i = 0; i < MAXSENSORS; i++ ) {
+	  sprintf(sf, "%2d:",i);
+      strcat(frame, sf);
+    }
+    syslog(LOG_DEBUG, "wstat : %s\n", frame);    
+    strcpy(frame, "");
+
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+	  sprintf(sf, "%2x:",rw->sens[i].status);
+      strcat(frame, sf);
+    }
+    syslog(LOG_DEBUG, "wstat : %s\n", frame);   
 
 
-
+	
+	/* interval time */
+    rw->wstat.itime = data[18];
+	
     /* DCF status and synchronicity */
-    DCF->stat = getbits(data[19],0,1);
-    DCF->sync = getbits(data[19],3,1);
+    rw->DCF.stat = getbits(data[19],0,1);
+    rw->DCF.sync = getbits(data[19],3,1);
 
     /* number of sensors */
     if ( getbits(data[19],2,1) == 0 ) { 
-        setting->numsens = 8;
+        rw->wstat.nsens = 22;
     }
     else if ( getbits(data[19],2,1) == 1 ) {
-        setting->numsens = 16;
+        rw->wstat.nsens = 42;
     }
         
     /* version number */
-    setting->version = data[20];
+    rw->wstat.version = data[20];
+
+	/* syslog messages */
+    syslog(LOG_DEBUG, "wstat : Intervall time [min] : %d\n", data[18]);
+    syslog(LOG_DEBUG, "wstat : DCF Status   Bit 0 : %d\n",
+		   getbits(data[19],0,1));
+    syslog(LOG_DEBUG, "wstat : HF Status    Bit 1 : %d\n",
+		   getbits(data[19],1,1));
+    syslog(LOG_DEBUG, "wstat : 8/16 Sensor  Bit 2 : %d\n",
+		   getbits(data[19],2,1));
+    syslog(LOG_DEBUG, "wstat : DCF sync     Bit 3 : %d\n",
+		   getbits(data[19],3,1));
     
-    return 0;
+    syslog(LOG_DEBUG, "wstat : bit 4  : %d\n", getbits(data[19],4,1));
+    syslog(LOG_DEBUG, "wstat : bit 5  : %d\n", getbits(data[19],5,1));
+    syslog(LOG_DEBUG, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
+    syslog(LOG_DEBUG, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
+
+    syslog(LOG_DEBUG, "wstat: DCF.stat : %d\n", rw->DCF.stat);
+    syslog(LOG_DEBUG, "wstat: DCF.sync : %d\n", rw->DCF.sync);
+    syslog(LOG_DEBUG, "wstat: number sensors : %d\n", rw->wstat.nsens);
+    syslog(LOG_DEBUG, "wstat: version : %x\n", rw->wstat.version);
+
+    /* fill return buffer */
+    s = mkmsg(
+	      "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
+	      rw->wstat.version, rw->wstat.itime);
+    /*
+      if ((t = malloc(size)) == NULL )
+      return NULL;
+      t = strdup("");
+    */
+    t = strdup(s);
+	
+    if ( rw->DCF.stat == 1 )
+      s = mkmsg("DCF status\t:\t%d (DCF receiver present)\n", 
+		rw->DCF.stat);
+    else
+      s = mkmsg("DCF status\t:\t%d (no DCF receiver found)\n", 
+		rw->DCF.stat);
+    strcat(t,s);
+		
+    if ( rw->DCF.sync == 1 )
+      s = mkmsg("DCF sync.\t:\t%d (DCF synchronized)\n", rw->DCF.sync);
+    else
+      s = mkmsg("DCF sync.\t:\t%d (DCF NOT synchronized)\n", rw->DCF.sync);
+      strcat(t,s);
+      s = mkmsg("Sensor status\t:\t( %d sensors)\n", rw->wstat.nsens);
+      strcat(t,s);
+      for ( i = 0; i < rw->wstat.nsens; i++ ) {
+	s = mkmsg("%2d|", i);
+	strcat(t,s);
+      }
+      strcat(t,"\n");
+      for ( i = 0; i < rw->wstat.nsens; i++ ) {
+	s= mkmsg("%2x|", rw->sens[i].status);
+	strcat(t,s);
+      }
+      strcat(t,"\n");    
+      return (t);
 }
 
 
@@ -278,7 +378,7 @@ int wstat(char *data, int mdat, struct DCFstruct *DCF, struct sensor sens[], str
      -1, if DCF not synchronized.
    
 */
-int dcftime(u_char *data, int ndat) {
+time_t dcftime(unsigned char *data, int ndat) {
     int err;
     int tmp1;
     int tmp2;   
@@ -351,18 +451,19 @@ int dcftime(u_char *data, int ndat) {
     dtim = mktime(&t);
     clk = ctime(&dtim);
     syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", dtim);
-    syslog(LOG_INFO, "dcftime : DCF clk : %s\n", clk);
+    syslog(LOG_DEBUG, "dcftime : DCF clk : %s\n", clk);
 
 	
     return(dtim);
 }
 
-/* getone 
-   
+/* datex 
+
+   data extraction
    stores the message datagram of the weather station to the structure sens
 
 */
-int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstruct DCF) {
+int datex(unsigned char *data, int ndat, struct wthio *rw) {
     int i;
     int j;
     int err;
@@ -372,49 +473,46 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
     long age;
     time_t mtim;
     char *clk;
-
-    syslog(LOG_INFO, "getone : ndat in getone : %d\n", ndat);
+	
+    syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
 
     /* block number */
-    syslog(LOG_INFO, "getone : block NO (byte 1) : %d\n", data[0]);
-    syslog(LOG_INFO, "getone : block NO (byte 2) : %d\n", data[1]);
+    syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
+    syslog(LOG_DEBUG, "datex : block NO (byte 2) : %d\n", data[1]);
 
     /* age of dataset is stored as minutes up to current time */
-    syslog(LOG_INFO, "getone : age (byte 1) : %d\n", data[2]);
-    syslog(LOG_INFO, "getone : age (byte 2) : %d\n", data[3]);
-    age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
+    syslog(LOG_DEBUG, "datex : age (byte 1) : %d\n", data[2]);
+    syslog(LOG_DEBUG, "datex : age (byte 2) : %d\n", data[3]);
+	age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
 
 
-    /* convert into seconds and subtract from elapsed seconds since EPOCH */
-    /* age = age * 60; */
-
-
-    /* time of dataset 
-       check if DCF synchronized:
-       if yes, use this timevalue
-       if no, use localtime
+    /* time of dataset
+	   if DCF synchronized use time delivered by weatherstation
+	   if not, use localtime
     */
-    if ( DCF.time != -1 ) {
-	mtim = DCF.time;
+    if ( rw->DCF.time != -1 ) {
+	  mtim = rw->DCF.time;
     }
-  
     else { 
-	syslog(LOG_ALERT, "getone : DCF not synchronized, using localtime for dataset\n");
-	err = time(&mtim);
-	syslog(LOG_INFO, "getone : seconds since EPOCH (now): %lu\n", mtim);
+	  syslog(LOG_INFO,
+             "datex : DCF not synchronized, using localtime for dataset\n");
+	  err = time(&mtim);
+	  syslog(LOG_DEBUG, 
+             "datex : present time: %lu (seconds since EPOCH)\n", mtim);
     }
     
     /* dataset time is echoed in EPOCH seconds, dataset age in minutes
 	   up to present time
     */
     mtim = ( mtim/60 - age) * 60;
-    clk = ctime(&mtim);
+    clk  = ctime(&mtim);
 
-     
-    syslog(LOG_INFO, "getone : setno : %lu; age[min] : %lu\n", setno, age);
-    syslog(LOG_INFO, "getone : seconds since EPOCH (dataset): %lu\n", mtim);
-    syslog(LOG_INFO, "getone : measured at clk : %s\n", clk);
-
+    syslog(LOG_DEBUG, "datex : rw->wstat.ndats : %lu; age[min] : %lu\n",
+		   rw->wstat.ndats, age);
+    syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
+		   mtim);
+    syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
+	
     /* get data of the first 8 temperature/humidity sensors */
     for ( i = 0; i < 8; i++) {
         j = i % 2;
@@ -423,29 +521,29 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
 	    mbit=3; nbit=7;
 	    j = (5*i - j)/2 + 4;
             /* temperature */
-            if ( sens[2*i].status != 0 ) {
-		sens[2*i].mess[setno].time   = mtim;
-		sens[2*i].mess[setno].hundreds = 0;
-		sens[2*i].mess[setno].tenths = getbits(data[j], mbit, 4);
-		sens[2*i].mess[setno].units  = getbits(data[j], nbit, 4);
-		sens[2*i].mess[setno].tens   = getbits(data[j+1], mbit-1, 3);
-		sens[2*i].mess[setno].sign   = getbits(data[j+1], mbit, 1);
+            if ( rw->sens[2*i].status != 0 ) {
+		rw->sens[2*i].mess[rw->wstat.ndats].time   = mtim;
+		rw->sens[2*i].mess[rw->wstat.ndats].value =  
+		  10 * getbits(data[j+1], mbit-1, 3) + 
+		       getbits(data[j], nbit, 4) +
+		  0.1* getbits(data[j], mbit, 4);
+
+		rw->sens[2*i].mess[rw->wstat.ndats].sign   = 
+		  getbits(data[j+1], mbit, 1);
 	    }
 
             /* humidity 
                the value is calculated from an 8bit Byte which is formed
                by two Nibbles    
             */
-            if ( sens[2*i+1].status != 0 ) {
+            if ( rw->sens[2*i+1].status != 0 ) {
 		Lo = getbits(data[j+1], nbit, 4);
 		Hi = getbits(data[j+2], mbit-1, 3) << 4;
-		sens[2*i+1].mess[setno].time   = mtim;
-		sens[2*i+1].mess[setno].hundreds = 0;
-		sens[2*i+1].mess[setno].tenths = 0;
-		sens[2*i+1].mess[setno].tens   = (Hi + Lo)/10;
-		sens[2*i+1].mess[setno].units  = (Hi + Lo)%10;
+		rw->sens[2*i+1].mess[rw->wstat.ndats].time  = mtim;
+		rw->sens[2*i+1].mess[rw->wstat.ndats].value = Hi + Lo;
 		/* Bit 3 of Hi Nibble is new flag */
-		sens[2*i+1].mess[setno].sign   = getbits(data[j+2], mbit, 1);
+		rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
+		  getbits(data[j+2], mbit, 1);
 	    }
 
         } /* odd i */ else if ( (i % 2) == 1) {
@@ -453,84 +551,87 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
 	    j = (5*i - j)/2 + 4;
 
             /* temperature */
-            if ( sens[2*i].status != 0 ) {
-		sens[2*i].mess[setno].time   = mtim;
-		sens[2*i].mess[setno].hundreds = 0;
-		sens[2*i].mess[setno].tenths  = getbits(data[j], mbit, 4);
-		sens[2*i].mess[setno].units   = getbits(data[j+1], nbit, 4);
-		sens[2*i].mess[setno].tens    = getbits(data[j+1], mbit-1, 3);
-		sens[2*i].mess[setno].sign    = getbits(data[j+1], mbit, 1);
+            if ( rw->sens[2*i].status != 0 ) {
+		rw->sens[2*i].mess[rw->wstat.ndats].time   = mtim;
+		
+		rw->sens[2*i].mess[rw->wstat.ndats].value =
+		  10  * getbits(data[j+1], mbit-1, 3) +
+		        getbits(data[j+1], nbit, 4) +
+		  0.1 * getbits(data[j], mbit, 4);
+
+		rw->sens[2*i].mess[rw->wstat.ndats].sign    = 
+		  getbits(data[j+1], mbit, 1);
 	    }
             /* humidity 
                the value is calculated from an 8bit Byte which is formed
                by two Nibbles    
             */
-            if ( sens[2*i+1].status != 0 ) {
+            if ( rw->sens[2*i+1].status != 0 ) {
 		Lo = getbits(data[j+2], nbit, 4);
 		Hi = getbits(data[j+2], mbit-1, 3) << 4;
-		sens[2*i+1].mess[setno].time   = mtim;
-		sens[2*i+1].mess[setno].hundreds = 0;
-		sens[2*i+1].mess[setno].tenths = 0;
-		sens[2*i+1].mess[setno].tens   = (Hi + Lo)/10;
-		sens[2*i+1].mess[setno].units  = (Hi + Lo)%10;
+
+		rw->sens[2*i+1].mess[rw->wstat.ndats].time   = mtim;
+		rw->sens[2*i+1].mess[rw->wstat.ndats].value  = Hi + Lo;
 		/* Bit 3 of Hi Nibble is new flag */
-		sens[2*i+1].mess[setno].sign   = getbits(data[j+2], mbit, 1);
+		rw->sens[2*i+1].mess[rw->wstat.ndats].sign   = 
+		  getbits(data[j+2], mbit, 1);
 	    }
 	}
-
     }
 
 
     /* rain sensor */
-    /* no data available yet */    
+    Hi = getbits(data[25], 6, 7) << 8 ;
+    Lo = getbits(data[24], 7, 8);
+    /* digitize((Lo + (Hi << 8 & 0x0f00 )), &tdigit, &hdigit, &tendigit, &udigit); */
+
+    rw->sens[16].mess[rw->wstat.ndats].time      = mtim;
+    rw->sens[16].mess[rw->wstat.ndats].value     = Hi + Lo;
+    rw->sens[16].mess[rw->wstat.ndats].sign      = getbits(data[25], 7, 1);
+        
 
     /* wind speed */
-    sens[17].mess[setno].time   = mtim;
-    sens[17].mess[setno].sign   = 0;
-    sens[17].mess[setno].hundreds = getbits(data[27], 6, 3);
-    sens[17].mess[setno].tens     = getbits(data[27], 3, 4);
-    sens[17].mess[setno].units    = getbits(data[26], 6, 3);
-    sens[17].mess[setno].tenths   = getbits(data[26], 3, 4);
-
+    rw->sens[17].mess[rw->wstat.ndats].time   = mtim;
+    rw->sens[17].mess[rw->wstat.ndats].sign   = 0;
+    rw->sens[17].mess[rw->wstat.ndats].value = 
+      100 * getbits(data[27], 6, 3) +
+      10  * getbits(data[27], 3, 4) +
+            getbits(data[26], 6, 3) +
+      0.1 * getbits(data[26], 3, 4);
 
     /* wind direction */
-    sens[18].mess[setno].time     = mtim;
-    sens[18].mess[setno].sign     = 0;
-    /* sens[18].mess[setno].hundreds = getbits(data[29], 3, 4); */
+    rw->sens[18].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[18].mess[rw->wstat.ndats].sign     = 0;
+    /* sens[18].mess[rw->wstat.ndats].hundreds = getbits(data[29], 3, 4); */
     /* hmm is this a violation of the protocol specification ? */
-    sens[18].mess[setno].hundreds = data[29] & 0x03;
-    sens[18].mess[setno].tens     = getbits(data[28], 7, 4);
-    sens[18].mess[setno].units    = getbits(data[28], 3, 4);
-    sens[18].mess[setno].tenths   = 0;
-
+    rw->sens[18].mess[rw->wstat.ndats].value =
+      100 * ( data[29] & 0x03) +
+      10  * getbits(data[28], 7, 4) +
+      getbits(data[28], 3, 4);
 
     /* indoor pressure */
-    sens[19].mess[setno].time     = mtim;
-    sens[19].mess[setno].sign     = 0;
-    sens[19].mess[setno].hundreds = getbits(data[30], 7, 4);
-    sens[19].mess[setno].tens     = getbits(data[30], 3, 4);
-    sens[19].mess[setno].units    = getbits(data[29], 7, 4);
-    sens[19].mess[setno].tenths   = 0;
-
+    rw->sens[19].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[19].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[19].mess[rw->wstat.ndats].value = 
+      100 *  getbits(data[30], 7, 4) +
+      10  *  getbits(data[30], 3, 4) +
+      getbits(data[29], 7, 4);
 
     /* indoor temperature */
-    sens[20].mess[setno].time     = mtim;
-    sens[20].mess[setno].sign     = 0;
-    sens[20].mess[setno].hundreds = 0;
-    sens[20].mess[setno].tens     = getbits(data[32], 3, 4);
-    sens[20].mess[setno].units    = getbits(data[31], 7, 4);
-    sens[20].mess[setno].tenths   = getbits(data[31], 7, 4);
-
+    rw->sens[20].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[20].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[20].mess[rw->wstat.ndats].value    = 
+      10  * getbits(data[32], 3, 4) + 
+      getbits(data[31], 7, 4) +
+      0.1 * getbits(data[31], 7, 4);
 
     /* indoor humidity */
     Lo = getbits(data[32], 7, 4);
     Hi = getbits(data[33], 2, 3) << 4;
-    sens[21].mess[setno].time     = mtim;
-    sens[21].mess[setno].sign     = 0;
-    sens[21].mess[setno].hundreds = 0;
-    sens[21].mess[setno].tens     = (Hi + Lo)/10;
-    sens[21].mess[setno].units    = (Hi + Lo)%10;
-    sens[21].mess[setno].tenths   = 0;
+    rw->sens[21].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[21].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[21].mess[rw->wstat.ndats].value    = Hi + Lo;
+	
     return(0);
 };
 
@@ -540,52 +641,66 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
    print the sensor data as hold in structure sens
 
 */
-int pdata(struct sensor sens[], int snum) {
-    int i,j;         /* array indices of sensor and setno */
+char *
+pdata(struct sensor sens[], int snum) {
+  int i,j;         /* array indices of sensor and setno */
+  int size = 100;
+  char *t = "";
+  char *s;
 
-    printf("Sensor\tType\tStatus\tdataset\ttime\t\t\tsign\tXYZ.t\n");
-
-    for ( i = 0; i < MAXSENSORS; i++ ) {
-        if ( sens[i].status != 0 ) {   
-	    for ( j = 0; j < snum; j++) {
-		printf("%d\t%s\t%d\t%d\t%lu\t\t%d\t%d%d%d.%d\n", i, \
-                sens[i].type, sens[i].status, j, sens[i].mess[j].time, \
-                sens[i].mess[j].sign, sens[i].mess[j].hundreds, sens[i].mess[j].tens, \
-                sens[i].mess[j].units, sens[i].mess[j].tenths);
-	    }
-        }
+  s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
+  /* code won't work on LINUX, FreeBSD OK
+	 size = strlen(s) + 1; 
+   	 if ((t = malloc(size)) == NULL )
+		return NULL;
+	 strcat(t,s);
+  */
+  t = strdup(s);
+  
+  for ( i = 0; i < MAXSENSORS; i++ ) {
+    if ( sens[i].status != 0 ) {   
+      for ( j = 0; j < snum; j++) {
+		s = mkmsg("%d\t%s\t%d\t%d\t%lu\t%d\t%8.1f\n", i, 
+				  sens[i].type, sens[i].status, j, 
+                                  sens[i].mess[j].time,
+                                  sens[i].mess[j].sign,
+                                  sens[i].mess[j].value);
+		size = size + strlen(s) + 1;
+		if ((t = realloc(t,size)) == NULL )
+		  return NULL;
+		strcat(t,s);
+      }
     }
-    return(0);
+  }
+  return (t);
 }
 
 
 /* wcmd
 
-   function fills the datastructure sens
+   function fills the datastructure rw
 
 */
-int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
-   
-  int i;                          /* for array subscription */
+char *
+wcmd (struct cmd *pcmd, struct wthio *rw) {
   int ndat = 0;                   /* length of array containing the 
                                      data frame */
   int err;                        /* return value of functions, 
                                      useful for errorhandling */
-  int retval = 0;                 /* return values for this function */
-                                  /*  0 : everythings fine */
-                                  /*  1 : no data available */
-                                  /* -1 : unknown response of weatherstation */  
-  int snum = 0;                   /* number of data sets */
+  int retval = 0;                 
+  long snum = 0;                   /* current dataset number */
   int command;
   int argcm;
 
-  struct DCFstruct DCF;           /* DCF status and synchronous */
-  struct wstatus setting;
 
-  u_char data[MAXBUFF];           /* data array to store the raw dataframe 
+  unsigned char data[MAXBUFF];    /* data array to store the raw dataframe 
                                      and the message datagram */
   char *clk;                      /* display time in reasonable format */
+  char *rbuf ="";                 /* return buffer */
+  
 
+  syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",pcmd->command);  
+  rw->wstat.ndats = 0;
   command = pcmd->command; 
   argcm   = pcmd->argcmd; 
 
@@ -593,38 +708,36 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
      needed to fill sens.status
   */
   pcmd->command = 5;
-  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-	return(-1);
+  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+	rbuf = mkmsg("wcmd: error data reception\n");
+	return (rbuf);
+  }
   pcmd->command = command;
-
-  syslog(LOG_INFO, "wcmd : check status OK\n");
+  syslog(LOG_DEBUG, "wcmd : check status OK\n");
 
   /* status weatherstation */
-  err = wstat(data, ndat, &DCF, sens, &setting);
-  syslog(LOG_INFO, "wcmd : DCF.stat : %d\n", DCF.stat);
-  syslog(LOG_INFO, "wcmd : DCF.sync : %d\n", DCF.sync);
-  syslog(LOG_INFO, "wcmd : number sensors : %d\n", setting.numsens);
-  syslog(LOG_INFO, "wcmd : version : %x\n", setting.version);
-  for ( i = 0;  i < MAXSENSORS; i++ ) {
-    syslog(LOG_DEBUG, "wcmd : sens[%d].status: %d, type: %s\n", i, sens[i].status, sens[i].type);
+  if ( ( rbuf = wstat(data, ndat, rw)) == NULL) {
+	rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+	return (rbuf);
   }
-
-
+  
   /* command 0 : poll DCF time */
   if (command == 0) {
 	  tzset();
 	
       /* write command and retrieve data */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-	     return(-1);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
 
       /* calculate seconds since EPOCH if DCF synchronized */
-      DCF.time  = dcftime(data, ndat);
-      if (DCF.time == -1) 
-		printf("Weatherstation not synchronized\n");
-      else { 
-		clk = ctime(&DCF.time);
-		printf("%s", clk);
+      rw->DCF.time  = dcftime(data, ndat);
+      if (rw->DCF.time == -1) 
+		rbuf = mkmsg("DCF not synchronized\n");
+      else {
+		clk = ctime(&rw->DCF.time);
+		rbuf = mkmsg("%s", clk);
       }
   }
 
@@ -633,32 +746,38 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* first get DCF time if possible */
       pcmd->command = 0;
-      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		   return(-1);
-      pcmd->command = command;
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
+	  pcmd->command = command;
 
       /* calculate seconds since EPOCH if DCF synchronized */
-      DCF.time  = dcftime(data, ndat);
+      rw->DCF.time  = dcftime(data, ndat);
 
       /* write command and retrieve data */
-      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-	     return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
 
       /* weather station response : no data available: <DLE> */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	  syslog(LOG_INFO, "wcmd : DLE received : weather station :\"no data available\": exit!\n");
-	  retval = 16;
+		rbuf = mkmsg("no data available (<DLE> received)\n");
       }
       /* fill data structure sens */
       else {
-	  /* get one dataset */
-	  err = getone(data, ndat, sens, snum, DCF);
-	  syslog(LOG_INFO, "wcmd : returncode getone : %d\n", err);
-          snum++;
+		/* get one dataset */
+		err = datex(data, ndat, rw);
+		syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
+		rw->wstat.ndats = rw->wstat.ndats + 1;
+		snum++;
       }
 
       /* echo sensor data */
-      err = pdata(sens, snum);
+	  if ( rw->wstat.ndats > 0 )
+		rbuf = pdata(rw->sens, rw->wstat.ndats);
+	 
   } 
 
 
@@ -666,23 +785,24 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
   else if (command == 2) {
       /* write the command word to the weather station */ 
       /* extract message datagram */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
+
 
       /* if DLE no data available */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	  syslog(LOG_INFO, \
-              "wcmd : DLE received : weather station :\"no data available\"!\n");
-          retval = 16; 
+		rbuf = mkmsg("no data available(<DLE> received)\n");
+        retval = 16; 
       } else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) /* if ACK next dataset is available */ {
-	  syslog(LOG_INFO, \
-             "wcmd : ACK received : weather station :\"next dataset available\": exit!\n");
-          retval = 6;
+		rbuf = mkmsg("next dataset available (<ACK> received)\n");
+        retval = 6;
       }
       /* exit if unknown response */
       else {
-	  syslog(LOG_EMERG, "wcmd : error request next dataset : unknown response: exit \n");
-          retval = -1;
+		rbuf = mkmsg("error next dataset : \"unknown response\"\n");
+        retval = -1;
       }
   }
 
@@ -692,15 +812,26 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* write the command word to the weather station */ 
       /* extract message datagram */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-          syslog(LOG_INFO, "wcmd : ACK received\n");
-          printf("Weatherstation response : <ACK>\n");
+		rbuf = mkmsg("set 9 temperature sensors (<ACK> received)\n");
       }
 
+	  /* update status */
+	  pcmd->command = 5;
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
+	  if ( ( wstat(data, ndat, rw)) == NULL) {
+		rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+		return (rbuf);
+	  }	  
   } 
 
 
@@ -709,61 +840,60 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* write the command word to the weather station */ 
       /* extract message datagram */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-          syslog(LOG_INFO, "wcmd : ACK received\n");
-          printf("Weatherstation response : <ACK>\n");
+		rbuf = mkmsg("set 16 temperature sensors(<ACK> received)\n");
       }
 
+	  /* update status */
+	  pcmd->command = 5;
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
+	  if ( ( wstat(data, ndat, rw)) == NULL) {
+		rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+		return (rbuf);
+	  }	  
   } 
 
 
   /* command 5 : Request status of weatherstation */
   else if ( command == 5 ) {
-      /* check status - this is done at every call of wcmd*/
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		return(-1);
-
-      /* status weatherstation */
-      err = wstat(data, ndat, &DCF, sens, &setting);
-
-      syslog(LOG_INFO, "wcmd : DCF.stat : %d\n", DCF.stat);
-      syslog(LOG_INFO, "wcmd : DCF.sync : %d\n", DCF.sync);
-      syslog(LOG_INFO, "wcmd : number sensors : %d\n", setting.numsens);
-      syslog(LOG_INFO, "wcmd : version : %x\n", setting.version);
-
-
-      for ( i = 0;  i < MAXSENSORS; i++ ) {
-	  syslog(LOG_DEBUG, "wcmd : sens[%d].status: %d, type: %s\n", i, sens[i].status, sens[i].type);
-      }
-
-      printf("Status weatherstation\n");
-      printf("Version : %x\n", setting.version);  
-      printf("Interval : %d\n", setting.intv);  
-      printf("Numsens : %d\n", setting.numsens);  
-      printf("DCF.stat : %d\n", DCF.stat);
-      printf("DCF.sync : %d\n", DCF.sync);
-
+	; /* status known, drive thru */
   } 
 
 
   /* command 6 : Set logging intervall of weatherstation */
   else if (command == 6) {
-
       /* write the command word to the weather station */ 
       /* extract message datagram */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-	    return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-          syslog(LOG_INFO, "wcmd : ACK received\n");
-          printf("Weatherstation response : <ACK>\n");
+	rbuf = mkmsg("set logging interval to %d [min] (<ACK> received)\n",
+		     pcmd->argcmd);
       }
 
+      /* update status */
+      pcmd->command = 5;
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+	rbuf = mkmsg("wcmd: error data reception\n");
+	return (rbuf);
+      }
+      if ( ( wstat(data, ndat, rw)) == NULL) {
+	rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+	return (rbuf);
+      }
   } 
 
 
@@ -771,117 +901,142 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
       Recursively, request dataset and select next dataset, 
       recursive combination of command 1 and 2 
   */
-  else if (command == 12) {
-
-      
+  else if (command == 12) {      
       /* first get DCF time if possible */
       pcmd->command = 0;
-      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		return(-1);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+		rbuf = mkmsg("wcmd: error data reception\n");
+		return (rbuf);
+	  }
       pcmd->command = command;
 
       /* calculate seconds since EPOCH if DCF synchronized */
-      DCF.time  = dcftime(data, ndat);
+      rw->DCF.time  = dcftime(data, ndat);
 
+	  
       while (retval != 16) {
 		  /* write command and retrieve data */
 		  pcmd->command = 1;
-		  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-		    return(-1);
+		  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+			rbuf = mkmsg("wcmd: error data reception\n");
+			return (rbuf);
+		  }
 
+		  /* extract dataset from raw dataframe */
 		  /* weather station response : no data available: <DLE> */
 		  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-			syslog(LOG_INFO, \
-              "wcmd : DLE received : weather station :\"no data available\"!\n");
+			rbuf = mkmsg("no data available (<DLE> received)\n");
 			retval = 16;
 		  }
-		  /* fill data structure sens */
+		  /* do extraction */
 		  else {
-			/* get one dataset */
-			err = getone(data, ndat, sens, snum, DCF);
-            syslog(LOG_INFO, "wcmd : returncode getone : %d\n", err);
-
-			/* increase dataset number index */
-			snum++;
+			if ( ( err = datex(data, ndat, rw)) == -1) {
+				rbuf = mkmsg("wcmd: error extracting data frame");
+				return (rbuf);
+			}
+			rw->wstat.ndats = rw->wstat.ndats + 1;
 		  }
  
-		  /* write the command word to select next dataset and retrieve response*/ 
+		  /* write the command word to select next dataset and 
+		     retrieve response*/ 
 		  pcmd->command = 2;
-		  
-		  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
-			return(-1);
+		  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+			rbuf = mkmsg("wcmd: error data reception\n");
+			return (rbuf);
+		  }
 
-		  /* if DLE no data available */
+		  /* stop if DLE no data available, */
 		  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-			syslog(LOG_INFO, \
-	          "wcmd : DLE received : weather station :\"no data available\"!\n");
-
-			printf("DLE received : weather station :\"no data available\"!\n");
-			retval = 16; 
+		    /* rbuf = mkmsg(
+		       "<DLE> received :\"no data available\"!"); */
+		    retval = 16; 
 		  }
 		  /* if ACK next dataset is available */
 		  else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-			syslog(LOG_INFO, \
-                  "wcmd : ACK received : weather station :\"next dataset available\"!\n");
+			syslog(LOG_DEBUG, \
+                  "wcmd: next dataset available (<ACK> received)!\n");
 			retval = 6;
 		  }
-		  /* exit if unknown response */
+		  /* return if unknown response */
+		  /* no data is returned, maybe too strict? */
 		  else {
-              syslog(LOG_EMERG, \
-	          "wcmd : error request next dataset : unknown response: exit \n");
-			  retval = -2;
+		    rbuf = mkmsg(
+		      "wcmd: error request next dataset : unknown response\n");
+		    return (rbuf);
 		  }
-          syslog(LOG_INFO, "wcmd : retval : %d\n", retval);
+          syslog(LOG_DEBUG, "wcmd: retval : %d\n", retval);
       }
 
       /* echo sensor data */
-      err = pdata(sens, snum);
+	  if ( rw->wstat.ndats > 0 )
+		rbuf = pdata(rw->sens, rw->wstat.ndats);
   } else {
-
-      printf("Unknown command: exit!\n");
-      exit(1);
+      rbuf = mkmsg("unknown command\n");
   }
-
-  *setno = snum;
-  syslog(LOG_INFO, "wcmd : returncode wcmd : %d, number of sets : %d\n", retval, *setno);
- 
-  return(retval);
+  syslog(LOG_DEBUG, "wcmd: exit OK\n");
+  return(rbuf);
 
 }
 
 
 
-/* initsens 
+/* initdata 
 
-   presets the datastructure sens
+   presets the datastructures
+     rw->sens
+	 pcmd
 
 */
-int initsens(struct sensor sens[]) {
+int initdata(struct wthio *rw) {
   int i;  /* array subscription */  
 
   /* set type of the sensors */
   /* first 8 temperature/humidity sensors */
   for ( i = 0; i < 8; i++) {
-      sens[2*i].type   = "temp";
-      sens[2*i+1].type = "hum";
+      rw->sens[2*i].type   = "temp";
+      rw->sens[2*i+1].type = "hum";
   }
   
   /* rain sensor */
-  sens[16].type  = "rain";
+  rw->sens[16].type  = "rain";
   /* wind sensor */
-  sens[17].type  = "wspd";
-  sens[18].type  = "wdir";
+  rw->sens[17].type  = "wspd";
+  rw->sens[18].type  = "wdir";
   /* indoor sensor : temp, hum, press */
-  sens[19].type  = "pres";
-  sens[20].type  = "temp";
-  sens[21].type  = "hum";
+  rw->sens[19].type  = "pres";
+  rw->sens[20].type  = "temp";
+  rw->sens[21].type  = "hum";
+  /* sensor 9 is combined temperature/humidity */
+  rw->sens[22].type  = "temp";
+  rw->sens[23].type  = "hum";
       
-  /* status of temperature/humidity sensor 9 to 15 */
-  for ( i = 11; i < 18; i++) {
-      sens[2*i].type   = "temp";
-      sens[2*i+1].type = "hum";
+  /* status of pressure/temperature/humidity sensor 10 to 15 */
+  for ( i = 0; i < 18; i = i + 3) {
+      rw->sens[24 + i    ].type   = "pres";
+      rw->sens[24 + i + 1].type = "temp";
+      rw->sens[24 + i + 2].type = "hum";
   }
-
   return(0);
 }
 
+
+/* initcmd
+
+   presets the datastructures
+	 pcmd
+
+*/
+int initcmd(struct cmd *pcmd) {  
+  /* initialize struct pcmd */
+  pcmd->argcmd      = 0;
+  pcmd->timeout     = TIMEOUT;
+  pcmd->baudrate    = BAUDRATE;
+  pcmd->logfacility = LOGFACILITY;
+  pcmd->device      = SER_DEVICE;
+  pcmd->verbose     = 0;
+  pcmd->netflg      = -1;
+  pcmd->hostname    = "localhost"; 
+  pcmd->port        = WPORT; 
+  pcmd->tnport      = TNPORT;   
+  return(0);
+}

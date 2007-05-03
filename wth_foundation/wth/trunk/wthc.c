@@ -2,70 +2,85 @@
 
    client program to communicate w/ WS2000 weatherstation
 
-   $Id: wthc.c,v 0.2 2001/03/01 06:30:54 volker Exp jahns $
-   $Revision: 0.2 $
+   $Id: wthc.c,v 0.4 2001/09/14 15:38:00 jahns Exp jahns $
+   $Revision: 0.4 $
    
+   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
- */
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ 
+*/
 
 #include "wth.h"
+#include "version.h"
 
 int main (int argc, char **argv) {
-  int err;                        /* return value of functions, 
-                                     useful for errorhandling */  
-  int setno;                      /* number of datasets */
-
-  /* used for commandline parsing */
-  int c;
+  int o;
+  char *rbuf;
   extern int optind;              
   extern char *optarg;
   struct cmd cmd;                 /* command structure */
+  struct wthio wio;               /* result */
 
-  /* used for storing data */
-  struct sensor sens[MAXSENSORS]; /* structure contains sensor status, type 
-                                     and data */
 
-  openlog("wthc", LOG_PID , LOGFACILITY);
-
-  /* initialize structure sens which holds *all* information on the
-     sensors */
-  err =  initsens(sens);
-  syslog(LOG_DEBUG, "Initializing datastructure sens : %d\n", err);
-                                                                    
-
-  /* initialize struct cmd */
-  cmd.netflg = -1;
-  cmd.port   = WPORT; 
+  initdata(&wio);
+  initcmd(&cmd);
+  if ( ( rbuf = readconfig(&cmd)) == NULL ) {
+	perror("Error reading configuration: exit!");
+	exit(-1);
+  }
   
+  openlog("wthc", LOG_PID , cmd.logfacility);
+  syslog(LOG_INFO, "%s\n", wth_version);
+                                                                    
   /* parsing command line arguments */
-  while (( c = getopt(argc, argv, "c:h:i:p:s")) != -1 ) {
-      switch (c) {
+  while (( o = getopt(argc, argv, "c:h:i:p:sv")) != -1 ) {
+      switch (o) {
 	  case 'c':
-              cmd.command = atoi(optarg);
+          cmd.command = atoi(optarg);
 	      break;
 	  case 'h':
 	      cmd.hostname = optarg;
-              cmd.netflg = 1;
+          cmd.netflg = 1;
 	      break;
 	  case 'i':
-              cmd.argcmd = atoi(optarg);
+          cmd.argcmd = atoi(optarg);
 	      break;
 	  case 'p':
-              cmd.port = optarg;
+          cmd.port = optarg;
 	      break;
-          case 's':
+      case 's':
 	      if ( cmd.netflg != -1 )
-		  usage(1,"specify serial OR internet connection","");
+		    usage(1,"specify serial OR internet connection","");
 	      cmd.netflg = 0;
 	      break;
-          case '?':
+      case 'v':
+		  cmd.verbose = 1;
+		  printf("wthc: %s\n", wth_version);
+		  printf("%s", rbuf);
+		  break;
+      case '?':
 	      usage(1, "Commandline error", "");
 	      break;
-          default:
+      default:
 	      usage(0,"", "");
        }
    }
-   
+
+  /* save command for later use */
+  o = cmd.command;
 
   /* check if intervall time has been set 
      in case cmd.command is request to set intervall time */
@@ -78,23 +93,32 @@ int main (int argc, char **argv) {
   if ( cmd.netflg == -1 )
       usage(1, "specify serial OR internet connection","");
 
-  /* sending command to weather station */
-  err = wcmd(sens, &cmd, &setno);
-  syslog(LOG_INFO, "wthc : return code wcmd :%d\n", err);
-  switch (err) {
+  if (cmd.verbose == 1 ) {
+	if ( ( rbuf = echoconfig(&cmd)) == NULL) {
+	  perror("Error echo config parameters: exit!");
+	  exit(-1);
+	}
+	printf("%s\n", rbuf);
+  }
+  
+  /* sending command to weather station */  
+  rbuf =  wcmd(&cmd, &wio); 
+  printf("%s", rbuf);
+  syslog(LOG_INFO, "wthc : wcmd : %s\n", c(o)->descr);
+  
+  switch (werrno) {
   case -2:
-	printf("dataset error\n");
+	printf("serial line error\n");
 	break;
-  case -1:
-    printf("timeout: check wiring\n");
+  case -3:
+    printf("chksum error\n");
 	break;
   case 0:
 	break;
   }
   closelog();
-  return(err);
-
   
+  return(0);  
 } 
 
 
