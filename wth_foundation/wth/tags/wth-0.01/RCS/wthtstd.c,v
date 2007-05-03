@@ -1,0 +1,70 @@
+head	1.1;
+access;
+symbols;
+locks
+	volker:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	2000.12.07.11.40.12;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#include	"unp.h"
+#include	<time.h>
+
+int
+main(int argc, char **argv)
+{
+	int		     listenfd, connfd;
+        ssize_t              n;
+	struct sockaddr_in   cliaddr, servaddr;
+	char		     buff[MAXLINE];
+	char		     readline[MAXLINE];
+	time_t		     ticks;
+        int                  servport;
+        pid_t                childpid;
+        socklen_t            clilen;
+ 
+	listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+
+	bzero(&servaddr, sizeof(servaddr));
+	servaddr.sin_family      = AF_INET;
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servport = 13000;
+	servaddr.sin_port        = htons(servport);	      /* daytime server */
+
+	Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+
+	Listen(listenfd, LISTENQ);
+
+	for ( ; ; ) {
+	        clilen = sizeof(cliaddr);
+		connfd = Accept(listenfd, (SA *) &cliaddr, &clilen);
+		
+		/* concurrent server */
+                if ( (childpid = Fork()) == 0) {
+		    Close(listenfd);
+                    for ( ; ; ) {
+                        if ( (n = Readline(connfd, buff, MAXLINE)) == 0)
+			    return;
+			printf("%s received\n", buff);
+                    }
+                    exit(0);
+                }
+
+		Close(connfd);
+	}
+}
+@

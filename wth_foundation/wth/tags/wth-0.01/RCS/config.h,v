@@ -1,0 +1,53 @@
+head	1.2;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.2
+date	2001.02.06.15.56.01;	author volker;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2001.01.18.11.53.17;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@1st version
+@
+
+
+1.2
+log
+@FreeBSD OK
+@
+text
+@/* config.h */
+
+#define BAUDRATE B9600
+#define MAXBUFF 255
+#define TIMEOUT 7
+#define MODEMDEVICE "/dev/ttyd0"
+#define MAXSENSORS 36
+#define MAXDATA 2048
+#define LOGFACILITY LOG_LOCAL7
+#define WPORT "3963"
+#define MAXFD   64
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 2
+a6 2
+#define TIMEOUT 1
+#define MODEMDEVICE "/dev/ttyS0"
+d10 2
+@

@@ -1,0 +1,202 @@
+head	1.3;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.3
+date	2001.02.06.15.55.39;	author volker;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2001.01.19.06.42.21;	author volker;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2001.01.18.11.51.12;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@1st versiuon
+@
+
+
+1.3
+log
+@FreeBSD OK
+@
+text
+@/* 
+     the Weather daemon
+
+     tcp service for interactive weather 
+     
+     features
+        IPv4
+	TCP
+	iterative
+*/
+
+ 
+#include        "wthlib.h"
+
+
+int
+main(int argc, char **argv)
+{
+        /* network */
+	int		     listenfd, connfd;
+        int                  servport;
+	struct sockaddr_in   servaddr;
+	char		     readline[MAXLINE];
+
+	/* data */
+        struct cmd           cmd; 
+        int                  ndata = 0;
+        int                  err,c;
+        char                 data[MAXBUFF];
+
+
+        servport = atoi(WPORT);
+        daemon_init(argv[0], 0);
+
+        /* parse commandline */
+	while ((c = getopt(argc, argv, "p:")) != -1) {
+	    switch(c) {
+		case 'p':
+		    servport = atoi(optarg);
+		    break;
+		case '?':
+		    usaged(1,"command line error","");
+		    break;
+	    }
+	}
+
+        
+	listenfd = Socket(AF_INET, SOCK_STREAM, 0); 
+
+	bzero(&servaddr, sizeof(servaddr));
+	servaddr.sin_family      = AF_INET;
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	servaddr.sin_port        = htons(servport);
+
+	Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+
+	Listen(listenfd, LISTENQ);
+
+	for ( ; ; ) {
+	     connfd = accept(listenfd, (SA *) NULL, NULL); 
+	     Read(connfd, readline, MAXLINE);
+             cmd.command = atoi(readline);
+             cmd.argcmd  = 0;
+             cmd.netflg  = 0;
+             
+             err = getsrd( data, &ndata, &cmd);
+	     
+             Write(connfd, data, ndata);
+	     
+	     Close(connfd);
+	}
+}
+
+
+
+
+
+
+
+
+@
+
+
+1.2
+log
+@cleaned up, no functional changes
+@
+text
+@d1 2
+a2 1
+/* iterative testserver */
+d4 9
+a12 1
+#include	"unp.h"
+a13 1
+#include	<time.h>
+d19 1
+d21 1
+a21 1
+        ssize_t              n;
+a22 1
+	char		     buff[MAXLINE];
+d24 2
+a25 4
+	time_t		     ticks;
+        int                  servport;
+        pid_t                childpid;
+        socklen_t            clilen;
+d28 1
+a28 1
+        int                  i,err;
+a29 1
+        void                 sig_chld(int);
+d31 18
+a48 1
+	listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+d53 1
+a53 1
+        servport = 13000;
+d61 11
+a71 11
+		connfd = accept(listenfd, (SA *) NULL, NULL);
+		Read(connfd, readline, MAXLINE);
+                cmd.command = atoi(readline);
+                cmd.argcmd  = 0;
+                cmd.netflg  = 0;
+                
+                err = getsrd( data, &ndata, &cmd);
+
+                Write(connfd, data, ndata);
+
+		Close(connfd);
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@a7 10
+void sig_chld(int signo) {
+    pid_t   pid;
+    int     stat;
+
+    while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0)
+	printf("child %d terminated\n", pid);
+    return;
+
+}
+
+a36 1
+        /* Signal(SIGCHLD, sig_chld); */
+a39 1
+		printf("errno : %d\n", errno);
+a43 1
+		printf("%d received\n", cmd.command);
+a44 1
+
+a46 7
+                /* printf("%d ndata\n", ndata);
+		for ( i = 0; i < ndata; i++ ) {
+		    printf("%x :", data[i]);
+		    } */
+
+
+                /*snprintf(buff, sizeof(buff), "%s\n", frame); */
+@

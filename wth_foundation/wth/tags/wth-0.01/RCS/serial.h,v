@@ -1,0 +1,35 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2001.01.18.11.50.05;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@1st version
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* serial.h */
+
+void signal_handler( int signum);
+int  initserial ( int *pfd, struct termios *newtio, struct termios *oldtio);
+int  closeserial( int fd, struct termios *oldtio);
+int  readdata ( int fd, u_char *data, int *ndat);
+char *cword( int n);
+int  getsrd (char *data, int *mdat, struct cmd *pcmd);
+
+
+
+@
