@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<!-- weathersensor data -->
+<!-- $Id: wdata.xml,v 1.2 2002/03/27 08:33:30 jahns Exp jahns $ -->
+<!-- xml data from here -->
+<weatherReportList>
+ <weatherReport stationId="1">
+  <time> </time>
+  <date> </date>
+  <timeAlarm> </timeAlarm>
+  <units>SI</units>
+
+  <outdoorTemperature Id="1" >
+    <average>11.5</average>
+    <high>15.4 </high>
+    <low>7.2</low>
+    <dewpoint>10.5</dewpoint>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>0</receiveErr>
+  </outdoorTemperature>
+
+  <outdoorHumidity Id="1">
+    <average>54.5</average>
+    <high>55.0</high>
+    <low>52.7</low>
+    <dewpoint>10.5</dewpoint>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>1</receiveErr>
+  </outdoorHumidity>
+
+  <indoorTemperature Id="1">
+    <average>17.5</average>
+    <high>18.4</high>
+    <low>17.0</low>
+    <dewpoint>11.5</dewpoint>
+    <batteryStatus>high</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>0</receiveErr>
+  </indoorTemperature>
+
+  <indoorHumidity Id="1">
+    <average>40.0</average>
+    <high>42.3</high>
+    <low>39.2</low>
+    <dewpoint>11.5</dewpoint>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>3</receiveErr>
+  </indoorHumidity>
+
+  <barometricPressure Id="1">
+    <local>752</local>
+    <sealevel>1013</sealevel>
+    <tendency>rising</tendency>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>1</receiveErr>
+  </barometricPressure>
+
+  <wind Id="1">
+    <averageSpeed>2.5</averageSpeed>
+    <averageDirection>315</averageDirection>
+    <medianDeviation>22.5</medianDeviation>
+    <gustSpeed>5.0</gustSpeed>
+    <gustDirection>300</gustDirection>
+    <highSpeed>6.0</highSpeed>
+    <highDirection>310</highDirection>
+    <chill>9.5</chill>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>1</receiveErr>    
+  </wind>
+
+  <rain Id="1">
+    <total>987</total>
+    <rate>0</rate>
+    <yesterday>3</yesterday>
+    <batteryStatus>low</batteryStatus>
+    <alarmSet>off</alarmSet>
+    <receiveErr>0</receiveErr>
+  </rain>
+
+ </weatherReport>
+</weatherReportList>
+
+

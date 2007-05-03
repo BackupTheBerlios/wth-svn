@@ -1,11 +1,11 @@
-/* wth.h
+#/* wth.h
 
    global header file for WS2000 weatherstation communication
    
    $Id: wth.h,v 1.1 2002/07/04 09:50:21 jahns Exp jahns $
    $Revision: 1.1 $
 
-   Copyright (C) 2000-2001,2005 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
 #include <netdb.h>
-#include <poll.h>	/* for convenience */
+#include <poll.h>		/* for convenience */
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -39,16 +39,15 @@
 #include <sys/stat.h>	/* for S_xxx file mode constants */
 #include <sys/select.h>	/* for convenience */
 #include <sys/socket.h>	/* basic socket definitions */
-#include <sys/time.h>	/* timespec{} for pselect() */
+#include <sys/time.h>		/* timespec{} for pselect() */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
-#include <sys/un.h>	/* for Unix domain sockets */
+#include <sys/un.h>		/* for Unix domain sockets */
 #include <sys/wait.h>
 #include <syslog.h>
 #include <termios.h>
-#include <time.h>	/* timespec{} for pselect() */
+#include <time.h>		/* timespec{} for pselect() */
 #include <unistd.h>
 #include <math.h>
-
 #if defined POSTGRES
   #include <pgsql/libpq-fe.h>
 #endif
@@ -62,7 +61,7 @@
 #if defined(LINUX)
 # define SER_DEVICE "/dev/ttyS0"
 #elif defined(FREEBSD)
-# define SER_DEVICE "/dev/ttyd1"
+# define SER_DEVICE "/dev/ttyd0"
 #else // default
 # define SER_DEVICE ""
 #endif
@@ -75,8 +74,6 @@
 #define MAXFD       64
 #define XMLNAME     "XML-RPC Weatherstation C Client"
 #define WSTYPE      "WS2000"
-#define DATABASE    "weather"
-#define DBUSER      "postgres"
 
 #define FARENH      1
 #define MPH         1
@@ -86,7 +83,6 @@
 #define	MAXSOCKADDR  128	/* max socket address structure size */
 #define	BUFFSIZE     8192	/* buffer size for reads and writes */
 #define LISTENQ      1024    /* 2nd argument to listen() */
-
 /* Following shortens all the type casts of pointer arguments */
 #define	SA	     struct sockaddr
 #define max(a,b)     ((a) > (b) ? (a) : (b))
@@ -168,8 +164,6 @@ struct cmd {
   char *port;
   char *tnport;
   char *xmlport;
-  char *database;
-  char *dbuser;
   char *wstype;
   char *device;
   int baudrate;

@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+
+use RRDs;
+
+sub getlast {
+  my $lasttim;
+  my $lastval;
+  my $dsname;
+
+  my $ERROR;
+  my @retlist;
+
+  my $sensor = shift(@_);
+  my ($start,$step,$names,$array) = RRDs::fetch "$sensor", "--start", "-6000", "LAST";
+
+  $ERROR = RRDs::error;
+  print "ERROR: $ERROR\n" if $ERROR ;
+
+  foreach my $val (@$names) {
+    $dsname = $val if ($val ne "");
+  }
+
+  #
+  # get last entry in rrd and store to $lastval
+  #
+  foreach my $line (@$array){
+    foreach my $val (@$line) {
+      if ($val ne "") {
+        $lasttim = $start;
+        $lastval = $val; 
+        push (@retlist, $lasttim);
+        push (@retlist, $lastval);
+      }
+    }
+    $start += $step;
+  }
+
+  #
+  # no data found 
+  # 
+  if ( $lastval eq "") {
+    $lasttim = $start;
+    $lastval = "NA";
+    push(@retlist, $lasttim);
+    push(@retlist, $lastval);
+  }
+
+  push(@retlist, $dsname);
+  return wantarray ? @retlist : $retlist[0];
+
+}
+
+($time, $val, $name) = getlast("/usr/share/wetter/logs/sens4.rrd");
+print "$time $val $name\n";

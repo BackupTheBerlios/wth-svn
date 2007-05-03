@@ -1,4 +1,4 @@
-/* confdefs.h.  */
+ /* confdefs.h.  */
 
 #define PACKAGE_NAME ""
 #define PACKAGE_TARNAME ""
@@ -6,7 +6,7 @@
 #define PACKAGE_STRING ""
 #define PACKAGE_BUGREPORT ""
 #define PACKAGE "wth"
-#define VERSION "0.4.4"
+#define VERSION "0.4.3"
 #define _GNU_SOURCE 1
 #define STDC_HEADERS 1
 #define HAVE_SYS_WAIT_H 1
@@ -24,19 +24,17 @@
 #define HAVE_SYS_IOCTL_H 1
 #define HAVE_SYSLOG_H 1
 #define HAVE_UNISTD_H 1
+#define HAVE_LIBMD5 1
+#define HAVE_XMLRPC_H 1
+#define HAVE_XMLRPC_CLIENT_H 1
+#define HAVE_XMLRPC_ABYSS_H 1
+#define WITH_LIBXMLRPC 1
+#define HAVE_LIBPQ 1
 /* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
+#if HAVE_POSTGRES_H
+    #include <pgsql/libpq-fe.h>
 #endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char PQsetdbLogin ();
-int
-main ()
-{
-PQsetdbLogin ();
-  ;
-  return 0;
-}
+
+
+#include <pgqsl/libpq-fe.h>
+

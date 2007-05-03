@@ -31,6 +31,16 @@
 #include "wth.h"
 #include "wthprv.h"
 
+#if defined POSTGRES
+static void exit_nicely(PGconn *conn);
+
+static void exit_nicely(PGconn *conn)
+{
+  PQfinish(conn);
+  exit(1);
+}
+#endif
+
 /* demasq
   
    dataframe correction: STX, ETX and ENQ are masqued in the
@@ -440,7 +450,7 @@ time_t dcftime(unsigned char *data, int ndat) {
     
     dtim = mktime(&t);
     clk = ctime(&dtim);
-    syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", (long int)dtim);
+    syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", dtim);
     syslog(LOG_DEBUG, "dcftime : DCF clk : %s\n", clk);
 
 	
@@ -516,7 +526,7 @@ datex(unsigned char *data, int ndat, struct wthio *rw) {
 	   "datex : DCF not synchronized, using localtime for dataset\n");
     err = time(&mtim);
     syslog(LOG_DEBUG, 
-	   "datex : present time: %lu (seconds since EPOCH)\n", (long int)mtim);
+	   "datex : present time: %lu (seconds since EPOCH)\n", mtim);
   }
     
   /* dataset time is echoed in EPOCH seconds, dataset age in minutes
@@ -528,7 +538,7 @@ datex(unsigned char *data, int ndat, struct wthio *rw) {
   syslog(LOG_DEBUG, "datex : rw->wstat.ndats : %lu; age[min] : %lu\n",
 	 rw->wstat.ndats, age);
   syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
-	 (long int)mtim);
+	 mtim);
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
 	
   /* get data of the first 8 temperature/humidity sensors */
@@ -731,19 +741,19 @@ pdata(struct wthio *wth) {
   return (t);
 }
 
-#if defined POSTGRES
+
 /* pg_data
 
 insert sensor data into postgresql database
 
 */
 int 
-pg_data ( struct cmd *pcmd, struct wthio *wth) 
+pg_data ( struct wthio *wth) 
 {
   int j;
 
   /* database variables */
-  char *conninfo;
+  const char *conninfo;
   PGconn *conn;
   PGresult *res;
   int humi, humo, bar, windd, rain;
@@ -753,23 +763,19 @@ pg_data ( struct cmd *pcmd, struct wthio *wth)
   time_t tpc; 
   struct tm *tmpc; 
   char timebuff[40] = "";
+  char *rbuf;
 
   int conncount;
 
   /* make a connection to the database "weather" */
-  if (( conninfo = malloc(MAXBUFF)) == NULL )
-    return 1;
-
-  snprintf( conninfo, MAXBUFF, "dbname=%s user=%s", 
-	    pcmd->database, pcmd->dbuser);
+  conninfo = "dbname=weather user=postgres";
   conn = PQconnectdb(conninfo);
 
   /* Check to see that the backend connection was successfully made */
   if (PQstatus(conn) != CONNECTION_OK){
-    syslog(LOG_INFO, "pg_data: Connection to database failed: %s",
+    fprintf(stderr, "wcmd: cmd7 Connection to database failed: %s",
 	    PQerrorMessage(conn));
-    PQfinish(conn);
-    return(1);
+    exit_nicely(conn);
   }
 
   /* reset data logger access command counter */
@@ -798,7 +804,7 @@ pg_data ( struct cmd *pcmd, struct wthio *wth)
     strftime(timebuff, sizeof(timebuff), "%Y-%m-%d %X", tmpc);
 
     /* Write data out to the database */
-    snprintf(sqlstr, MAXBUFF,
+    sprintf(sqlstr,
 	    "INSERT into weather (" 
 	    "tempo,"
 	    "humo,"
@@ -812,23 +818,23 @@ pg_data ( struct cmd *pcmd, struct wthio *wth)
 	    " values ( '%3.1f', "
 	    "'%3d','%4d','%3.1f','%3d','%3d','%3.1f','%3d','%s')",
 	    tempo,humo,rain,winds,windd,bar,tempi,humi,timebuff);
-    syslog(LOG_DEBUG, "pg_data: sqlstr: %s\n",sqlstr);
+    printf("wcmd: command 7: sqlstr: %s\n",sqlstr);
+
       
     res = PQexec(conn, sqlstr);
     if( PQresultStatus( res ) != PGRES_COMMAND_OK ) { 
-      syslog(LOG_INFO, "pg_data: PQexec failed: %s", PQerrorMessage( conn ) );
-      PQfinish(conn);
-      return(1);
+      rbuf = mkmsg("wcmd: postgresql: %s", PQerrorMessage( conn ) );
+      return(-1);
     }
     PQclear(res);
   }
 
   /* Clean up database connection when exiting */
-  PQfinish(conn);
-  return(0);
+  exit_nicely(conn);
 
+  return(0);
 }
-#endif
+
 
 /* wcmd
 
@@ -1125,7 +1131,7 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
       rbuf = pdata(rw);
 #if defined POSTGRES
       if ( command == 7 ) {
-	if ( ( err = pg_data( pcmd, rw)) == -1 ) {
+	if ( ( err = pg_data(rw)) == -1 ) {
 	  rbuf = mkmsg("wmcd: postgres error\n") ;
 	  return (rbuf);
 	}
@@ -1209,8 +1215,6 @@ struct cmd
   inipcmd->tnport      = TNPORT;   
   inipcmd->wstype      = WSTYPE;
   inipcmd->xmlport     = XMLPORT;
-  inipcmd->database    = DATABASE;
-  inipcmd->dbuser      = DBUSER;
 
   return(inipcmd);
 
@@ -1329,73 +1333,33 @@ mkmsg(const char *fmt, ...) {
 /* usage : print handling instructions of wthc */
 int
 usage (int exitcode, char *error, char *addl) {
-  char *bufstr;
+      fprintf(stderr,"Usage: wthc [Options]\n"
+                     "where options include:\n"
+                     "\t-c <command>\texecute command\n"
+                     "\t\t0\tPoll DCF Time\n"
+                     "\t\t1\tRequest dataset\n"
+                     "\t\t2\tSelect next dataset\n"
+                     "\t\t3\tActivate 9 temperature sensors\n"
+                     "\t\t4\tActivate 16 temperature sensors\n"
+                     "\t\t5\tRequest status\n"
+                     "\t\t6\tSet interval time,\n" 
+                     "\t\t\t\trequires extra parameter specified by option -i\n"
+                     "\t\t7\tEvery 30 seconds, request data from the data\n"
+                     "\t\t\tlogger,and store it into the weather table of a\n"
+                     "\t\t\tpostgres database named weather\n"
+	             "\t\t12\tRequest all available data recursively\n"
+                     "\t-i <interval>\tspecifies interval time\n"
+		     "\t\tpermissible values for the interval lie\n"
+		     "\t\twithin the range from 1 to 60 minutes\n"
+                     "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
+                     "\t-p <portnumber>\tuse portnumber at remote host\n"
+                     "\t\tfor connection\n"
+                     "\t-s\t\tuse local serial connection\n"
+                     "\t-t\t\tset time using internal DCF77 receiver\n"
+                     "\t\t\tneeds superuser privileges\n--\n");
 
-  if (( bufstr = malloc(MAXBUFF)) == NULL ) 
-  {
-    return(1);
-  }
-
-  snprintf( bufstr, MAXBUFF, "Usage: wthc [Options]\n"
-	  "where options include:\n"
-	  "\t-c <command>\texecute command\n"
-	  "\t\t0\tPoll DCF Time\n"
-	  "\t\t1\tRequest dataset\n"
-	  "\t\t2\tSelect next dataset\n"
-	  "\t\t3\tActivate 9 temperature sensors\n"
-	  "\t\t4\tActivate 16 temperature sensors\n"
-	  "\t\t5\tRequest status\n"
-	  "\t\t6\tSet interval time,\n" 
-	   "\t\t\t\trequires extra parameter specified by option -i\n");
-#ifdef POSTGRES
-  snprintf( bufstr, MAXBUFF, "%s" 
-	  "\t\t7\tEvery 30 seconds, request data from the data\n"
-	  "\t\t\tlogger,and store it into the weather table of a\n"
-	   "\t\t\tpostgres database named weather\n", bufstr);
-#endif
-  snprintf( bufstr, MAXBUFF, "%s"
-	  "\t\t12\tRequest all available data recursively\n"
-	  "\t-i <interval>\tspecifies interval time\n"
-	  "\t\tpermissible values for the interval lie\n"
-	  "\t\twithin the range from 1 to 60 minutes\n"
-	  "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
-	  "\t-p <portnumber>\tuse portnumber at remote host\n"
-	  "\t\tfor connection\n"
-	  "\t-s\t\tuse local serial connection\n"
-	  "\t-t\t\tset time using internal DCF77 receiver TTTTTEEEESTTTT\n"
-	  "\t\t\tneeds superuser privileges\n--\n", bufstr);
-
-  fprintf(stderr, "%s", bufstr);
-
-  /*
-  fprintf(stderr,"Usage: wthc [Options]\n"
-	  "where options include:\n"
-	  "\t-c <command>\texecute command\n"
-	  "\t\t0\tPoll DCF Time\n"
-	  "\t\t1\tRequest dataset\n"
-	  "\t\t2\tSelect next dataset\n"
-	  "\t\t3\tActivate 9 temperature sensors\n"
-	  "\t\t4\tActivate 16 temperature sensors\n"
-	  "\t\t5\tRequest status\n"
-	  "\t\t6\tSet interval time,\n" 
-	  "\t\t\t\trequires extra parameter specified by option -i\n"
-	  "\t\t7\tEvery 30 seconds, request data from the data\n"
-	  "\t\t\tlogger,and store it into the weather table of a\n"
-	  "\t\t\tpostgres database named weather\n"
-	  "\t\t12\tRequest all available data recursively\n"
-	  "\t-i <interval>\tspecifies interval time\n"
-	  "\t\tpermissible values for the interval lie\n"
-	  "\t\twithin the range from 1 to 60 minutes\n"
-	  "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
-	  "\t-p <portnumber>\tuse portnumber at remote host\n"
-	  "\t\tfor connection\n"
-	  "\t-s\t\tuse local serial connection\n"
-	  "\t-t\t\tset time using internal DCF77 receiver\n"
-	  "\t\t\tneeds superuser privileges\n--\n");
-  */
-
-  if (error) fprintf(stderr, "%s: %s\n", error, addl);
-  exit(exitcode);
+      if (error) fprintf(stderr, "%s: %s\n", error, addl);
+      exit(exitcode);
 }
 
 /* tnusage : print handling instructions for telnet access wthd */
@@ -1547,10 +1511,6 @@ readconfig(struct cmd *pcmd) {
 		  pcmd->tnport = strdup(value);
         } else if ( strcasecmp( name, "xmlport" ) == 0 ) {
 		  pcmd->xmlport = strdup(value);
-        } else if ( strcasecmp( name, "database" ) == 0 ) {
-		  pcmd->database = strdup(value);
-        } else if ( strcasecmp( name, "dbuser" ) == 0 ) {
-		  pcmd->dbuser = strdup(value);
         } else {
 	  rbuf = mkmsg("unknown option '%s' inf configuration file\n", name );
           return(rbuf);
