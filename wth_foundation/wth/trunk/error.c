@@ -1,7 +1,19 @@
-#include	"unp.h" 
+/* error.c
+
+
+   copy of R.W.Stephens, UNP
+
+
+   $Id: error.c,v 0.2 2001/03/01 06:28:38 volker Exp jahns $
+   $Revision: 0.2 $
+   
+*/
+
+
+
+#include	"wth.h" 
 
 #include	<stdarg.h>		/* ANSI C header file */
-#include	<syslog.h>		/* for syslog() */
 
 int		daemon_proc;		/* set nonzero by daemon_init() */
 

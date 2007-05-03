@@ -1,37 +1,38 @@
-head	1.2;
+head	0.2;
 access;
 symbols;
-locks; strict;
+locks
+	jahns:0.2; strict;
 comment	@ * @;
 
 
-1.2
-date	2001.02.06.15.54.42;	author volker;	state Exp;
-branches;
-next	1.1;
-
-1.1
-date	2001.01.18.11.52.06;	author volker;	state Exp;
+0.2
+date	2001.03.01.06.32.40;	author volker;	state Exp;
 branches;
 next	;
 
 
 desc
-@1st version
+@WS2000 weatherstation
 @
 
 
-1.2
+0.2
 log
-@FreeBSD OK
+@timezone OK
 @
 text
-@/* util.c */
+@/* util.c
 
-#include "global.h"
-#include "const.h"
-#include "unp.h"
-#include "util.h"
+
+   utility functions
+
+   $Id$
+   $Revision$
+
+*/
+
+#include "wth.h"
 
 /* 
    getbits
@@ -160,17 +161,4 @@ Signal(int signo, Sigfunc *func)	/* for our signal() function */
 	return(sigfunc);
 }
 
-@
-
-
-1.1
-log
-@Initial revision
-@
-text
-@d5 2
-a25 2
-    int err;
-    int datum; 
-d65 69
 @

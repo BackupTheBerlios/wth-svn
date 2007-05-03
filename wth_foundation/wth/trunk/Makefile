@@ -1,54 +1,51 @@
-SOURCES = "wthtsts.c wthtstd.c error.c wrapunix.c wrapsock.c"
-OBJECTS = 
-
 # weatherstation stuff
-wthlib.o : wthlib.c wthlib.h global.h config.h dates.h const.h net.h serial.h util.h
-	gcc -c -Wall wthlib.c
+libwth.o : libwth.c wth.h 
+	cc -c -Wall libwth.c
 
-serial.o : serial.c serial.h global.h config.h const.h dates.h util.h
-	gcc -c -Wall serial.c
+serial.o : serial.c wth.h 
+	cc -c -Wall serial.c
 
-util.o :  util.c util.h global.h const.h unp.h
-	gcc -c -Wall util.c
+util.o :  util.c wth.h 
+	cc -c -Wall util.c
 
-wrapunix.o : wrapunix.c unp.h
-	gcc -c -Wall wrapunix.c
+wrapunix.o : wrapunix.c wth.h
+	cc -c -Wall wrapunix.c
 
-wrapsock.o : wrapsock.c unp.h
-	gcc -c -Wall wrapsock.c
+wrapsock.o : wrapsock.c wth.h
+	cc -c -Wall wrapsock.c
 
-error.o : error.c unp.h
-	gcc -c -Wall error.c
+error.o : error.c wth.h
+	cc -c -Wall error.c
 
-net.o : net.c config.h dates.h unp.h util.h
-	gcc -c -Wall net.c
+net.o : net.c wth.h
+	cc -c -Wall net.c
 
-wthlib.a : wthlib.o wthlib.h serial.o util.o net.o error.o wrapunix.o
-	ar rv wthlib.a wthlib.o serial.o util.o net.o error.o wrapunix.o
-	ranlib wthlib.a
-
-
-wthc.o : wthc.c
-	gcc -c -Wall wthc.c
-
-wthd.o : wthd.c
-	gcc -c -Wall wthd.c
-
-wthc: wthc.o wrapsock.o wthlib.a
-	gcc -Wall -o wthc wthc.o wrapsock.o wthlib.a
-
-wthd: wthd.o wrapunix.o wrapsock.o wthlib.a
-	gcc -Wall -o wthd wthd.o wrapunix.o wrapsock.o wthlib.a
+libwth.a : libwth.o wth.h serial.o util.o net.o error.o wrapunix.o
+	ar rv libwth.a libwth.o serial.o util.o net.o error.o wrapunix.o
+	ranlib libwth.a
 
 
+wthc.o : wthc.c wth.h
+	cc -c -Wall wthc.c
 
+wthd.o : wthd.c wth.h
+	cc -c -Wall wthd.c
+
+wthc: wthc.o wrapsock.o libwth.a
+	cc -Wall -o wthc wthc.o wrapsock.o libwth.a
+
+wthd: wthd.o wrapunix.o wrapsock.o libwth.a
+	cc -Wall -o wthd wthd.o wrapunix.o wrapsock.o libwth.a
+
+
+all: wthc wthd
 
 # general stuff
 clean :
 	@echo 'Cleaning directory'
 	-rm *.o
 	-rm *~
-	-rm wthlib.a
+	-rm libwth.a
 	-rm wthd
 	-rm wthc
 
