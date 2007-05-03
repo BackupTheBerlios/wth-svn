@@ -1,0 +1,61 @@
+wth is a free software solution to read weatherstation data
+of the Conrad or ELV WS2000 PC interface, which stores
+data of as many as 16 temperature and humidity sensors, 1 wind 
+sensor and 1 rainfall sensor. A DCF77 receiver is built into 
+the interface. The interface connects thru the serial port to
+the computing equipment. The communication protocol has been 
+published by the manufacturer and is fully implemented by the 
+wth software.
+
+The code is seperated in three parts:
+
+(1) a library which offers a high level functions to connect to the 
+    PC interface or over the network.
+
+(2) the TCP server code which allows for a network connection
+    for remote data retrieval. This includes telnet access.
+
+(3) the wthc client code either reads the PC interface or connects
+    to the wthd server to retrieve data.
+
+As an asset, xmlrpc support has been added. The xmlrpc server 
+wthxmld uses Eric Kidd's xmlrpc-c. The wthxc client code allows
+to retrieve the weatherstation data. For demonstration purposes
+a simple perl client - wth-xmlrpc - has been added as well.
+RPC methods have been implemented to represent the protocol of
+the WS2000 weatherstations. The return values are base64 encoded 
+by the wthxmld server.
+
+The wthxmld server needs a configuration file which is provided
+in subdirectoy abyss/conf as file abyss.conf .
+
+The wth-xmlrpc perl client uses  the perl module Frontier::Client
+which must be installed for proper function.
+
+
+Troubleshooting
+---------------
+
+FreeBSD
+-------
+Upgrading to FreeBSD 4.5 caused wthc to exit with timeout:
+
+wthc -c0 -s -v
+
+The following syslog messages occured:
+
+Mar 19 21:50:58 pegasus wthc[40810]: experimental test release 0.4.2 - December 2001 
+Mar 19 21:50:58 pegasus wthc[40810]: wcmd: called for command request: 0 
+Mar 19 21:50:58 pegasus wthc[40810]: initserial: error fcntl: Inappropriate ioctl for device
+
+Problem was that /dev hasn't been upgraded. Remake of device files
+in /dev
+
+sh MAKEDEV all
+
+solved the issue.
+
+wthc had been compiled with GNU build chain.
+./generate_build
+./configure 
+gmake wthc

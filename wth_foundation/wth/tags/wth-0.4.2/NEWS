@@ -1,0 +1,4 @@
+Jan 7th, 2001 - wth 0.4.2 ready
+    The newest version of wth supports xmlrpc for communication. 
+    By this a full implmentation of the WS2000 weatherstation
+    protocol using xml remote procedure calls (xmlrpc) has been added.
