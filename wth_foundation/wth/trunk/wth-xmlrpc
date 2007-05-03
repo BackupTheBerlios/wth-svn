@@ -13,7 +13,7 @@ use Frontier::Client;
 use Getopt::Long;
 use Time::Local;
 
-my $debug = 0;
+my $debug = 1;
 my $encoding = undef;
 my $proxy = undef;
 

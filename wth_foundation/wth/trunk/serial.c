@@ -2,10 +2,10 @@
 
    serial line communication routine for WS2000 weatherstation
 
-   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: serial.c,v 1.2 2005/03/11 06:35:48 jahns Exp jahns $
+   $Revision: 1.2 $
 
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2000-2001,2005 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,169 +26,197 @@
 #include "wth.h"
 #include "wthprv.h"
 
-static volatile int STOP = FALSE;
-static volatile int wait_flag = TRUE;
-static volatile int alrm_flag = FALSE;
+int
+bitstat( int byte, char *s_reg  ) 
+{
+  int x;
+  struct timezone tz;
+  struct timeval  tv;
 
-
-/* 
-   sigio_h
-   
-   handles SIGIO sent by weather station when data are available
-*/
-static void sigio_h(int signum) {
-  wait_flag = FALSE;
-  return;
+  gettimeofday(&tv, &tz);
+  printf("%5s | %lu.%lu : #", s_reg, tv.tv_sec, tv.tv_usec);
+  for( x = 7; x > -1; x-- )
+    printf( "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
+  printf( "b\n" );
+  return(0);
 }
-
-/*
-   sigalrm_h
-  
-   handles SIGALRM when timer goes off after timeout read
-*/
-static void sigalrm_h(int signum) {
-  alrm_flag = TRUE;
-  return;
-}
-
 
 
 /*  initserial
 
   opens serial port for communication
-  installs SIGIO asynchronuous signal handler, SIGALRM for read timeout
+  
   serial port settings:
+  WS2000 (and similar stations)
      9600, 8, Even Parity,  2Stop
      lower RTS and raise DTR voltage
 
+  PCWSR (PC Weatherstation receiver by ELV)
+     19200 BAUD, 8, Odd Parity, 2 Stopp
+
 */
-static int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd) {
+int 
+initserial (int *pfd, struct termios *newtio,
+	    struct termios *oldtio, struct cmd *pcmd) 
+{
   int i, itio;
 
-  /* open the device to be non-blocking (read will return immediatly) */
-  *pfd = open(pcmd->device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
-  if ( *pfd <0) {
+  if ( strcmp( pcmd->wstype, "WS2000") == 0 ) /* WS2000 */
+    { 
+    /* open the device to be non-blocking (read will return immediatly) */
+
+    *pfd = open(pcmd->device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
+    if ( *pfd <0) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error opening serial device : %s",
+	     strerror(werrno));
+      return(-1);
+    }
+
+    /* is this asynchronous? probably not */
+    if ( fcntl(*pfd, F_SETFL, 0) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error fcntl: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+    /* save current port settings */
+    if ( tcgetattr(*pfd,oldtio) == -1 ) {  
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error tcgetattr oldtio: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+    /* prefill port settings */
+    if ( tcgetattr(*pfd,newtio) == -1 ) { 
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error tcgetattr newtio: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+  
+    /* set communication link parameters */
+    if ( cfsetispeed(newtio, pcmd->baudrate) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error cfsetispeed: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+  
+    if ( cfsetospeed(newtio, pcmd->baudrate) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error cfsetospeed: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+
+    newtio->c_iflag = 0;
+    newtio->c_oflag = 0;
+    newtio->c_cflag = 0;
+    newtio->c_lflag = 0;
+
+    for ( i = 0; i < NCCS; i++) {
+      newtio->c_cc[i] = 0;
+    }
+  
+  
+    /* newtio->c_iflag &= (IXON | IXOFF | IXANY);  */  
+    newtio->c_cflag |= PARENB;
+    newtio->c_cflag &= ~PARODD;
+    newtio->c_cflag |= CLOCAL;
+    newtio->c_cflag |= CREAD;
+    newtio->c_cflag |= CS8;
+    newtio->c_cflag |= CSTOPB;
+    newtio->c_cflag |= CSIZE; 
+  
+    /* newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); */
+    newtio->c_cc[VMIN]=0;
+    newtio->c_cc[VTIME]=10;
+
+    if ( tcsetattr(*pfd,TCSANOW,newtio) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error tcsetattr: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+    /* lower DTR and RTS on serial line */
+    if ( ioctl(*pfd, TIOCMGET, &itio) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error ioctl: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+    itio &= ~TIOCM_DTR;
+    itio &= ~TIOCM_RTS;
+    if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
+      errno = errno;
+      syslog(LOG_INFO, "initserial: error ioctl: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+    /* raise DTR */
+    itio |= TIOCM_DTR;
+    if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "initserial: error ioctl: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
+
+  } /* WS2000 */
+  else if ( strcmp(pcmd->wstype, "PCWSR" ) == 0) /* PCWSR */
+    {
+      /* open the device to be non-blocking (read will return immediatly) */
+      *pfd = open( pcmd->device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK);
+      if ( *pfd <0) {
 	werrno = errno;
 	syslog(LOG_INFO, "initserial: error opening serial device : %s",
-		   strerror(werrno));
+	       strerror(werrno));
 	return(-1);
-  }
+      }
 
-  /* install the signal handler before making the device asynchronous */
-  if ( signal(SIGIO, sigio_h) == SIG_ERR ) {
-	werrno = ESIG;
-	syslog(LOG_INFO, "initserial: error install SIGIO");
-	return(-1);
-  }
+      /* async comm */
+      fcntl(*pfd, F_SETFL, FASYNC);
+ 
+      /* save current port settings */
+      tcgetattr(*pfd,oldtio);
   
-  if ( signal(SIGALRM,sigalrm_h) == SIG_ERR ) {
-	werrno = ESIG;
-	syslog(LOG_INFO, "initserial: error install SIGALRM");
-	return(-1);	
-  }
+      /* prefill port settings */
+      tcgetattr(*pfd,newtio);
 
-  /* allow the process to receive SIGIO */
-  if ( fcntl(*pfd, F_SETOWN, getpid()) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error fcntl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  /* Make the file descriptor asynchronous (the manual page says only 
-     O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
-  if ( fcntl(*pfd, F_SETFL, FASYNC) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error fcntl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  /* lower DTR and RTS on serial line */
-  if ( ioctl(*pfd, TIOCMGET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  itio &= ~TIOCM_DTR;
-  itio &= ~TIOCM_RTS;
-  if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-
-  /* raise DTR */
-  itio |= TIOCM_DTR;
-  if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  /* save current port settings */
-  if ( tcgetattr(*pfd,oldtio) == -1 ) {  
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcgetattr: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  /* prefill port settings */
-  if ( tcgetattr(*pfd,newtio) == -1 ) { 
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcgetattr: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+      /* set communication link parameters */
+      cfsetispeed(newtio, pcmd->baudrate);  
+      cfsetospeed(newtio, pcmd->baudrate);	
 
   
-  /* set communication link parameters */
-  if ( cfsetispeed(newtio, pcmd->baudrate) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error cfsetispeed: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+      newtio->c_cflag |= PARENB;
+      newtio->c_cflag |= PARODD;
+      newtio->c_cflag |= CLOCAL;
+      newtio->c_cflag |= CREAD;
+      newtio->c_cflag |= CS8;
+      newtio->c_cflag |= CSTOPB;
+      newtio->c_cflag |= CSIZE; 
   
-  if ( cfsetospeed(newtio, pcmd->baudrate) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error cfsetospeed: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+      newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+      newtio->c_oflag &= ~OPOST;
 
+      newtio->c_cc[VMIN]=1;
+      newtio->c_cc[VTIME]=5;
 
-  newtio->c_iflag = 0;
-  newtio->c_oflag = 0;
-  newtio->c_cflag = 0;
-  newtio->c_lflag = 0;
+      tcsetattr(*pfd,TCSANOW,newtio);
 
-  for ( i = 0; i < NCCS; i++) {
-	newtio->c_cc[i] = 0;
-  }
-  
-  
-  /* newtio->c_iflag &= (IXON | IXOFF | IXANY);  */  
-  newtio->c_cflag |= PARENB;
-  newtio->c_cflag &= ~PARODD;
-  newtio->c_cflag |= CLOCAL;
-  newtio->c_cflag |= CREAD;
-  newtio->c_cflag |= CS8;
-  newtio->c_cflag |= CSTOPB;
-  newtio->c_cflag |= CSIZE; 
-  
-  /* newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); */
-  newtio->c_cc[VMIN]=0;
-  newtio->c_cc[VTIME]=10;
+    } 
+  else {
+    werrno = errno;
+    syslog(LOG_INFO, "initserial: unknown WSTYPE %s",
+	   pcmd->wstype);
+    return(-1);	
 
-  if ( tcsetattr(*pfd,TCSANOW,newtio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcsetattr: %s",
-		   strerror(werrno));
-	return(-1);	
   }
   return(0);
 }
@@ -201,7 +229,7 @@ static int initserial (int *pfd, struct termios *newtio, struct termios *oldtio,
    lower DTR on serial line
 
 */
-static int closeserial( int fd, struct termios *oldtio) {
+int closeserial( int fd, struct termios *oldtio) {
     int tset;
 
     /* lower DTR on serial line */
@@ -212,12 +240,12 @@ static int closeserial( int fd, struct termios *oldtio) {
 	  return(-1);	
 	}
     tset &= ~TIOCM_DTR;
-	if ( ioctl(fd, TIOCMSET, &tset) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
-			 strerror(werrno));
-	  return(-1);	
-	}
+    if ( ioctl(fd, TIOCMSET, &tset) == -1 ) {
+      werrno = errno;
+      syslog(LOG_INFO, "closeserial: error ioctl: %s",
+	     strerror(werrno));
+      return(-1);	
+    }
 
     /* restore old port settings */
     /* takes approx 3 sec to reopen fd under FreeBSD
@@ -249,50 +277,68 @@ static int closeserial( int fd, struct termios *oldtio) {
   huh - the weather station sends its data frame in chunks of several bytes   
 
 */
-static int readdata (int fd, unsigned char *data, int *ndat) {
-    int i;
-    int err;
-    char rbuf[MAXBUFF];
+int 
+readdata (int fd, unsigned char *data, int *ndat, 
+  struct cmd *pcmd) 
+{
+  int i,n;
+  int err;
+  char rbuf[MAXBUFF];
+  int maxfd;
+  int loop = 1;
+  fd_set readfs;
+  struct timeval tv;
 
-    /* timeout handling: use function alarm() */
-    alarm(TIMEOUT);
-
-    *ndat = 0;
+  *ndat = 0;
 	
-	while ( STOP == FALSE) {
-	  /* input available */
-	  if ( wait_flag == FALSE) {
-		if ( ( err = read(fd, &rbuf, MAXBUFF)) > 0 ) {
-		  for ( i = 0; i < err; i++) {
-			data[*ndat + i] = rbuf[i];
-		  }
-		  *ndat += err;
-
-		  wait_flag = TRUE;
-		  if  ( rbuf[err-1] == 3) {
-			STOP = TRUE;
-		  }
-		}
-	  }
-	  /* timeout experienced */
-	  if ( alrm_flag == TRUE) {
-		STOP = TRUE;
-	  }
-	}    
-
-	/* reset loop control flags */
-	STOP = FALSE;
-	wait_flag = TRUE;
-
-	/* turnoff alarm timeout */
-	alarm(0);
+  err = -1;
+  maxfd = fd +1;
+  
+  /* loop until input is available */
+  while ( loop) {
 	
-	if ( alrm_flag == TRUE ) {
-	  syslog(LOG_INFO, "readdata: sigalrm_h : timeout");
-	  return(-1);
-	} else {
-	  return(0);
+	FD_ZERO(&readfs);
+	FD_SET(fd, &readfs);
+
+	tv.tv_sec  = TIMEOUT;
+	tv.tv_usec = 0;
+	
+	if ( strcmp( pcmd->wstype, "WS2000") == 0 ) /* WS2000 */
+	  n = select(maxfd, &readfs, NULL, NULL, &tv);
+        else if ( strcmp( pcmd->wstype, "PCWSR") == 0 ) /* PCWSR */
+	  n = select(maxfd, &readfs, NULL, NULL, NULL);
+        else /* return with error */
+	  n = -1;
+	switch (n) {
+	case -1:
+          if ( errno == EBADF ) 
+	    syslog(LOG_INFO, "readdata: select error: EBADF");
+          else if ( errno == EINTR ) 
+	    syslog(LOG_INFO, "readdata: select error: EINTR");
+          else if ( errno == EINVAL ) 
+	    syslog(LOG_INFO, "readdata: select error: EINVAL");
+          else
+	    syslog(LOG_INFO, "readdata: select error");
+          err = -1; loop = 0;
+	  break;
+	case 0:
+	  syslog(LOG_INFO, "readdata: select: Timeout\n");
+          err = -1; loop = 0;
+          break;
+	default:
+	  /* loop until err = 0 */
+	  while ( ( rbuf[err-1] != 3) && ( err != 0)) {
+	    err = read(fd, rbuf, MAXBUFF);
+	    for ( i = 0; i < err; i++) {
+              data[*ndat + i] = rbuf[i];
+	    }
+            *ndat += err;
+	    loop=0;
+	  }
+	  break;
 	}
+  }
+  return(err);
 }
 
 
@@ -312,7 +358,7 @@ static int readdata (int fd, unsigned char *data, int *ndat) {
     6   : Set interval time               : 1
     shouldn't this go into a configuration file?
  */
-static Ckey *c(int n){
+Ckey *c(int n){
   static Ckey p[] = {
 	{"\x01\x30\xcf\x04", 7, "Poll DCF time"},
 	{"\x01\x31\xce\x04", 61, "Request dataset"},
@@ -341,60 +387,62 @@ static Ckey *c(int n){
 int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     int fd;                         /* filedescriptor serial port */
     char lword[5];                  /* temporary array to hold commandword */
-    struct termios newtio,oldtio;   /* termios structures to set 
+    struct termios newtio,oldtio; /* termios structures to set 
                                      comm parameters */
 
-
+    
     if ( initserial(&fd, &newtio, &oldtio, pcmd) == -1 )
 	  return(-1);
 
-    /* read ETX from serial port
+    if ( strcmp( pcmd->wstype, "WS2000") == 0 ) /* WS2000 */
+      {
+	/* read ETX from serial port
  
-      when the weather station is activated by setting DTR it answers
-      with an ETX char to signalize it's OK 
-    */
-    if ( readdata(fd, data, mdat) == -1 )
+	   when the weather station is activated by setting DTR it answers
+	   with an ETX char to signalize it's OK 
+	*/
+	if ( readdata(fd, data, mdat, pcmd) == -1 ) {
+          printf("readdata problem\n");
+	  closeserial(fd, &oldtio);
 	  return(-1);
+	}
 
-    if ( strcpy(lword, c(pcmd->command)->word) == NULL )
+	if ( strcpy(lword, c(pcmd->command)->word) == NULL )
 	  return(-1); 
 	
-    /* modify command to set intervall time */
-    if ( pcmd->command == 6) {
-      lword[2] = pcmd->argcmd;
-      lword[3] = lword[3] - pcmd->argcmd;
-    }
+        /* modify command to set intervall time */
+	if ( pcmd->command == 6) {
+	  lword[2] = pcmd->argcmd;
+	  lword[3] = lword[3] - pcmd->argcmd;
+	}
 
-    /* write to command to serial line */
-    if ( write(fd, lword, sizeof(lword)) == -1 ) {
+	/* write to command to serial line */
+	if ( write(fd, lword, sizeof(lword)) == -1 ) {
 	  werrno = errno;
 	  syslog(LOG_INFO, "getsrd: write failed: %s",
 		 strerror(werrno));
 	  return(-1);
-    }
+	}
 
-    syslog(LOG_DEBUG, "getsrd : command written : %d\n", pcmd->command);
+	syslog(LOG_DEBUG, "getsrd : command written : %d\n", pcmd->command);
+      }
 
     /* read weather station resonse from serial port */
-    if ( readdata(fd, data, mdat) == -1)
-	  return(-1);
+    if ( readdata(fd, data, mdat, pcmd) == -1) {
+      closeserial(fd, &oldtio);
+      return(-1);
+    }
     
     /* echo raw dataframe */
     if ( echodata(data, *mdat) == -1)
 	  return(-1);
 
-    sleep(3);    
-   /* leave serial line in good state */ 
-    if ( closeserial(fd, &oldtio) == -1)
-	  return(-1);
+    closeserial(fd, &oldtio);
+
 
     syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }
-
-
-
-
 
 
 

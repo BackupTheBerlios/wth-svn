@@ -15,8 +15,7 @@
 xmlrpc_value *
 poll_dcftime (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-    int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -50,8 +49,7 @@ poll_dcftime (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 xmlrpc_value *
 request_status (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-  int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -98,8 +96,7 @@ request_status (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 xmlrpc_value *
 request_dataset (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-  int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -131,8 +128,7 @@ request_dataset (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 xmlrpc_value *
 select_next_dataset (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-  int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -164,8 +160,7 @@ select_next_dataset (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data
 xmlrpc_value *
 activate_8_sensors (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-    int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -197,8 +192,7 @@ activate_8_sensors (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 xmlrpc_value *
 activate_16_sensors (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-  int i;
-    xmlrpc_int32 n, arg1, arg2;
+    xmlrpc_int32 n;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";
@@ -245,8 +239,8 @@ activate_16_sensors (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data
 xmlrpc_value *
 set_log_interval (xmlrpc_env *env, xmlrpc_value *param_array, void *user_data)
 {
-  int i, err;
-    xmlrpc_int32 n, arg1, arg2;
+  int err;
+    xmlrpc_int32 n, arg1;
     struct cmd     cmd;
     unsigned char  rdata[MAXBUFF];
     unsigned char* nakfram = "\x02\x01\x15\xe8\x03";

@@ -1,0 +1,35 @@
+Serialline
+---------
+
+Station connected to the correct port ?
+
+Permissions on serial port OK?
+
+  I have noticed here that even if permissions are 666 the data communication
+  is corrupted:
+
+false output when indoor sensor is connected:
+
+  0: 1: 2: 3: 4: 5: 6: 7: 8: 9:10:11:12:13:14:15:16:17:18:19:20:21:22:23:24:25:26:27:28:29:30:31:32:33:34:35:36:37:38: 
+  2:23:9a: 2:95:13: 0: 0:70:94:1b:29:42: 1: 0: 0: 0: 0:70:14:2e: 0: 0: 0: 0: 0:ba: 1: 0: 0: 0: 0: 0: 0: 0: 0: 0:9f: 3: 
+
+correct output if indoor sensor is connected:
+  0: 1: 2: 3: 4: 5: 6: 7: 8: 9:10:11:12:13:14:15:16:17:18:19:20:21:22:23:24:25:26:27:28:29:30:31:32:33:34:35:36:37:38: 
+  2:23:15: 0: 2: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0: 0:40:75:42:72: a: 0:51: 3: 
+
+the data bytestring is messed up (doesn't correspond to the documentation)
+
+running the program under root privileges is fine.
+
+
+
+rrdtool
+-------
+rrdtool over nfs makes problems because of locking.
+
+correct /etc/hosts.allow:
+--
+statd: 10.0.0.0/255.255.255.0 : ALLOW
+--
+
+

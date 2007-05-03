@@ -38,14 +38,16 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+build_triplet = i686-suse-linux
 host_triplet = i686-suse-linux
+target_triplet = i686-suse-linux
 bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthxc$(EXEEXT) \
 	wthxmld$(EXEEXT)
-DIST_COMMON = README $(am__configure_deps) $(include_HEADERS) \
-	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
 	ChangeLog INSTALL NEWS acconfig.h config.guess config.sub \
-	depcomp install-sh missing mkinstalldirs
+	depcomp install-sh mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -58,7 +60,7 @@ CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 AR = ar
 ARFLAGS = cru
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(includedir)"
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"
 libLIBRARIES_INSTALL = $(INSTALL_DATA)
 LIBRARIES = $(lib_LIBRARIES)
 libwth_a_AR = $(AR) $(ARFLAGS)
@@ -102,12 +104,7 @@ SOURCES = $(libwth_a_SOURCES) $(libwthxml_a_SOURCES) $(wthc_SOURCES) \
 DIST_SOURCES = $(libwth_a_SOURCES) $(libwthxml_a_SOURCES) \
 	$(wthc_SOURCES) $(wthd_SOURCES) $(wthxc_SOURCES) \
 	$(wthxmld_SOURCES)
-man1dir = $(mandir)/man1
-man5dir = $(mandir)/man5
-NROFF = nroff
-MANS = $(man_MANS)
-includeHEADERS_INSTALL = $(INSTALL_HEADER)
-HEADERS = $(include_HEADERS) $(noinst_HEADERS)
+HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -131,7 +128,7 @@ AUTOMAKE = automake-1.8
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -g -O2
+CFLAGS = -g -O2 -DLINUX -Wall
 CPP = gcc -E
 CPPFLAGS =  -I/usr/local/include/
 CYGPATH_W = echo
@@ -148,7 +145,7 @@ INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
 LDFLAGS = 
 LIBOBJS = 
-LIBS =  -L/usr/local/lib/
+LIBS = 
 LTLIBOBJS = 
 MAKEINFO = makeinfo
 OBJEXT = o
@@ -163,7 +160,7 @@ RANLIB = ranlib
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 0.4.2.1
+VERSION = 0.4.3
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -187,7 +184,7 @@ host_os = linux
 host_vendor = suse
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /proj/wetter/software/serial/wth/wth-0.4.2.1/install-sh
+install_sh = /proj/wetter/software/serial/wth/wth-0.4.3/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -199,14 +196,17 @@ program_transform_name = s,x,x,
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
+target = i686-suse-linux
 target_alias = 
-AM_CFLAGS = -O2
-wthc_SOURCES = wthc.c wth.h version.h
-#wthc_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
+target_cpu = i686
+target_os = linux
+target_vendor = suse
+wthc_SOURCES = wthc.c wth.h
 wthc_LDADD = $(top_builddir)/libwth.a 
-wthd_SOURCES = wthd.c wth.h version.h
+wthd_SOURCES = wthd.c wth.h 
+#wthd_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
 wthd_LDADD = $(top_builddir)/libwth.a
-wthxc_SOURCES = wthxc.c wth.h version.h 
+wthxc_SOURCES = wthxc.c wth.h 
 wthxc_LDADD = $(top_builddir)/libwthxml.a \
 		-lmd5 -lwwwcore -lwwwxml \
 		-lwwwzip -lwwwinit -lwwwapp \
@@ -217,7 +217,7 @@ wthxc_LDADD = $(top_builddir)/libwthxml.a \
 		-lwwwtrans -lwwwutils -lxmlrpc \
 		-lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
 
-wthxmld_SOURCES = wthxmld.c wth.h version.h
+wthxmld_SOURCES = wthxmld.c wth.h 
 wthxmld_LDADD = $(top_builddir)/libwthxml.a -lxmlrpc -lxmlrpc_abyss \
 		-lxmlrpc_abyss_server -lxmlrpc_xmlparse \
 		-lxmlrpc_xmltok \
@@ -230,13 +230,11 @@ wthxmld_LDADD = $(top_builddir)/libwthxml.a -lxmlrpc -lxmlrpc_abyss \
 		-lwwwtrans -lwwwutils -lxmlrpc \
 		-lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
 
-include_HEADERS = wth.h
-noinst_HEADERS = wthnet.h wthprv.h
+noinst_HEADERS = wth.h wthnet.h wthprv.h
 lib_LIBRARIES = libwth.a libwthxml.a
 libwth_a_SOURCES = libwth.c data.c serial.c net.c wth.h wthnet.h wthprv.h 
 libwthxml_a_SOURCES = libwth.c dataxml.c serial.c net.c xml.c wth.h wthnet.h wthprv.h 
-man_MANS = wthc.1 wthd.1 wth.conf.5
-EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc wthc.1 wthd.1 wth.conf.5
+EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -398,113 +396,6 @@ include ./$(DEPDIR)/xml.Po
 #	$(CCDEPMODE) $(depcomp) \
 #	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 uninstall-info-am:
-install-man1: $(man1_MANS) $(man_MANS)
-	@$(NORMAL_INSTALL)
-	test -z "$(man1dir)" || $(mkdir_p) "$(DESTDIR)$(man1dir)"
-	@list='$(man1_MANS) $(dist_man1_MANS) $(nodist_man1_MANS)'; \
-	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
-	for i in $$l2; do \
-	  case "$$i" in \
-	    *.1*) list="$$list $$i" ;; \
-	  esac; \
-	done; \
-	for i in $$list; do \
-	  if test -f $(srcdir)/$$i; then file=$(srcdir)/$$i; \
-	  else file=$$i; fi; \
-	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
-	  case "$$ext" in \
-	    1*) ;; \
-	    *) ext='1' ;; \
-	  esac; \
-	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
-	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
-	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man1dir)/$$inst'"; \
-	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man1dir)/$$inst"; \
-	done
-uninstall-man1:
-	@$(NORMAL_UNINSTALL)
-	@list='$(man1_MANS) $(dist_man1_MANS) $(nodist_man1_MANS)'; \
-	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
-	for i in $$l2; do \
-	  case "$$i" in \
-	    *.1*) list="$$list $$i" ;; \
-	  esac; \
-	done; \
-	for i in $$list; do \
-	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
-	  case "$$ext" in \
-	    1*) ;; \
-	    *) ext='1' ;; \
-	  esac; \
-	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
-	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
-	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
-	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
-	done
-install-man5: $(man5_MANS) $(man_MANS)
-	@$(NORMAL_INSTALL)
-	test -z "$(man5dir)" || $(mkdir_p) "$(DESTDIR)$(man5dir)"
-	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
-	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
-	for i in $$l2; do \
-	  case "$$i" in \
-	    *.5*) list="$$list $$i" ;; \
-	  esac; \
-	done; \
-	for i in $$list; do \
-	  if test -f $(srcdir)/$$i; then file=$(srcdir)/$$i; \
-	  else file=$$i; fi; \
-	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
-	  case "$$ext" in \
-	    5*) ;; \
-	    *) ext='5' ;; \
-	  esac; \
-	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
-	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
-	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man5dir)/$$inst'"; \
-	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man5dir)/$$inst"; \
-	done
-uninstall-man5:
-	@$(NORMAL_UNINSTALL)
-	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
-	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
-	for i in $$l2; do \
-	  case "$$i" in \
-	    *.5*) list="$$list $$i" ;; \
-	  esac; \
-	done; \
-	for i in $$list; do \
-	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
-	  case "$$ext" in \
-	    5*) ;; \
-	    *) ext='5' ;; \
-	  esac; \
-	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
-	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
-	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
-	  echo " rm -f '$(DESTDIR)$(man5dir)/$$inst'"; \
-	  rm -f "$(DESTDIR)$(man5dir)/$$inst"; \
-	done
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	test -z "$(includedir)" || $(mkdir_p) "$(DESTDIR)$(includedir)"
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " $(includeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(includedir)/$$f'"; \
-	  $(includeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(includedir)/$$f"; \
-	done
-
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(include_HEADERS)'; for p in $$list; do \
-	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " rm -f '$(DESTDIR)$(includedir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(includedir)/$$f"; \
-	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -681,9 +572,9 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(MANS) $(HEADERS) config.h
+all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(HEADERS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(includedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -732,13 +623,13 @@ info: info-am
 
 info-am:
 
-install-data-am: install-includeHEADERS install-man
+install-data-am:
 
 install-exec-am: install-binPROGRAMS install-libLIBRARIES
 
 install-info: install-info-am
 
-install-man: install-man1 install-man5
+install-man:
 
 installcheck-am:
 
@@ -761,10 +652,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS \
-	uninstall-info-am uninstall-libLIBRARIES uninstall-man
-
-uninstall-man: uninstall-man1 uninstall-man5
+uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-libLIBRARIES
 
 .PHONY: CTAGS GTAGS all all-am am--refresh check check-am clean \
 	clean-binPROGRAMS clean-generic clean-libLIBRARIES ctags dist \
@@ -773,16 +662,13 @@ uninstall-man: uninstall-man1 uninstall-man5
 	distclean-hdr distclean-tags distcleancheck distdir \
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binPROGRAMS install-data \
-	install-data-am install-exec install-exec-am \
-	install-includeHEADERS install-info install-info-am \
-	install-libLIBRARIES install-man install-man1 install-man5 \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-includeHEADERS uninstall-info-am \
-	uninstall-libLIBRARIES uninstall-man uninstall-man1 \
-	uninstall-man5
+	install-data-am install-exec install-exec-am install-info \
+	install-info-am install-libLIBRARIES install-man install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-libLIBRARIES
 
 
 xmltest: wthxmld wthxc

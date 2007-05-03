@@ -1,7 +1,12 @@
-wth - experimental test release 0.4.2.1
-- undocumented wind mean deviation is available now
-- improved GNU build chain
-- documentation updated
+wth - experimental test release 0.4.4
+- changed atmospheric pressure value. earlier versions print
+  pressure value as ( absolute pressure - 200 hPa ). now the
+  printed value _is_ the absolute atmospheric pressure. This
+  value must be modified for normalization to sealevel.
+
+wth - experimental test release 0.4.3
+- added new option to set time using internal DCF77 receiver
+- wind deviation data now read (documentation leak)
 
 wth -experimental test release 0.4.2
 - added xmlrpc support, this includes new client and server software

@@ -1,20 +1,37 @@
+dnl 
+dnl configure.in 
+dnl
+dnl Copyright (C) Jun 2002, Volker Jahns (Volker.Jahns@thalreit.de)
+dnl
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(libwth.c)
-AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
+AM_INIT_AUTOMAKE(wth, 0.4.3)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(wth, 0.4.2.1)
 AC_DEFINE(_GNU_SOURCE)
-AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
+#AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
 
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
 
+dnl Compiler checks
 dnl include directories may be /usr/local/include
 WTH_INC="-I/usr/local/include/"
 CPPFLAGS="$CPPFLAGS ${WTH_INC}"
-WTH_LIBS="-L/usr/local/lib/"
-LIBS="$LIBS $WTH_LIBS"
+
+dnl Define a macro according to the system type
+case "$target" in
+        i[[3456]]86-*-linux) ARCH="-DLINUX" ;;
+        i[[3456]]86-*-freebsd*) ARCH="-DFREEBSD" ;;
+esac
+CFLAGS="$CFLAGS $ARCH -Wall"
+#AC_MSG_ERROR(CFLAGS: $CFLAGS)
+AC_SUBST(CFLAGS)
+
+
+dnl WTH_LIBS="-L/usr/local/lib/"
+dnl LIBS="$LIBS $WTH_LIBS"
 
 dnl Checks for libraries.
 dnl test purposes
@@ -43,4 +60,5 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(mktime select socket strcspn strdup strerror strspn)
 
 AC_OUTPUT(Makefile)
+
 

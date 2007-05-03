@@ -2,8 +2,8 @@
 
    client program to communicate w/ WS2000 weatherstation
 
-   $Id: wthc.c,v 0.4 2001/09/14 15:38:00 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: wthxc.c,v 1.1 2002/07/04 09:52:04 jahns Exp $
+   $Revision: 1.1 $
    
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
@@ -24,7 +24,7 @@
 */
 
 #include "wth.h"
-#include "version.h"
+#include "config.h"
 
 int main (int argc, char **argv) {
   int o;
@@ -43,7 +43,7 @@ int main (int argc, char **argv) {
   }
   
   openlog("wthxc", LOG_PID , cmd.logfacility);
-  syslog(LOG_INFO, "%s\n", wth_version);
+  syslog(LOG_INFO, "wthxc: %s\n", VERSION);
                                                                     
   /* parsing command line arguments */
   while (( o = getopt(argc, argv, "c:h:xi:p:sv")) != -1 ) {
@@ -71,7 +71,7 @@ int main (int argc, char **argv) {
 	    break;
           case 'v':
 	    cmd.verbose = 1;
-	    printf("wthc: %s\n", wth_version);
+	    printf("wthc version: %s\n", VERSION);
 	    printf("%s", rbuf);
 	    break;
           case '?':

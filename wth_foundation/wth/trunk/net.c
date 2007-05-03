@@ -3,10 +3,13 @@
 
    network related functions of wthc and wthd
 
-   $Id: net.c,v 0.4 2001/09/14 15:41:30 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: net.c,v 1.1 2002/07/04 09:51:23 jahns Exp $
+   $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+
+   some code originates from UNIX network programming (R.Stevens)
+     http://www.kohala.com/start
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

@@ -2,8 +2,8 @@
 
    global header file for WS2000 weatherstation communication
    
-   $Id: wth.h,v 0.4 2001/09/14 15:42:15 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: wth.h,v 1.1 2002/07/04 09:50:21 jahns Exp jahns $
+   $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
@@ -39,6 +39,7 @@
 #include <sys/stat.h>	/* for S_xxx file mode constants */
 #include <sys/select.h>	/* for convenience */
 #include <sys/socket.h>	/* basic socket definitions */
+#include <sys/time.h>		/* timespec{} for pselect() */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
 #include <sys/un.h>		/* for Unix domain sockets */
 #include <sys/wait.h>
@@ -52,8 +53,15 @@
 
 #define BAUDRATE    B9600
 #define MAXBUFF     1024
-#define TIMEOUT     60
-#define SER_DEVICE  "/dev/ttyS0"
+#define TIMEOUT     7
+/* Serial port devices */
+#if defined(LINUX)
+# define SER_DEVICE "/dev/ttyS0"
+#elif defined(FREEBSD)
+# define SER_DEVICE "/dev/ttyd0"
+#else // default
+# define SER_DEVICE ""
+#endif
 #define MAXSENSORS  42
 #define MAXDATA     2048
 #define LOGFACILITY LOG_LOCAL7
@@ -62,7 +70,7 @@
 #define XMLPORT     "8005"
 #define MAXFD       64
 #define XMLNAME     "XML-RPC Weatherstation C Client"
-
+#define WSTYPE      "WS2000"
 
 /* from unp.h */
 #define	MAXLINE      4096	/* max text line length */
@@ -125,11 +133,12 @@ struct DCFstruct {
 
 struct wstatus {
   int nsens;
-  int intvaltime;
   int version;
+  int intvaltime;
   long ndats;
   char *ebuf;
 };
+
 
 struct wthio {
   struct sensor sens[MAXSENSORS];
@@ -143,13 +152,17 @@ struct cmd {
   int netflg;
   int verbose;
   int timeout;
-  int baudrate;
   int logfacility;
-  char *device;
   char *hostname;
   char *port;
   char *tnport;
   char *xmlport;
+  char *wstype;
+  char *device;
+  int baudrate;
+  int cstopb;
+  int nbits;
+  int parity;
 };
 
 struct key {
@@ -182,7 +195,10 @@ int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
 int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
 char *wstat(unsigned char *data, int mdat, struct wthio *rw);
 time_t dcftime(unsigned char *data, int ndat);
+int settime(struct wthio *rw);
 char *wcmd(struct cmd *pcmd, struct wthio *rw);
 
 int initdata(struct wthio *rw);
-int initcmd(struct cmd *pcmd);
+struct cmd *initcmd(void );
+
+

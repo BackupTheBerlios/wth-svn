@@ -2,8 +2,8 @@
 
    xmlrpc related code
 
-   $Id$
-   $Revision$
+   $Id: xml.c,v 1.1 2002/07/04 09:52:33 jahns Exp $
+   $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
@@ -40,6 +40,7 @@ int return_on_fault (xmlrpc_env *env)
                 env->fault_string, env->fault_code);
         return(-1);
     }
+    return(0);
 }
 
 
@@ -56,7 +57,7 @@ int getxmlrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
     xmlrpc_env env;
     xmlrpc_value *result;
     static char xmlserver_url[MAXBUFF];
-    unsigned char rbuf[MAXBUFF]="\x02\x01\x15\xe8\x03";
+    //unsigned char rbuf[MAXBUFF]="\x02\x01\x15\xe8\x03";
     unsigned char* rdata;
     size_t* datasize;
 

@@ -2,8 +2,8 @@
 
    network related header file for WS2000 weatherstation communication
    
-   $Id: wth.h,v 0.4 2001/09/14 15:42:15 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: wthnet.h,v 1.1 2002/07/04 09:52:59 jahns Exp $
+   $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 

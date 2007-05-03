@@ -3,7 +3,7 @@
    private header file for WS2000 weatherstation communication
       
 
-   $Id: wthprv.h,v 1.1 2001/09/26 12:28:32 jahns Exp jahns $
+   $Id: wthprv.h,v 1.1 2002/07/04 09:52:46 jahns Exp $
    $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
@@ -27,20 +27,17 @@
 
 typedef void Sigfunc (int);  
 
-/* function prototypes, for internal use only */
-static void sigio_h(int signum);
-static void sigalrm_h(int signum);
-
 Sigfunc *signal(int signo, Sigfunc *func);
 /* for our signal() function */
 /* static Sigfunc *Signal(int signo, Sigfunc *func); */
 
-static int initserial( int *pfd, struct termios *newtio, 
+int initserial( int *pfd, struct termios *newtio, 
 		struct termios *oldtio, struct cmd *pcmd);
-static int closeserial( int fd, struct termios *oldtio);
-static int readdata( int fd, unsigned char *data, int *ndat);
+int closeserial( int fd, struct termios *oldtio);
+int readdata( int fd, unsigned char *data, 
+  int *ndat, struct cmd *pcmd);
 
-static Ckey *c(int n);
+Ckey *c(int n);
 int wstrlen(char *s);
 
 unsigned getbits(unsigned x, int p, int n);

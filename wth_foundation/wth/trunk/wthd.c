@@ -12,8 +12,8 @@
    		TCP
    		iterative
    
-   $Id: wthd.c,v 0.4 2001/09/14 15:39:39 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: wthd.c,v 1.1 2002/07/04 09:51:52 jahns Exp $
+   $Revision: 1.1 $
 
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>

@@ -1,0 +1,959 @@
+VALIDATING XML
+
+By J. David Eisenberg
+
+Copyright 2000 J. David Eisenberg and A List Apart
+
+Permanent location: http://alistapart.zeldman.com/stories/validate/
+
+NOTE: The text version of this article may differ slightly from
+the online version at http://alistapart.zeldman.com/stories/validate/.
+The online version will always be the most current version.
+
+:::: :::: :::: ::::
+
+As the Internet moves forward, Extensible Markup Language, XML, is poised to
+become the method for interchanging information among all sorts of devices.
+For instance, a hand-held Global Positioning System device might be
+Internet-enabled to receive weather reports encoded in XML. This hypothetical
+device doesn't have a lot of extra memory to do all the error-checking and
+"forgiving" that a browser can do with your HTML.  This means that
+servers must ensure that the data is "good to go" before sending it
+to the device. XML Schema is a new method that the World Wide Web Consortium
+has come up with to help make sure your data is valid.
+
+Before we can describe XML Schema, we have to discuss what we mean when we say
+"valid" and how documents are currently validated. Let's look at a
+sample weather report, written in the just-invented EWEML (Eisenberg's Weather
+Example Markup Language).
+
+
+   <report>
+     <datestamp>2000-09-01</datestamp>
+     <station fullname="San Jose" abbrev="KSJC">
+         <latitude>37.3618619</latitude>
+         <longitude>-121.9290089</longitude>
+      </station>
+      <temperature>
+         <min>20</min>
+         <max>29</max>
+         <forecast-low>21</forecast-low>
+         <forecast-high>30</forecast-high>
+      </temperature>
+      <wind>
+         <speed>5</speed>
+         <direction>NNW</direction>
+      </wind>
+   </report>
+
+
+The first step in quality control is making sure that the document
+follows the basic rules of XML.  Among these rules:
+   * opening tags must have closing tags
+   * tags must be nested properly
+   * values in a tag must be enclosed in quote marks
+
+A document that follows these "punctuation rules"
+is called well-formed. You don't need any information other
+than the document itself to tell if all the tags are closed
+or nested correctly.  There are, however, some questions you
+can't answer just by looking at the document.
+
+Validity and the DTD
+====================
+
+There is no way, just by looking at the document, that
+you can answer questions like:
+
+ * Does the <speed> element belong inside
+   the <wind> element or not?
+ * Is the tag really <min>, or should it be
+   <minimum>?
+ * Is the fullname attribute required for a
+   <station> element?
+
+The only way to answer these questions and find out if the
+tags have been used in a valid manner is to have some other
+information that describes what combinations of tags,
+attributes, and values are correct. You need some sort of
+external specification, usually designed in great detail
+before one creates documents according to it. We could make
+a specification in English:
+
+   A weather <report> consists of a <datestamp>,
+   <station>, <temperature>, and <wind>
+   element (in that order).
+   
+   The <station> element must have fullname and abbrev
+   attributes, and contain both <latitude> and
+   <longitude> elements.
+   
+   The <temperature> element must contain (in this order)
+   a <min>, <max>, <forecast-low> and
+   <forecast-high>.
+
+   Finally, the <wind> element must contain a
+   <speed> and may contain a <direction>
+   element. (If the speed is zero, a direction is not necessary.)
+
+==================================================================
+   Sidebar:
+     A design issue for this example markup language
+   
+   A problem that often plagues beginning designers is whether
+   some some aspect of their design should be implemented as an
+   element (tag) or as an attribute. A general rule to use is
+   this:
+   
+   If the item in question is a component or part of a whole,
+   then make it an element.  If the item characterizes an
+   element and, potentially, all its sub-elements, then it
+   should be an attribute.
+   
+   In some cases, the decision is obvious.  In HTML, <li>
+   is an element, since a list item is clearly a part of the
+   bigger <ol> or <ul>.  Similarly, type= is an
+   attribute, as the numbering or bullets characterize the list
+   and all of its items.
+   
+   For the weather report example given in this article, the
+   question arose as to how to handle the <station>
+   element.  I thought of the fullname and abbrev as
+   identifiers, so they naturally became attributes. I then
+   rationalized that latitude and longitude should be elements,
+   since:
+   
+    * The location is what really makes the station a unique
+      station.
+    * I needed an example of an element that had both attributes
+      and sub-elements.
+==================================================================
+Of course, computers can't scan this English specification,
+so we have to make a more rigorous, machine-readable
+version. The most common such form of this specification is
+called a DTD (Document Type Definition).
+
+That's the purpose of the 
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+which you so often see in the source of HTML pages. It tells
+which version of the HTML Document Type Definition should be
+used when a validating program is checking the document.
+
+A Document Type Definition lists all the elements and
+attributes in a document and the contexts in which they are
+valid. Here's part of the DTD for the weather report markup
+language:
+
+
+   <!ELEMENT station (latitutde, longitude)>
+   <!ATTLIST station
+                fullname CDATA #REQUIRED
+                abbrev CDATA #REQUIRED>
+   <!ELEMENT temperature (min, max, forecast-low, forecast-high)>
+   <!ELEMENT (min, max, forecast-low, forecast-high) (#PCDATA)>
+   <!ELEMENT wind (speed, direction?)>
+   <!ELEMENT (speed, direction) (#PCDATA)>
+
+
+The #PCDATA and CDATA mean that the items in question
+consist of character data.
+
+Though not as easy to read as the English, the DTD is very
+compact, and does the job it's intended to do; it lets
+computer programs verify that a document uses only an
+approved set of tags and that the tags are used in the
+proper context. 
+
+If the XML rules are considered as punctuation, then the DTD
+serves the function of a spelling list and grammar
+reference.
+
+Using XML to Validate XML
+=========================
+Of course, just because an English sentence has proper
+spelling, grammar, and punctuation doesn't make it
+meaningful:
+
+      The brick astonished the sunlight.
+
+Similarly, there are some questions about the weather report
+that the DTD can't answer:
+
+   * Does the wind <direction> have a valid value?
+   * Is the <station>'s abbrev= attribute in the
+     proper format?
+   * Are the values for <latitude> and <longitude>
+     in a valid range?
+
+Clearly, a different notation is necessary for doing this
+level of validation.  Ideally, this notation will itself be
+in XML, which will make it easier to read than a DTD.
+In the remainder of this article, we will explore two
+such validation markups.
+
+The World Wide Web Consortium has created XML Schema. The
+material in this article that covers Schema is based on the
+excellent XML Schema primer available at the W3C website.
+(http://www.w3.org/TR/xmlschema-0/)
+
+Mr. Makoto Murata has invented RELAX, (REgular LAnguage
+description for XML), which will be submitted to the
+International Standards Organization for adoption as a
+standard. The material in this article that covers RELAX is
+based on the How to RELAX tutorial.
+(http://www.xml.gr.jp/relax/html4/howToRELAX_full_en.html)
+
+Starting an XML Schema
+======================
+Let's start with the skeleton of an XML Schema to describe EWEML
+
+<schema xlmns="http://www.w3.org/1999/XMLSchema"
+           xmlns:ewe="http://catcode.com/eweml"
+           targetNamespace="http://catcode.com/eweml">
+</schema>
+
+Since the schema uses XML tags to define another set of XML
+tags, the attributes in the opening <schema> tag
+establish namespaces so that we can know whose tag names are
+whose.
+   =================================================
+   |   Sidebar: What's a namespace?                |
+   |   [see bottom of document for this sidebar]   |
+   =================================================
+
+In detail, the attributes in the opening tag mean:
+
+   * Unless specified otherwise, the tags and attributes that we
+     use in this document come from the definitions for XML
+     Schema.
+
+   * If we use a tag or attribute name with a prefix of ewe, it
+     comes from the definitions for the EWEML markup language
+     that we're describing.
+   
+   * The target namespace; that is, the set of tags we're
+     defining, are the ones for EWEML.
+
+The things that look like web addresses are used to uniquely
+identify each of the two markup languages that we're dealing
+with.
+
+Now let's fill in some of the schema.
+
+XML Schema: Specifying Elements
+===============================
+XML Schema differentiates between two types of elements.
+Simple types can't contain nested elements or have
+attributes; complex types can. Obviously, the <report>
+element contains other elements, so we have to define it as
+a complex type.
+
+   <element name="report">
+      <complexType>
+     
+     <!-- sub-elements go here -->
+     
+     </complexType>
+   </element>
+
+The <datestamp> element is a simple one; it has no
+attributes and can't have any other elements inside it.
+However, the information between the beginning and ending
+tags must be in a specific format; that of a date.  In XML
+Schema, we say:
+
+   <element name="datestamp" type="date"/>
+
+The next element in our weather report is the
+<station> information, shown below.
+
+     <station fullname="San Jose" abbrev="KSJC">
+         <latitude>37.3618619</latitude>
+         <longitude>-121.9290089</longitude>
+      </station>
+
+This has sub-elements and attributes, so it, too,
+is a complex type, which we might specify as follows:
+
+    <element name="station">
+        <complexType>
+            <element name="latitude" type="decimal"/>
+            <element name="longitude" type="decimal"/>
+            <attribute name="fullname" type="string"/>
+            <attribute name="abbrev" type="string"/>
+       </complexType>
+   </element>
+
+Again, this is fairly easy to read. The <station> element is
+made up of the <latitude> and <longitude> elements, which
+must contain decimal numbers between their beginning and
+ending tags.  The <station> element also has a fullname and
+abbrev attribute, both of which are strings.
+
+The only difference so far between this and a DTD is that we
+can specify what kind of content an element must have (date,
+string, decimal, etc.)  Let's use the power of XML Schema to
+be much more specific on what content elements and
+attributes may have.
+
+XML Schema: Making Validation More Specific
+===========================================
+As it stands, our specification for a valid <station> isn't
+as precise as we'd like. A latitude must be between -90 and
+90, and a longitude between -180 and 180.  Weather station
+abbreviations are exactly four letters long, and we'd like
+to restrict the weather station's full name to seventy-five
+characters.  We do this by adding type specifications to the
+schema:
+
+    <element name="station">
+        <complexType>
+            <element name="latitude">
+                <simpleType base="decimal">
+                    <minInclusive value="-180"/>
+                    <maxInclusive value="180"/>
+                </simpleType>
+            </element>
+            <element name="longitude" type="decimal">
+                <simpleType base="decimal">
+                    <minInclusive value="-90"/>
+                    <maxInclusive value="90"/>
+                </simpleType>
+            </element>
+            <attribute name="fullname">
+                <simpleType base="string">
+                    <maxLength value="75"/>
+                </simpleType>
+            </attribute>
+            <attribute name="abbrev">
+                <simpleType base="string">
+                    <length value="4"/>
+                </simpleType>
+            </attribute>
+       </complexType>
+   </element>
+
+This specification of a <station> is fairly lengthy.  There
+are some ways to make our XML Schema more modular and
+compact, as we will see when we continue with the
+<temperature> element.
+
+XML Schema: Making New Types
+============================
+Here's the <temperature> part of the weather report:
+
+  <temperature>
+     <min>20</min>
+     <max>29</max>
+     <forecast-low>21</forecast-low>
+     <forecast-high>30</forecast-high>
+  </temperature>
+
+A <temperature> has four sub-elements. We want them all to
+be within a reasonable range of Celsius temperatures. Rather
+than typing the information into our schema four times,
+we'll create a new simple type called DegreeRange as
+follows:
+
+    <simpleType name="DegreeRange" base="decimal">
+        <minInclusive value="-70"/>
+        <maxInclusive value="80"/>
+    </simpleType>
+
+Once this is defined, we can use it just as if it were one of
+the built-in types like decimal or string.
+
+    <element name="temperature">
+        <complexType>
+            <element name="min" type="ewe:DegreeRange"/>
+            <element name="max" type="ewe:DegreeRange"/>
+            <element name="forecast-low" type="ewe:DegreeRange"/>
+            <element name="forecast-high" type="ewe:DegreeRange"/>
+        </complexType>
+    </element>
+
+It's necessary to prefix the DegreeRange with ewe:, since
+that type belongs to the new markup language, not to the XML
+Schema markup language.
+
+Now, we need only define the <wind> portion of the weather
+report.
+
+XML Schema: Enumerations
+========================
+Here's the <wind> part of the weather report:
+
+  <wind>
+     <direction>NNW</direction>
+     <speed>5</speed>
+  </wind>
+
+This time, we'll make the specification for the sub-elements
+of <wind> in a separate location.  We'll create a complex
+type named WindType so that our schema can use it like this:
+
+    <element name="wind" type="ewe:WindType"/>
+
+In our definition of WindType, we need to validate that the
+<direction> is one of the sixteen compass directions. The
+XML Schema <enumeration> element lets us do exactly that.
+
+    <simpleType name="DirectionType" base="string">
+        <enumeration value="N"/>
+        <enumeration value="NNE"/>
+        <enumeration value="NE"/>
+        <enumeration value="ENE"/>
+        <!-- and so on ... -->
+    </simpleType>
+
+To complete our defintion for WindType, we add the <speed>
+element and require it to be an integer greater than or
+equal to zero.
+
+    <complexType name="WindType">
+        <element name="direction" type="ewe:DirectionType"/>
+        <element name="speed" type="nonNegativeInteger"/>
+    </complexType>
+
+The following is the entire schema:
+
+<?xml version="1.0"?>
+<schema xlmns="http://www.w3.org/1999/XMLSchema"
+           xmlns:ewe="http://catcode.com/eweml"
+           targetNamespace="http://catcode.com/eweml">
+    <element name="report">
+        <complexType>
+            <element name="datestamp" type="date"/>
+            
+            <element name="station">
+                <complexType>
+                    <element name="latitude">
+                        <simpleType base="decimal">
+                            <minInclusive value="-90"/>
+                            <maxInclusive value="90"/>
+                        </simpleType>
+                    </element>
+                    <element name="longitude" type="decimal">
+                        <simpleType base="decimal">
+                            <minInclusive value="-90"/>
+                            <maxInclusive value="90"/>
+                        </simpleType>
+                    </element>
+                    <attribute name="fullname">
+                        <simpleType base="string">
+                            <maxLength value="75"/>
+                        </simpleType>
+                    </attribute>
+                    <attribute name="abbrev">
+                        <simpleType base="string">
+                            <length value="4"/>
+                        </simpleType>
+                    </attribute>
+               </complexType>
+            </element>
+
+            <element name="temperature">
+                <complexType>
+                    <element name="min" type="ewe:DegreeRange"/>
+                    <element name="max" type="ewe:DegreeRange"/>
+                    <element name="forecast-low" type="ewe:DegreeRange"/>
+                    <element name="forecast-high" type="ewe:DegreeRange"/>
+                </complexType>
+            </element>
+    
+            <element name="wind" type="ewe:WindType"/>
+
+        </complexType>
+    </element>
+
+    <complexType name="WindType">
+        <element name="direction" type="ewe:DirectionType"/>
+        <element name="speed" type="nonNegativeInteger"/>
+    </complexType>
+
+    <simpleType name="DirectionType" base="string">
+        <enumeration value="N"/>
+        <enumeration value="NNE"/>
+        <enumeration value="NE"/>
+        <enumeration value="ENE"/>
+        <!-- and so on ... -->
+    </simpleType>
+
+    <simpleType name="DegreeRange" base="decimal">
+        <minInclusive value="-70"/>
+        <maxInclusive value="80"/>
+    </simpleType>
+
+</schema>
+
+
+Now, let's talk about RELAX.
+
+Starting a RELAX Document
+=========================
+Let's start with the skeleton of a RELAX document to
+describe EWEML.
+
+
+<module
+           moduleVersion="1.2"
+           relaxCoreVersion="1.0"
+           targetNamespace=""
+           xmlns="http://www.xml.gr.jp/xmlns/relaxCore">
+<interface>
+    <export label="report"/>
+</interface>
+
+Since we are using XML tags to define another set of XML
+tags, the attributes in the opening <module> tag establish
+namespaces so that we can know whose tag names are whose.
+
+   =================================================
+   |   Sidebar: What's a namespace?                |
+   |   [see bottom of document for this sidebar]   |
+   =================================================
+
+The <interface> tag specifies the name of the
+"root element" of our EWEML documents.
+
+Now let's fill in more of the RELAX document.
+
+RELAX: Specifying Elements
+==========================
+For every element in EWEML, we'll need to specify:
+
+ * An element rule, which tells what sub-elements it has (if any).
+ * The name of the tag that follows that rule.
+
+Here is how to define the <report> element.
+
+   <elementRule role="report">
+       <sequence>
+           <ref label="datestamp"/>
+           <ref label="station"/>
+           <ref label="temperature"/>
+           <ref label="wind"/>
+       </sequence>
+   </elementRule>
+   
+   <tag name="report"/>
+
+
+Since the <elementRule> consists of several elements, they
+are given in <sequence> as references (<ref>) to the
+definitions which are to follow.
+
+The <datestamp> element is a simple one; it has no
+attributes and can't have any other elements inside it.
+However, the information between the beginning and ending
+tags must be in a specific format; that of a date.  In RELAX
+we say:
+
+   <elementRule role="datestamp" type="date"/>
+   <tag name="datestamp/>
+
+The next element in our weather report is the <station>
+information, shown below.
+
+     <station fullname="San Jose" abbrev="KSJC">
+         <latitude>37.3618619</latitude>
+         <longitude>-121.9290089</longitude>
+      </station>
+
+This has sub-elements, but it also has attributes. Here's
+the specification:
+
+    <elementRule role="station">
+        <sequence>
+            <ref label="latitude"/>
+            <ref label="longitude"/>
+        </sequence>
+    </elementRule>
+
+    <tag name="station">
+        <attribute name="fullname" type="string" required="true"/>
+        <attribute name="abbrev" type="string" required="true"/>
+    </tag>
+
+    <elementRule role="latitude" type="decimal"/>
+    <tag name="latitude"/>
+
+    <elementRule role="longitude" type="decimal"/>
+    <tag name="longitude"/>
+
+Again, this is fairly easy to read. The <station> element is
+made up of the <latitude> and <longitude> elements, which
+must contain decimal numbers between their beginning and
+ending tags.  The RELAX <tag> element describes the tag's
+required fullname and abbrev attributes, both of which are
+strings.
+
+The only difference so far between this and a DTD is that we
+can specify what kind of content an element must have (date,
+string, decimal, etc.)  Let's use the power of RELAX to be
+much more specific on what content elements and attributes
+may have.
+
+RELAX: Making Validation More Specific
+======================================
+As it stands, the specification for a valid <station> isn't
+as precise as we'd like. A latitude must be between -90 and
+90, and a longitude between -180 and 180.  Weather station
+abbreviations are exactly four letters long, and the weather
+station's full name should be restricted to at most
+seventy-five characters.  Here is the updated RELAX
+specification:
+
+    <tag name="station">
+        <attribute name="fullname" type="string" required="true">
+            <maxlength value="75"/>
+        </attribute>
+        <attribute name="abbrev" type="string" required="true">
+            <length value="4"/>
+        </attribute>
+    </tag>
+
+    <elementRule role="latitude" type="decimal">
+        <minInclusive value="-90"/>
+        <maxInclusive value="90"/>
+    </elementRule>
+    <tag name="latitude"/>
+
+    <elementRule role="longitude" type="decimal">
+        <minInclusive value="-180"/>
+        <maxInclusive value="180"/>
+    </elementRule>
+    <tag name="longitude"/>
+
+The definition of the <temperature> element proceeds in a
+similar fashion.
+
+RELAX: Further Specifications
+=============================
+Here's the <temperature> part of the weather report:
+
+  <temperature>
+     <min>20</min>
+     <max>29</max>
+     <forecast-low>21</forecast-low>
+     <forecast-high>30</forecast-high>
+  </temperature>
+
+A <temperature> has four sub-elements. We want them all to
+be within a reasonable range of Celsius temperatures.  The
+current version of RELAX doesn't let you make a single
+definition and reuse it four times. Thus, you have to type
+all the specifications for the sub-elements individually.
+Note that it is also possible to put the <tag> element
+inside the <elementRule>
+
+
+    <elementRule role="min" type="integer">
+        <tag name="min"/>
+        <minInclusive value="-70"/>
+        <maxInclusive value="70"/>
+    </elementRule>
+
+    <elementRule role="max" type="integer">
+        <tag name="max"/>
+        <minInclusive value="-70"/>
+        <maxInclusive value="70"/>
+    </elementRule>
+
+    <elementRule role="forecast-low" type="integer">
+        <tag name="forecast-low"/>
+        <minInclusive value="-70"/>
+        <maxInclusive value="70"/>
+    </elementRule>
+
+    <elementRule role="forecast-high" type="integer">
+        <tag name="forecast-high"/>
+        <minInclusive value="-70"/>
+        <maxInclusive value="70"/>
+    </elementRule>
+
+Once these are defined, the specification of the
+<temperature> element is straightforward:
+
+    <elementRule role="temperature">
+        <sequence>
+            <ref label="min"/>
+            <ref label="max"/>
+            <ref label="forecast-low"/>
+            <ref label="forecast-high"/>
+        </sequence>
+    </elementRule>
+    <tag name="temperature"/>
+
+Now, it remains only to define the <wind> portion of
+the weather report.
+
+RELAX: Enumerations
+===================
+Here's the <wind> part of the weather report:
+
+  <wind>
+     <direction>NNW</direction>
+     <speed>5</speed>
+  </wind>
+
+The RELAX specification for the <wind> is as
+follows:
+
+    <elementRule role="wind">
+        <sequence>
+            <ref label="direction" occurs="?" />
+            <ref label="speed"/>
+        </sequence>
+    </elementRule>
+    <tag name="wind"/>
+
+The only thing special about this is in the reference to the
+<direction> element.  The occurs="?" means that this element
+can occur either zero times or exactly one time.  (This
+makes sense, since a wind speed of zero doesn't have a
+direction.)
+
+The <direction> element must be one of the sixteen compass
+directions. The RELAX <enumeration> element lets you specify
+this:
+
+    <elementRule role="direction" type="string">
+        <enumeration value="N"/> <!-- North -->
+        <enumeration value="NNE"/> <!-- North by NorthEast -->
+        <enumeration value="NE"/> <!-- NorthEast -->
+        <!-- and so on -- >
+    </elementRule>
+    <tag name="direction"/>
+
+Finally, the specification of the the <speed> element must
+require the value to be an integer greater than or equal to
+zero.
+
+    <elementRule role="speed" type="nonNegativeInteger"/>
+    <tag name="speed"/>
+
+The entire RELAX document follows:
+
+<module
+      moduleVersion="1.2"
+      relaxCoreVersion="1.0"
+      targetNamespace=""
+      xmlns="http://www.xml.gr.jp/xmlns/relaxCore">
+<interface>
+    <export label="report"/>
+</interface>
+
+<elementRule role="report">
+    <tag name="report"/>
+    <sequence>
+        <ref label="datestamp"/>
+        <ref label="station"/>
+        <ref label="temperature"/>
+        <ref label="wind"/>
+    </sequence>
+</elementRule>
+
+<tag name="report"/>
+
+<!--
+    The datestamp should have type="date", but the
+    current Java validator does not recognize that
+    datatype yet.
+-->
+<elementRule role="datestamp" type="string"/>
+<tag name="datestamp"/>
+
+<elementRule role="station">
+    <sequence>
+        <ref label="latitude"/>
+        <ref label="longitude"/>
+    </sequence>
+</elementRule>
+
+<tag name="station">
+    <attribute name="fullname" type="string" required="true">
+        <maxlength value="75"/>
+    </attribute>
+    <attribute name="abbrev" type="string">
+        <length value="4"/>
+    </attribute>
+</tag>
+
+<elementRule role="latitude" type="decimal">
+    <minInclusive value="-90"/>
+    <maxInclusive value="90"/>
+</elementRule>
+
+<tag name="latitude"/>
+
+<elementRule role="longitude" type="decimal">
+    <minInclusive value="-180.0"/>
+    <maxInclusive value="180.0"/>
+</elementRule>
+
+<tag name="longitude"/>
+
+<elementRule role="temperature">
+    <sequence>
+        <ref label="min"/>
+        <ref label="max"/>
+        <ref label="forecast-low"/>
+        <ref label="forecast-high"/>
+    </sequence>
+</elementRule>
+<tag name="temperature"/>
+
+<elementRule role="min" type="integer">
+    <tag name="min"/>
+    <minInclusive value="-70"/>
+    <maxInclusive value="70"/>
+</elementRule>
+
+<elementRule role="max" type="integer">
+    <tag name="max"/>
+    <minInclusive value="-70"/>
+    <maxInclusive value="70"/>
+</elementRule>
+
+<elementRule role="forecast-low" type="integer">
+    <tag name="forecast-low"/>
+    <minInclusive value="-70"/>
+    <maxInclusive value="70"/>
+</elementRule>
+
+<elementRule role="forecast-high" type="integer">
+    <tag name="forecast-high"/>
+    <minInclusive value="-70"/>
+    <maxInclusive value="70"/>
+</elementRule>
+
+<elementRule role="wind">
+    <sequence>
+        <ref label="direction" occurs="?" />
+        <ref label="speed"/>
+    </sequence>
+</elementRule>
+<tag name="wind"/>
+
+<elementRule role="direction" type="string">
+    <enumeration value="N"/>
+    <enumeration value="NNE"/>
+    <enumeration value="NE"/>
+    <enumeration value="ENE"/>
+    <enumeration value="E"/>
+    <enumeration value="ESE"/>
+    <enumeration value="SE"/>
+    <enumeration value="SSE"/>
+    <enumeration value="S"/>
+    <enumeration value="SSW"/>
+    <enumeration value="SW"/>
+    <enumeration value="WSW"/>
+    <enumeration value="W"/>
+    <enumeration value="WNW"/>
+    <enumeration value="NW"/>
+    <enumeration value="NNW"/>
+</elementRule>
+<tag name="direction"/>
+
+<elementRule role="speed" type="nonNegativeInteger"/>
+<tag name="speed"/>
+
+</module>
+
+Summary
+=======
+We've seen how there are two levels of determining whether
+an XML document is "good" or not.  The first level is
+well-formedness, checking to see if tags are closed and
+nested properly, etc.  This checking can be done with
+nothing more than the document at hand.
+
+If, however, you wish to know if the tags and attributes are
+valid for the particular markup language that you're working
+with, you need to refer to another document.  This has
+always been the DTD (Document Type Definition), which tells
+you which tags are available and the contexts in which they
+may appear.
+
+XML Schema and RELAX are two new approaches to providing
+that reference document.  Both of these approaches give all
+the information that a DTD does, and, since they are in the
+form of an XML document, they are more readable than a DTD.
+Both RELAX and XML Schema let you validate that content is
+appropriate for a given tag.  For example, you can specify
+that a tag must enclose numeric data within a certain range,
+or belong to one of a specific list of values.
+
+Both RELAX and XML Schema are very flexible markup
+languages, and appear quite similar at first glance.  They
+have many capabilities (and shortcuts!) that this brief
+article has not covered, and when you investigate them in
+depth, you see that they have very different features and
+strengths. For further information, you should see the How
+to RELAX tutorial
+   (http://www.xml.gr.jp/relax/html4/howToRELAX_full_en.html)
+and the XML Schema primer.
+   (http://www.w3.org/TR/xmlschema-0/)
+
+=========================================================
+Sidebar: What's a namespace?
+
+Namespaces were designed to solve a problem that arises when
+using multiple markup languages in a single document. For
+example, a chemistry book might use a chemistry markup
+language when talking about the <formula> for sulfuric acid,
+but would use a math markup language to talk about the
+mathematical <formula> for calculating the acidity of a
+solution.
+
+By associating a prefix with each markup language, it's
+possible to combine them in one document without having the
+names collide with one another, since each <formula> is in
+its own "space." Thus, the book starts out like this:
+
+    <book xmlns="http://www.book-o-matic.org/bookXML"
+          xmlns:chem="http://chemistry.org/chemspec"
+          xmlns:math="http://www.mathstuff.org/mathdocs">
+
+The three namespace attributes mean that:
+
+  * Any tag without a prefix is presumed to be a tag used for
+    a book-writing XML specification, whose unique idenitifer
+    is http://www.book-o-matic.org/bookXML.
+
+  * Any tag with the prefix chem: should be validated against an
+    XML specification whose unique identifier is
+    http://chemistry.org/chemspec.
+
+  * Any tag with the prefix math: should be validated against an
+    XML specification whose unique identifier is
+    http://www.math.org/mathdocs.
+
+Although the identifiers look like web addresses, they don't
+have to point to any valid web page. Since every XML
+specification has to have a unique identifier, it was
+decided to use Uniform Resource Identifiers (web addresses),
+since they can uniquely identify a developer or
+organization.
+
+Once namespaces are established, 
+an author can write this portion of the
+book without fear of conflicting names:
+
+   <paragraph>
+       We combine sulfuric acid,
+       <chem:formula>H2SO4</chem:formula>,
+       with water, <chem:formula>H2O</chem:formula> and
+       determine its acidity by calculating
+       <math:formula>acid / (water+acid)</math:formula>.
+   </paragraph>
+=============================================================
+
+:::
+
+J DAVID EISENBERG (david@catcode.com) lives in San Jose,
+California with his computers and his cat, Tabitha.
+His website is at http://catcode.com

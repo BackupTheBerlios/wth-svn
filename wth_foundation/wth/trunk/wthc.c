@@ -2,10 +2,10 @@
 
    client program to communicate w/ WS2000 weatherstation
 
-   $Id: wthc.c,v 0.4 2001/09/14 15:38:00 jahns Exp jahns $
-   $Revision: 0.4 $
+   $Id: wthc.c,v 1.1 2002/07/04 09:51:48 jahns Exp jahns $
+   $Revision: 1.1 $
    
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2000-2001,2005 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,76 +24,79 @@
 */
 
 #include "wth.h"
-#include "version.h"
+#include "config.h"
 
 int main (int argc, char **argv) {
-  int o;
+  int oarg, stime = 0;
   char *rbuf;
   extern int optind;              
   extern char *optarg;
-  struct cmd cmd;                 /* command structure */
-  struct wthio wio;               /* result */
+  struct cmd  *pcmd;
+  struct wthio wio;
 
   initdata(&wio);
-  initcmd(&cmd);
-  if ( ( rbuf = readconfig(&cmd)) == NULL ) {
+  pcmd = initcmd();
+  if ( ( rbuf = readconfig(pcmd)) == NULL ) {
 	perror("Error reading configuration: exit!");
 	exit(-1);
   }
   
-  openlog("wthc", LOG_PID , cmd.logfacility);
-  syslog(LOG_INFO, "%s\n", wth_version);
+  openlog("wthc", LOG_PID , pcmd->logfacility);
+  syslog(LOG_INFO, "wthc: %s\n", VERSION);
                                                                     
   /* parsing command line arguments */
-  while (( o = getopt(argc, argv, "c:h:i:p:sv")) != -1 ) {
-      switch (o) {
-	  case 'c':
-          cmd.command = atoi(optarg);
-	      break;
-	  case 'h':
-	      cmd.hostname = optarg;
-          cmd.netflg = 1;
-	      break;
-	  case 'i':
-          cmd.argcmd = atoi(optarg);
-	      break;
-	  case 'p':
-          cmd.port = optarg;
-	      break;
-      case 's':
-	      if ( cmd.netflg != -1 )
-		    usage(1,"specify serial OR internet connection","");
-	      cmd.netflg = 0;
-	      break;
-      case 'v':
-		  cmd.verbose = 1;
-		  printf("wthc: %s\n", wth_version);
-		  printf("%s", rbuf);
-		  break;
-      case '?':
-	      usage(1, "Commandline error", "");
-	      break;
-      default:
-	      usage(0,"", "");
-       }
-   }
+  while (( oarg = getopt(argc, argv, "c:h:i:p:stv")) != -1 ) {
+    switch (oarg) {
+    case 'c':
+      pcmd->command = atoi(optarg);
+      break;
+    case 'h':
+      pcmd->hostname = optarg;
+      pcmd->netflg = 1;
+      break;
+    case 'i':
+      pcmd->argcmd = atoi(optarg);
+      break;
+    case 'p':
+      pcmd->port = optarg;
+      break;
+    case 's':
+      if ( pcmd->netflg != -1 )
+	usage(1,"specify serial OR internet connection","");
+      pcmd->netflg = 0;
+      break;
+    case 't':
+      stime = 1;
+      break;
+    case 'v':
+      pcmd->verbose = 1;
+      printf("wthc version: %s\n", VERSION);
+      printf("%s", rbuf);
+      break;
+    case '?':
+      usage(1, "Commandline error", "");
+      break;
+    default:
+      usage(0,"", "");
+    }
+  }
 
   /* save command for later use */
-  o = cmd.command;
+  oarg = pcmd->command;
 
   /* check if intervall time has been set 
      in case cmd.command is request to set intervall time */
-  if ( cmd.command == 6 ) {
-      if ((cmd.argcmd < 1) || (cmd.argcmd >60))
+  if ( pcmd->command == 6 ) {
+      if ((pcmd->argcmd < 1) || (pcmd->argcmd >60))
 	  usage(1,"interval time not been specified or out of range", "");
   }
 
   /* check on serial/internet connection is been chosen correctly */
-  if ( cmd.netflg == -1 )
+  if ( pcmd->netflg == -1 )
       usage(1, "specify serial OR internet connection","");
 
-  if (cmd.verbose == 1 ) {
-	if ( ( rbuf = echoconfig(&cmd)) == NULL) {
+  if ( pcmd->verbose == 1 ) {
+	if ( ( rbuf = echoconfig(pcmd)) == NULL) {
 	  perror("Error echo config parameters: exit!");
 	  exit(-1);
 	}
@@ -101,9 +104,14 @@ int main (int argc, char **argv) {
   }
   
   /* sending command to weather station */  
-  rbuf =  wcmd(&cmd, &wio); 
+  rbuf =  wcmd(pcmd, &wio); 
   printf("%s", rbuf);
   /* syslog(LOG_INFO, "wthc : wcmd : %s\n", c(o)->descr); */
+
+  if ( stime == 1 ) {
+      if ( settime(&wio) == -1 ) 
+	perror("Can't set time");
+  }
 
   switch (werrno) {
   case -2:
@@ -117,7 +125,8 @@ int main (int argc, char **argv) {
   }
 
   closelog();
-  return(0);
+
+  exit(0);
 
 } 
 

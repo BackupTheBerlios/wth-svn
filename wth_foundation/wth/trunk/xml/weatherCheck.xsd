@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+	<xsd:element name="weatherCheck">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="zipCode" type="xsd:string"/>
+				<xsd:element name="conditions" minOccurs="0">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="barometer" type="xsd:string"/>
+							<xsd:element name="city" type="xsd:string"/>
+							<xsd:element name="dewpoint" type="xsd:decimal"/>
+							<xsd:element name="errorMessage" type="xsd:string" minOccurs="0"/>
+							<xsd:element name="feelsLike" type="xsd:string"/>
+							<xsd:element name="forecast" type="xsd:string"/>
+							<xsd:element name="humidity" type="xsd:string"/>
+							<xsd:element name="imageID" type="xsd:string"/>
+							<xsd:element name="imageSmall" type="xsd:uri"/>
+							<xsd:element name="imageBig" type="xsd:uri"/>
+							<xsd:element name="reportedTime" type="xsd:string"/>
+							<xsd:element name="state" type="xsd:string"/>
+							<xsd:element name="temperature" type="xsd:decimal"/>
+							<xsd:element name="uvIndex" type="xsd:decimal"/>
+							<xsd:element name="uvWarning" type="xsd:string"/>
+							<xsd:element name="visibility" type="xsd:string"/>
+							<xsd:element name="weatherAlert" type="xsd:boolean"/>
+							<xsd:element name="windDescription" type="xsd:string"/>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

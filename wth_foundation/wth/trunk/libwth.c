@@ -1,10 +1,16 @@
 /* libwth.c
 
-   $Id: libwth.c,v 1.1 2001/12/03 09:35:16 jahns Exp jahns $
+   $Id: libwth.c,v 1.1 2002/07/04 09:51:16 jahns Exp jahns $
    $Revision: 1.1 $
 
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2000-2002,2005 Volker Jahns <volker@thalreit.de>
 
+   some code orginates from UNIX network programming (R.Stevens)
+     http://www.kohala.com/start
+
+   configuration file parsing taken partly and modified from thttpd 
+     http://www.acme.com/software/thttpd/
+   
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -195,21 +201,10 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
        expected length of message is defined in structure Ckey c 
 
 	   as response length for command 1 can have 3 different values
-	   depending on state of weatherstation c.clen serves as an upper bound
-	   
+	   depending on state of weatherstation c.clen serves as an 
+           upper bound	   
     */        
     syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
-/*    syslog(LOG_DEBUG, "chkframe : expected length: %d\n",
-		   c(pcmd->command)->id);
-
-    if ( data[1] <= c(pcmd->command)->id )
-	  syslog(LOG_DEBUG, "chkframe : response and expected length OK\n"); 
-    else {
-	  syslog(LOG_INFO, "chkframe : response and expected length NOK\n");
-	  werrno = ECHKLEN;
-	  return(-1);
-	}
-*/
 	
     /* check if NAK dataframe has been received */
     if ( !strncmp(data, nakfram, *mdat) ) {
@@ -221,8 +216,6 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
     *mdat = ldat;
     return(0);
 } 
-
-
 
 
 
@@ -454,6 +447,31 @@ time_t dcftime(unsigned char *data, int ndat) {
     return(dtim);
 }
 
+/*
+  settime - setting time incase DCF time is synchronized
+
+*/
+int
+settime (struct wthio *rw) {
+  struct timezone tz;
+  struct timeval tv;
+ 
+  if ( gettimeofday( &tv, &tz) == -1 )
+    return(-1);
+
+  tv.tv_sec  = rw->DCF.time;
+  tv.tv_usec = 0;
+
+  if ( settimeofday( &tv, &tz) == -1 )
+    return(-1);
+
+  return(0);
+
+
+
+}
+
+
 /* datex 
 
    data extraction
@@ -581,7 +599,6 @@ datex(unsigned char *data, int ndat, struct wthio *rw) {
     /* rain sensor */
     Hi = getbits(data[25], 6, 7) << 8 ;
     Lo = getbits(data[24], 7, 8);
-    /* digitize((Lo + (Hi << 8 & 0x0f00 )), &tdigit, &hdigit, &tendigit, &udigit); */
 
     rw->sens[16].mess[rw->wstat.ndats].time      = mtim;
     rw->sens[16].mess[rw->wstat.ndats].value     = Hi + Lo;
@@ -600,14 +617,6 @@ datex(unsigned char *data, int ndat, struct wthio *rw) {
     /* wind direction */
     rw->sens[18].mess[rw->wstat.ndats].time     = mtim;
     rw->sens[18].mess[rw->wstat.ndats].sign     = 0;
-    /* sens[18].mess[rw->wstat.ndats].hundreds = getbits(data[29], 3, 4); */
-    /* hmm is this a violation of the protocol specification ? */
-    /*
-    rw->sens[18].mess[rw->wstat.ndats].value =
-      100 * ( data[29] & 0x03) +
-      10  * getbits(data[28], 7, 4) +
-      getbits(data[28], 3, 4);
-    */
     rw->sens[18].mess[rw->wstat.ndats].value =
       100 * getbits( data[29], 1, 2 ) +
       10  * getbits(data[28], 7, 4 ) +
@@ -619,13 +628,14 @@ datex(unsigned char *data, int ndat, struct wthio *rw) {
     rw->sens[19].mess[rw->wstat.ndats].value    =
       getbits( data[29], 4, 2 );
    
-    /* indoor pressure */
+    /* atmospheric pressure */
     rw->sens[20].mess[rw->wstat.ndats].time     = mtim;
     rw->sens[20].mess[rw->wstat.ndats].sign     = 0;
     rw->sens[20].mess[rw->wstat.ndats].value = 
       100 *  getbits(data[30], 7, 4) +
       10  *  getbits(data[30], 3, 4) +
-      getbits(data[29], 7, 4);
+      getbits(data[29], 7, 4) +
+      200;  // absolute atmospheric pressure
 
     /* indoor temperature */
     rw->sens[21].mess[rw->wstat.ndats].time     = mtim;
@@ -1034,20 +1044,25 @@ int initdata(struct wthio *rw) {
 	 pcmd
 
 */
-int initcmd(struct cmd *pcmd) {  
+struct cmd *initcmd(void ) {
+
+  struct cmd *inipcmd;   
   /* initialize struct pcmd */
-  pcmd->argcmd      = 0;
-  pcmd->timeout     = TIMEOUT;
-  pcmd->baudrate    = BAUDRATE;
-  pcmd->logfacility = LOGFACILITY;
-  pcmd->device      = SER_DEVICE;
-  pcmd->verbose     = 0;
-  pcmd->netflg      = -1;
-  pcmd->hostname    = "localhost"; 
-  pcmd->port        = WPORT; 
-  pcmd->tnport      = TNPORT;   
-  pcmd->xmlport     = XMLPORT;
-  return(0);
+  inipcmd = ( struct cmd *) malloc(sizeof(struct cmd *));
+  inipcmd->argcmd      = 0;
+  inipcmd->timeout     = TIMEOUT;
+  inipcmd->baudrate    = BAUDRATE;
+  inipcmd->logfacility = LOGFACILITY;
+  inipcmd->device      = SER_DEVICE;
+  inipcmd->verbose     = 0;
+  inipcmd->netflg      = -1;
+  inipcmd->hostname    = "localhost"; 
+  inipcmd->port        = WPORT; 
+  inipcmd->tnport      = TNPORT;   
+  inipcmd->wstype      = WSTYPE;
+  inipcmd->xmlport     = XMLPORT;
+
+  return(inipcmd);
 }
 
 
@@ -1063,29 +1078,6 @@ getbits(unsigned x, int p, int n) {
   return ( x>>(p+1-n)) & ~(~0 <<n);
 }
 
-
-/*
-
-   digitize - stores digits of integer value in seperate 
-   char variables
-
-   implementation valid for unit, tens, hundreds and thousands
-   only
-*/
-/* int digitize(int val, char *tdigit, char *hdigit, 
-             char *tendigit, char *udigit) {
-
-    *udigit = val % 10;
-    val = val / 10;
-    *tendigit = val % 10;
-    val = val /10;
-    *hdigit = val % 10;
-    val = val / 10;
-    *tdigit = val % 10;
-
-    return(0);
-}
-*/
 
 /* echodata
   
@@ -1133,32 +1125,6 @@ wstrlen (char *s) {
     return p + 1 - s;    
 }
 
-
-/*
-   mkmsg
-
-   fixed size of p
-
-*/
-char *
-new_mkmsg(const char *fmt, ...) {
-  int n;
-  static char *p;
-
-  //p = (char *) calloc(10, sizeof(char));
-  //strcpy(p, "Test");
-  va_list ap;
-
-  if ( ( p = (char *) malloc(2*MAXBUFF)) == NULL)
-    return NULL;
-
-  va_start(ap, fmt);
-  n = snprintf(p, MAXBUFF, fmt, ap);
-  va_end(ap);
-  //printf("addr p: %p\n", p);
-  return(p);
-
-}
 
 
 /* mkmsg
@@ -1213,7 +1179,9 @@ usage (int exitcode, char *error, char *addl) {
                      "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
                      "\t-p <portnumber>\tuse portnumber at remote host\n"
                      "\t\tfor connection\n"
-                     "\t-s\t\tuse local serial connection\n");
+                     "\t-s\t\tuse local serial connection\n"
+                     "\t-t\t\tset time using internal DCF77 receiver\n"
+                     "\t\t\tneeds superuser privileges\n--\n");
 
       if (error) fprintf(stderr, "%s: %s\n", error, addl);
       exit(exitcode);
@@ -1254,7 +1222,6 @@ usaged (int exitcode, char *error, char *addl) {
 /* readconfig : read configuration file */
 char *
 readconfig(struct cmd *pcmd) {
-  int size = MAXBUFF;
   int ival;
   FILE *cfg;
   char line[BUFFSIZE];
@@ -1473,7 +1440,7 @@ Close(int fd)
   return(0);
 }
 
-ssize_t						/* Write "n" bytes to a descriptor. */
+ssize_t	/* Write "n" bytes to a descriptor. */
 writen(int fd, const void *vptr, size_t n)
 {
 	size_t		nleft;
@@ -1485,9 +1452,9 @@ writen(int fd, const void *vptr, size_t n)
 	while (nleft > 0) {
 		if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
 			if (errno == EINTR)
-				nwritten = 0;		/* and call write() again */
+				nwritten = 0;	/* and call write() again */
 			else
-				return(-1);			/* error */
+				return(-1);	/* error */
 		}
 
 		nleft -= nwritten;

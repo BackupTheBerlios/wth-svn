@@ -1,7 +1,7 @@
 /* data.c
 
-   $Id$
-   $Revision$
+   $Id: dataxml.c,v 1.1 2002/07/04 09:51:10 jahns Exp $
+   $Revision: 1.1 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
