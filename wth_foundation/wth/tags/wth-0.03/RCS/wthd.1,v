@@ -1,0 +1,47 @@
+head	0.3;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+0.3
+date	2001.08.10.12.44.30;	author jahns;	state Exp;
+branches;
+next	;
+
+
+desc
+@man page wthd
+@
+
+
+0.3
+log
+@finish version 0.3
+@
+text
+@.TH WTHD 1 "24 July 2001"
+.SH NAME
+wthd \- network service of weatherstation interface
+.SH SYNOPSIS
+\fBwthd\fP [ -d ] [ -p \fBportnumber]
+.SH DESCRIPTION
+\fIwthd\fP serves incoming network requests to read data of weatherstation 
+interface, like temperature, humidity, air pressure, wind speed, 
+wind direction and rain fall. 
+The DCF77 receiver can be read as well as current status information.
+To communicate with wthd a client program is needed, otherwise telnet access
+at full functionality is provided.
+.SS OPTIONS
+.TP
+\fB-p \fIportnumber\fP
+use portnumber to listen on, default is 3900.
+.TP
+\fB-d\fP
+do not daemonize, stay in foreground
+.SH "SEE ALSO"
+wthc(1), telnet(1)
+.SH BUGS
+Prototype version. Network code probably unreliable.
+@
