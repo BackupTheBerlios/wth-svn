@@ -1,29 +1,10 @@
-/* serial.c
+/* serial.c */
 
-   serial line communication routine
-
-   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp jahns $
-   $Revision: 0.4 $
-
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
- 
-*/
-
-#include "wth.h"
+#include "global.h"
+#include "config.h"
+#include "const.h"
+#include "dates.h"
+#include "util.h"
 
 static volatile int STOP = FALSE;
 static volatile int wait_flag = TRUE;
@@ -54,110 +35,53 @@ void sigalrm_h(int signum) {
 
 /*  initserial
 
-  opens serial port for communication
+
+  well, this means setting some communication params like 
+  9600, 8, Parity 2Stop
+  and rising DTR voltage
+
+  opens serial port for communcation
   installs SIGIO asynchronuous signal handler, SIGALRM for read timeout
-  serial port settings:
-     9600, 8, Parity,  2Stop
-     lower RTS and raise DTR voltage
+  serial port settings 
 
 */
-int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd) {
-  int i, itio;
+int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
+
+  int i, itio; 
 
   /* open the device to be non-blocking (read will return immediatly) */
-  *pfd = open(pcmd->device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
-  if ( *pfd <0) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error opening serial device : %s",
-		   strerror(werrno));
-	return(-1);
-  }
+  *pfd = open(MODEMDEVICE, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
+  if (*pfd <0) {perror(MODEMDEVICE); exit(-1); }
 
+
+    
   /* install the signal handler before making the device asynchronous */
-  if ( signal(SIGIO, sigio_h) == SIG_ERR ) {
-	werrno = ESIG;
-	syslog(LOG_INFO, "initserial: error install SIGIO");
-	return(-1);
-  }
-  
-  if ( signal(SIGALRM,sigalrm_h) == SIG_ERR ) {
-	werrno = ESIG;
-	syslog(LOG_INFO, "initserial: error install SIGALRM");
-	return(-1);	
-  }
+  signal(SIGIO, sigio_h);
+  signal(SIGALRM,sigalrm_h);
 
   /* allow the process to receive SIGIO */
-  if ( fcntl(*pfd, F_SETOWN, getpid()) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error fcntl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  fcntl(*pfd, F_SETOWN, getpid());
   /* Make the file descriptor asynchronous (the manual page says only 
      O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
-  if ( fcntl(*pfd, F_SETFL, FASYNC) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error fcntl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  fcntl(*pfd, F_SETFL, FASYNC);
+
   
   /* lower DTR and RTS on serial line */
-  if ( ioctl(*pfd, TIOCMGET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  ioctl(*pfd, TIOCMGET, &itio);
   itio &= ~TIOCM_DTR;
   itio &= ~TIOCM_RTS;
-  if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-
+  ioctl(*pfd, TIOCMSET, &itio); 
   /* raise DTR */
   itio |= TIOCM_DTR;
-  if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error ioctl: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  /* save current port settings */
-  if ( tcgetattr(*pfd,oldtio) == -1 ) {  
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcgetattr: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  /* prefill port settings */
-  if ( tcgetattr(*pfd,newtio) == -1 ) { 
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcgetattr: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  ioctl(*pfd, TIOCMSET, &itio);
+
+  tcgetattr(*pfd,oldtio);  /* save current port settings */
+  tcgetattr(*pfd,newtio); /* prefill port settings */
 
   
   /* set communication link parameters */
-  if ( cfsetispeed(newtio, pcmd->baudrate) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error cfsetispeed: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
-  
-  if ( cfsetospeed(newtio, pcmd->baudrate) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error cfsetospeed: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  cfsetispeed(newtio, BAUDRATE);
+  cfsetospeed(newtio, BAUDRATE);
 
 
   newtio->c_iflag = 0;
@@ -170,7 +94,8 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct
   }
   
   
-  /* newtio->c_iflag &= (IXON | IXOFF | IXANY);  */  
+  /* newtio->c_iflag &= (IXON | IXOFF | IXANY);  */
+  
   newtio->c_cflag |= PARENB;
   newtio->c_cflag &= ~PARODD;
   newtio->c_cflag |= CLOCAL;
@@ -180,16 +105,13 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct
   newtio->c_cflag |= CSIZE; 
   
   /* newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); */
+
   newtio->c_cc[VMIN]=0;
   newtio->c_cc[VTIME]=10;
 
-  if ( tcsetattr(*pfd,TCSANOW,newtio) == -1 ) {
-	werrno = errno;
-	syslog(LOG_INFO, "initserial: error tcsetattr: %s",
-		   strerror(werrno));
-	return(-1);	
-  }
+  tcsetattr(*pfd,TCSANOW,newtio);
   return(0);
+
 }
 
 
@@ -203,38 +125,19 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct
 int closeserial( int fd, struct termios *oldtio) {
     int tset;
 
-    /* lower DTR on serial line */
-    if ( ioctl(fd, TIOCMGET, &tset) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
-			 strerror(werrno));
-	  return(-1);	
-	}
-    tset &= ~TIOCM_DTR;
-	if ( ioctl(fd, TIOCMSET, &tset) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
-			 strerror(werrno));
-	  return(-1);	
-	}
 
-    /* restore old port settings */
-    /* takes approx 3 sec to reopen fd under FreeBSD
-       if tcsetattr is called to restore */
-    if ( tcsetattr(fd,TCSANOW,oldtio) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
-			 strerror(werrno));
-	  return(-1);	
-	}
-	
+    /* lower DTR on serial line */
+    ioctl(fd, TIOCMGET, &tset);
+    tset &= ~TIOCM_DTR;
+    ioctl(fd, TIOCMSET, &tset);
+
+	/* restore old port settings */
+	/* takes approx 3 sec to reopen fd under FreeBSD
+	   if tcsetattr is called to restore */
+    /* tcsetattr(fd,TCSANOW,oldtio);  */
+  
     /* close serial port */
-    if ( close(fd) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error close: %s",
-			 strerror(werrno));
-	  return(-1);	
-    }
+    close(fd);
     return(0);
 }
 
@@ -248,7 +151,7 @@ int closeserial( int fd, struct termios *oldtio) {
   huh - the weather station sends its data frame in chunks of several bytes   
 
 */
-int readdata (int fd, unsigned char *data, int *ndat) {
+int readdata (int fd, char *data, int *ndat) {
     int i;
     int err;
     char rbuf[MAXBUFF];
@@ -275,6 +178,7 @@ int readdata (int fd, unsigned char *data, int *ndat) {
 	  }
 	  /* timeout experienced */
 	  if ( alrm_flag == TRUE) {
+		syslog(LOG_INFO, "sigalrm_h : timeout");
 		STOP = TRUE;
 	  }
 	}    
@@ -286,106 +190,89 @@ int readdata (int fd, unsigned char *data, int *ndat) {
 	/* turnoff alarm timeout */
 	alarm(0);
 	
-	if ( alrm_flag == TRUE ) {
-	  syslog(LOG_INFO, "readdata: sigalrm_h : timeout");
+	if ( alrm_flag == TRUE )
 	  return(-1);
-	} else {
+	else
 	  return(0);
-	}
 }
 
 
-/*  c
-    
-    returns 
-    communication string of command 
-    expected response message length 
+/*  cword
+    returns the command word for the weather station
+    input is integer value of the command where
 
-    cmd : description                     : response length (bytes)
-    0   : Poll DCF Time                   : 7
-    1   : Request Dataset                 : 35/61 (violation of protocol spec)
-    2   : Select Next Dataset             : 1
-    3   : Activate 9 temperature sensors  : 1
-    4   : Activate 16 temperature sensors : 1
-    5   : Request status                  : 21
-    6   : Set interval time               : 1
+    0 : Poll DCF Time
+    1 : Request Dataset
+    2 : Select Next Dataset
+    3 : Activate 9 temperature sensors
+    4 : Activate 16 temperature sensors
+    5 : Request status
+    6 : Set interval time         
     shouldn't this go into a configuration file?
  */
-Ckey *c(int n){
-  static Ckey p[] = {
-	{"\x01\x30\xcf\x04", 7, "Poll DCF time"},
-	{"\x01\x31\xce\x04", 61, "Request dataset"},
-	{"\x01\x32\xcd\x04", 1, "Select next dataset"},
-	{"\x01\x33\xcc\x04", 1, "Activate 9 temperature sensors"},
-	{"\x01\x34\xcb\x04", 1, "Activate 16 temperature sensors"},
-	{"\x01\x35\xca\x04", 21, "Request status"},
-	{"\x01\x36\x53\xc9\x04", 1, "Set interval time"},
-	{"", 0, "Unused"},
-	{"", 0, "Unused"},
-	{"", 0, "Unused"},
-	{"", 0, "Unused"},
-	{"", 0, "Unused"},
-	{"", 0, "Recursive data request"},
+char *cword(int n) {
+  static char *name[] = {
+    "\x01\x30\xcf\x04", "\x01\x31\xce\x04",
+    "\x01\x32\xcd\x04", "\x01\x33\xcc\x04",
+    "\x01\x34\xcb\x04", "\x01\x35\xca\x04",
+    "\x01\x36\xc9\x04", "Illegal"
   };
-  return p+n;
-  
-};
 
+  return name[n];
+}
 
 
 /* getsrd 
 
    get raw data from serial interface
 */
-int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
+int getsrd (char *data, int *mdat, struct cmd *pcmd) {
+    int err;
     int fd;                         /* filedescriptor serial port */
-    char lword[5];                  /* temporary array to hold commandword */
+
+    char cintv[5] = "\x01\x36\x53\xc9\x04";  
+                                    /* temporary array to hold commandword
+                                         in case of setting interval */
+
     struct termios newtio,oldtio;   /* termios structures to set 
                                      comm parameters */
 
 
-    if ( initserial(&fd, &newtio, &oldtio, pcmd) == -1 )
-	  return(-1);
+    /* initialize serial port  */
+    err = initserial(&fd, &newtio, &oldtio);
 
     /* read ETX from serial port
  
       when the weather station is activated by setting DTR it answers
       with an ETX char to signalize it's OK 
     */
-    if ( readdata(fd, data, mdat) == -1 )
+    if ( (err = readdata(fd, data, mdat)) == -1 )
 	  return(-1);
-
-    if ( strcpy(lword, c(pcmd->command)->word) == NULL )
-	  return(-1); 
 	
-    /* modify command to set intervall time */
+    /* syslog(LOG_INFO, "wcmd : mdat %d\n", mdat); */
+
+    /* modify cword for intervall time */
     if ( pcmd->command == 6) {
-      lword[2] = pcmd->argcmd;
-      lword[3] = lword[3] - pcmd->argcmd;
+      cintv[2] = pcmd->argcmd;
+      cintv[3] = cintv[3] - pcmd->argcmd;
+      err = write(fd, cintv, 5); 
+
+    } else {
+      /* write the command word to the weather station */ 
+      err = write(fd, cword(pcmd->command), 4); 
     }
+    syslog(LOG_INFO, "getsrd : command written : %d\n", pcmd->command);
 
-    /* write to command to serial line */
-    if ( write(fd, lword, sizeof(lword)) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "getsrd: write failed: %s",
-		 strerror(werrno));
-	  return(-1);
-    }
-
-    syslog(LOG_DEBUG, "getsrd : command written : %d\n", pcmd->command);
-
-    /* read weather station resonse from serial port */
-    if ( readdata(fd, data, mdat) == -1)
+    /* read answer of weather station from serial port */
+    if ( ( err = readdata(fd, data, mdat)) == -1)
 	  return(-1);
     
     /* echo raw dataframe */
-    if ( echodata(data, *mdat) == -1)
-	  return(-1);
+    err = echodata(data, *mdat);
     
    /* leave serial line in good state */ 
-    if ( closeserial(fd, &oldtio) == -1)
-	  return(-1);
+    err = closeserial(fd, &oldtio);
 
-    syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);
+    syslog(LOG_INFO, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }

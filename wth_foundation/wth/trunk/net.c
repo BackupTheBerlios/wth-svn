@@ -1,30 +1,10 @@
-/* net.c
+/* network related functions of wthc and wthd */
 
-
-   network related functions of wthc and wthd
-
-   $Id: net.c,v 0.4 2001/09/14 15:41:30 jahns Exp jahns $
-   $Revision: 0.4 $
-
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
- 
-*/
-
-#include "wth.h"
+#include "unp.h"
+#include "config.h"
+#include "dates.h"
+#include <syslog.h>
+#include "util.h"
 
 
 #ifdef	HAVE_SOCKADDR_DL_STRUCT
@@ -108,16 +88,13 @@ Sock_ntop(const struct sockaddr *sa, socklen_t salen)
 {
 	char	*ptr;
 
-	if ( (ptr = sock_ntop(sa, salen)) == NULL) {
-	  syslog(LOG_INFO,"sock_ntop error");	/* inet_ntop() sets errno */
-	  werrno = ENET;
-	  return (NULL);
-	}
+	if ( (ptr = sock_ntop(sa, salen)) == NULL)
+		err_sys("sock_ntop error");	/* inet_ntop() sets errno */
 	return(ptr);
 }
 
 
-int
+void
 daemon_init(const char *pname, int facility)
 {
 	int		i;
@@ -129,7 +106,7 @@ daemon_init(const char *pname, int facility)
 	/* 41st child continues */
 	setsid();				/* become session leader */
 
-	signal(SIGHUP, SIG_IGN);
+	Signal(SIGHUP, SIG_IGN);
 	if ( (pid = Fork()) != 0)
 		exit(0);			/* 1st child terminates */
 
@@ -144,8 +121,6 @@ daemon_init(const char *pname, int facility)
 		close(i);
 
 	openlog(pname, LOG_PID, facility);
-
-	return(0);
 }
 
 
@@ -162,12 +137,9 @@ tcp_listen(const char *host, const char *serv, socklen_t *addrlenp)
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0) {
-		syslog(LOG_INFO,"tcp_listen error for %s, %s: %s",
-			   host, serv, gai_strerror(n));
-		werrno = ENET;
-		return (-1);
-	}
+	if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0)
+		err_quit("tcp_listen error for %s, %s: %s",
+				 host, serv, gai_strerror(n));
 	ressave = res;
 
 	do {
@@ -182,11 +154,8 @@ tcp_listen(const char *host, const char *serv, socklen_t *addrlenp)
 		Close(listenfd);	/* bind error, close and try next one */
 	} while ( (res = res->ai_next) != NULL);
 
-	if (res == NULL) {	/* errno from final socket() or bind() */
-	  syslog(LOG_INFO,"tcp_listen error for %s, %s", host, serv);
-	  werrno = ENET;
-	  return(-1);
-	}
+	if (res == NULL)	/* errno from final socket() or bind() */
+		err_sys("tcp_listen error for %s, %s", host, serv);
 
 	Listen(listenfd, LISTENQ);
 
@@ -213,93 +182,8 @@ Tcp_listen(const char *host, const char *serv, socklen_t *addrlenp)
 
 
 
-int
-Setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
-{
-  if (setsockopt(fd, level, optname, optval, optlen) < 0) {
-	werrno = errno;
-	syslog(LOG_INFO,"setsockopt error: %s",
-		   strerror(werrno));
-	return(-1);
-  }
-  return(0);
-}
 
 
-/* include Listen */
-int
-Listen(int fd, int backlog)
-{
-	char	*ptr;
-
-		/*4can override 2nd argument with environment variable */
-	if ( (ptr = getenv("LISTENQ")) != NULL)
-		backlog = atoi(ptr);
-
-	if (listen(fd, backlog) < 0) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "Listen: listen error: %s",
-			 strerror(werrno));
-	  return(-1);
-	}
-	return(0);
-}
-/* end Listen */
-
-
-
-/* include Socket */
-int
-Socket(int family, int type, int protocol)
-{
-	int		n;
-
-	if ( (n = socket(family, type, protocol)) < 0) {
-	  syslog(LOG_INFO,"socket error");
-	  werrno = ENET;
-	  return (-1);
-	}
-	return(n);
-}
-/* end Socket */
-
-
-
-int
-Accept(int fd, struct sockaddr *sa, socklen_t *salenptr)
-{
-	int		n;
-
-again:
-	if ( (n = accept(fd, sa, salenptr)) < 0) {
-#ifdef	EPROTO
-		if (errno == EPROTO || errno == ECONNABORTED)
-#else
-		if (errno == ECONNABORTED)
-#endif
-			goto again;
-		else {
-		  syslog(LOG_INFO,"accept error");
-		  werrno = errno;
-		  return(-1);
-		}
-	}
-	return(n);
-}
-
-
-
-int
-Bind(int fd, const struct sockaddr *sa, socklen_t salen)
-{
-  if (bind(fd, sa, salen) < 0) {
-	werrno = errno;
-	syslog(LOG_INFO,"Bind: bind error: %s",
-		   strerror(werrno));
-	return(-1);
-  }
-  return(0);
-}
 
 
 /* getnrd 
@@ -308,83 +192,62 @@ Bind(int fd, const struct sockaddr *sa, socklen_t salen)
    IPv4 version
  
 */
-int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
-    int                  sockfd, n, len;
+int getnrd(char *data, int *mdat, struct cmd *pcmd) {
+    int                  sockfd, n;
     char                 sendline[MAXLINE] = "1";
     struct sockaddr_in   servaddr;
 
     struct in_addr **pptr, *addrs[2];
     struct hostent *hp;
     struct servent *sp;
-	
+   
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
 
     /* hostname or ipaddress */
     if (inet_pton(AF_INET, pcmd->hostname, &servaddr.sin_addr) == 1) {
-	  addrs[0] = &servaddr.sin_addr;
-	  addrs[1] = NULL;
-	  pptr = &addrs[0];
+	addrs[0] = &servaddr.sin_addr;
+	addrs[1] = NULL;
+	pptr = &addrs[0];
     } else if ( (hp = gethostbyname(pcmd->hostname)) != NULL) {
-	  pptr = (struct in_addr **) hp->h_addr_list;
-    } else {
-	  werrno = h_errno;
-	  syslog(LOG_INFO,"hostname error for %s: %s", 
-		 pcmd->hostname, hstrerror(h_errno));
-	  return (-1);
-	  }
+	pptr = (struct in_addr **) hp->h_addr_list;
+    } else
+	err_quit("hostname error for %s: %s", pcmd->hostname, hstrerror(h_errno));
     /* port number or service name */
     if ( (n = atoi(pcmd->port)) > 0)
-	  servaddr.sin_port = htons(n);
+	servaddr.sin_port = htons(n);
     else if ( (sp = getservbyname(pcmd->port, "tcp")) != NULL)
-	  servaddr.sin_port = sp->s_port;
-    else {
-	  syslog(LOG_INFO,"getservbyname error for %s", pcmd->port);
-	  werrno = ENET;
-	  return(-1);
-    }
+	servaddr.sin_port = sp->s_port;
+    else
+	err_quit("getservbyname error for %s", pcmd->port);
+    
     /* connect to server */
     for ( ; *pptr != NULL; pptr++) {
-      if ( ( sockfd = Socket(AF_INET, SOCK_STREAM, 0)) == -1 )
-	return(-1);
+	sockfd = Socket(AF_INET, SOCK_STREAM, 0);
 
-      memmove(&servaddr.sin_addr, *pptr, sizeof(struct in_addr));
-      Sock_ntop((SA *) &servaddr, sizeof(servaddr));
-	  
-      if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) == 0)
-	break; /* success */
+        memmove(&servaddr.sin_addr, *pptr, sizeof(struct in_addr));
+	/* printf("trying %s\n",
+	   Sock_ntop((SA *) &servaddr, sizeof(servaddr)));*/
+        Sock_ntop((SA *) &servaddr, sizeof(servaddr));
 
-      werrno = errno;
-      syslog(LOG_INFO, "getnrd: connect error: %s",
-	     strerror(werrno));
-      return(-1);
+        if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) == 0)
+            break; /* success */
+        err_ret("connect error");
 
-      close(sockfd);
+        close(sockfd);
     }
-    if (*pptr == NULL ) {
-      syslog(LOG_INFO, "unable to connect");
-      werrno = ENET;
-      return(-1);
-    }
+    if (*pptr == NULL )
+        err_quit("unable to connect");
 
     /* write command to server */
     snprintf(sendline, sizeof(sendline), "%d\r\n", (*pcmd).command);
-    if ( Writen(sockfd, sendline, 1) == -1 )
-      return(-1);
+    Writen(sockfd, sendline, 1);
     
-    /* read response. rwstephens unp p.10 */
-    while ( ( n = read(sockfd, data, MAXBUFF)) > 0) {
-      data[n] = 0;
-    }
-
-    /* code doesn't work. why?
-       if (Readline(sockfd, line, MAXLINE) == 0)
-       err_quit("getnrd: server terminated prematurely");
-    */
-
-    len = wstrlen(data);
-    *mdat = len;
-	
+    /* read response */
+    if (Readline(sockfd, data, MAXLINE) == 0)
+	err_quit("getnrd: server terminated prematurely");
+    *mdat = wstrlen(data);
+    
     return(0);
 }
 
