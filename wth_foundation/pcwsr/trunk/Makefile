@@ -6,7 +6,7 @@ pcwsr.o : pcwsr.c
 	cc -c -Wall pcwsr.c
 
 pcwsr: pcwsr.o
-	cc -Wall -o pcwsr pcwsr.o
+	cc  -Wall -o pcwsr pcwsr.o
 
 
 timetst.o : timetst.c 

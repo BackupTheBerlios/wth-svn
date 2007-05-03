@@ -2,7 +2,7 @@ head	1.2;
 access;
 symbols;
 locks
-	jahns:1.2; strict;
+	volker:1.2; strict;
 comment	@ * @;
 
 

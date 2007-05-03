@@ -16,7 +16,11 @@ main (int argc, char **argv) {
     time(&mtime);
     ctm = gmtime(&mtime);
     /* clk = ctime(&mtime); */
+    printf("timestamp print: use in pcwsr\n");
     strftime(clk, sizeof(clk), "%c", ctm);
+    printf("%s\n", clk);
+
+    strftime(clk, sizeof(clk),"%a %b %d %Y %X", ctm); 
     printf("%s\n", clk);
 
     return(0);

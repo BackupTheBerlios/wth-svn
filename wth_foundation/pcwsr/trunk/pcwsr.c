@@ -52,7 +52,10 @@ initserial (struct termios *newtio, struct termios *oldtio, char *sdevice ) {
   int pfd;
 
   /* open the device to be non-blocking (read will return immediatly) */
-  pfd = open(sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK ); 
+  if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) == -1 ) {
+    perror("Unable to open serial device");
+    exit(-1);
+  } 
   
   /* Make the file descriptor asynchronous (the manual page says only 
      O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
@@ -114,87 +117,13 @@ char
   static char *name[] = {
     "outdoor", "outdoor", 
     "rain", "wind", 
-    "indoor", "Helligkeit", 
-    "Pyranometer", "undef"
+    "indoor", "brightness", 
+    "radiation power", "undef"
   };
   return ( snum < 0 || snum >6 ) ? name[7] : name[snum];
 }
 
-/*
-  readdata
 
-  reading data from serial port
-
-*/
-static int 
-readdata (int rfd)
-{
-  int err, i, n;
-  int maxfd;
-  int loop = 1;
-  fd_set readfs;
-  unsigned char *rbuf;
-  struct timeval tv;
-  
-  err = -1;
-  maxfd = rfd +1;
-
-  
-  for ( i = 0; i < 254; i++ ){
-      rbuf[i] = 0;
-  }
-
-  /* loop until input is available */
-  while ( loop) {
-        
-        FD_ZERO(&readfs);
-        FD_SET(rfd, &readfs);
-
-        tv.tv_sec  = TIMEOUT;
-        /* tv.tv_usec = 0; */
-        
-        n = select(maxfd, &readfs, NULL, NULL, &tv);
-        switch (n) {
-        case -1:
-          perror("select");
-          return(-1);
-        case 0:
-          printf("select\t\t: Timeout\n");
-          return(-1);
-        default:
-          
-          /* loop until err = 0 */
-          while ( ( rbuf[err-1] != 3) && ( err != 8)) {
-                err = read(rfd, rbuf, MAXBUFF);
-                perror("read returned");
-                printf("read\t\t: errno: %d\n", errno);
-
-                printf("read\t\t: err %d: rbuf: |", err);
-                for ( i = 0; i < err; i++) {
-                  printf("%d|", rbuf[i]);
-                }
-                printf("\n");
-                loop=0;
-          }
-          break;
-        }
-  }
-  return(0);
-}
-
-
-/* 
-
-   mini routine to read serial line 
-
-*/
-int
-readserial( int fd, char *data) {
-  int err;
-
-  err = read(fd, data, FRAMELEN);
-  return(err);
-}
 
 
 
@@ -208,38 +137,47 @@ main( int argc, char **argv) {
     int mask = 0x7f;
     int shift = 0x7;
     int styp, saddr, sver;       /* sensor typ, address and version */
-    float t;
-    int h, p;
-    int debug;
+    float t, wspd, wdev;
+    int h, p, wdir, r, b, rad, mul;
+    int debug, raw;
 
     struct termios newtio,oldtio; /* termios structures to set comm parameters */
     unsigned char data[MAXBUFF];
     char clk[MAXBUFF];
+    char buf[MAXBUFF];
     char *name;  /* sensor typ spec */
 
     time_t mtime;
     struct tm *ctm;
 
 
+
+    printf("pcwsr 0.1 - experimental test version\n");
+    debug = 0;
+    raw   = 1;
+
     if (argc < 2) {
-      printf("Usage: $0 <serial device>\n");
+      printf("Usage: $0 <serial device> <options>\n");
+      printf("\twhere <options> include:\n");
+      printf("\traw: dump raw data frames\n");
       exit(-1);
     }
 
+    if ( argv[2] == "raw" ) raw = 1;
+
     tzset();                                   /* setting timezone */
     fd = initserial(&newtio, &oldtio, argv[1]); /* serial initialization */ 
-    debug = 0;
 
     for ( ;; ) {
       /* read weather station resonse from serial port */
-      /*  err = readdata(fd);*/
-      err = readserial(fd, data);
+      err = read(fd, data, FRAMELEN);
+
       time(&mtime);
       ctm = gmtime(&mtime);
-      strftime(clk, sizeof(clk), "%c", ctm);
+      strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm);
 
-      if (debug) {
-	printf("%s : err: %d  |", clk, err);
+      if (raw) {
+	printf("%s : %d bytes read |", clk, err);
 	for ( i = 0; i<8; i++) {
 	  printf("%x|", data[i]);
 	}
@@ -263,7 +201,7 @@ main( int argc, char **argv) {
 	printf("sname: %s, styp  :%x, sver :%x\n", name, styp, sver);
       }
 
-      /* handle different type of sensors */
+      /* handle sensors */
       /* outdoor (temperature only) */
       if ( styp == 0x0 ) {
 	/* temperature */
@@ -276,13 +214,13 @@ main( int argc, char **argv) {
 	  printf("Temperature\n");
 	  printf("W1: %x, W2: %x\n", data[2], data[3]);
 	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
-	  printf("Humidity\n");
-	  printf("W3: %x\n", data[4]);
-	  printf("Hum: %d\n\n", h);
 	}
-
-        printf("%s | %8s (address 0x0%x) | T[°C] %.1f\n",
-	       clk, name, saddr, t);
+        
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (address 0x0%x) | T[°C] %.1f\n",
+	    clk, name, saddr, t);
+        }
       }
       /* outdoor (temperature, humidity) */
       else if ( styp == 0x1 ) {
@@ -304,9 +242,67 @@ main( int argc, char **argv) {
 	  printf("Hum: %d\n\n", h);
 	}
 
-        printf("%s | %8s (address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d\n",
-	       clk, name, saddr, t, h);
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d\n",
+	    clk, name, sver, saddr, t, h);
+        }
+      } 
+      /* rain */
+      else if ( styp == 0x2 ) {
+	hi = data[2] & 0x1f ;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	r  = hi + lo ;
 
+	if (debug) {
+	  printf("Rain\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Rain: %d\n\n", hi, lo, r);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | [Impulses] %d\n",
+	    clk, name, sver, saddr, r);
+        }
+      } 
+      /* wind */
+      else if ( styp == 0x3 ) {
+	/* wind speed*/
+	hi = data[2] & mask ;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	wspd  = ( hi + lo ) / 10.0 ;
+
+	/* wind deviation */
+	dummy = data[4] & mask;
+        wdev  = (dummy * 45 );
+        wdev  = 0.5 * wdev;
+
+	/* wind direction */
+	hi = data[5] & mask ;
+        hi = hi << shift;
+	lo = data[6] & mask;
+	wdir = hi + lo ;
+
+	if (debug) {
+	  printf("Windspeed\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Windspd: %.1f\n\n", hi, lo, wspd);
+	  printf("Wind Deviation\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("Wind deviation: %f\n\n", wdev);
+	  printf("Wind Direction\n");
+	  printf("W4: %x, W5: %x\n", data[5], data[6]);
+	  printf("Wind direction: %d\n\n", wdir);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | Speed[km/s] %.1f | Direction [°] %d +/- %.1f\n",
+	    clk, name, sver, saddr, wspd, wdir, wdev);
+        }
       } 
       /* indoor (temperature, humidity, pressure) */
       else if ( styp == 0x4) {  
@@ -337,10 +333,71 @@ main( int argc, char **argv) {
 	  printf("dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, p);
 	}
 
-        printf("%s | %8s (address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d | P[hPa] %d\n",
-	       clk, name, saddr, t, h, p);
-
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | T[°C] %.1f | H[%% rel.hum] %d | P[hPa] %d\n",
+	    clk, name, sver, saddr, t, h, p);
+        }
       }
+      /* brightness */
+      else if ( styp == 0x5) {  
+	/* brightness */
+	hi = data[2] & mask;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	b  = hi + lo ;
+
+	/* multiplicator */
+	mul = data[4] & 0x3;
+
+        if (debug) {
+	  printf("Brightness\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, brightness: %d\n\n", hi, lo, b);
+	  printf("Multiplicator\n");
+	  printf("W3: %x\n", data[4]);
+          printf("mul: %d\n", mul);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | [arb.units] %d x %d\n",
+	    clk, name, sver, saddr, b, mul);
+        }
+      }
+      /* pyranometer */
+      else if ( styp == 0x6) {  
+	/* pyranometer */
+	hi = data[2] & mask;
+        hi = hi << shift;
+	lo = data[3] & mask;
+	rad  = hi + lo;
+
+	/* multiplicator */
+	mul = data[4] & 0x3;
+
+        if (debug) {
+	  printf("Pyranometer\n");
+	  printf("W1: %x, W2: %x\n", data[2], data[3]);
+	  printf("hi : %x, lo: %x, Radiation Power: %d\n\n", hi, lo, rad);
+	  printf("Multiplicator\n");
+	  printf("W3: %x\n", data[4]);
+	  printf("mul: %d\n\n", h);
+	}
+
+        if (!raw) {
+          snprintf(buf, sizeof(buf),
+            "%s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d x %d\n",
+	    clk, name, sver, saddr, rad, mul);
+        }
+      }
+      /* sensor unknown ?! */
+      else {
+
+	snprintf(buf, sizeof(buf), "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@thalreit.de\n",
+		clk, sver, saddr);
+      }
+      if (!raw) printf("%s\n", buf);
     }
     /* leave serial line in good state */ 
     closeserial(fd, &oldtio); 
