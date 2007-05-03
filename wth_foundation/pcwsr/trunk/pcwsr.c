@@ -2,10 +2,13 @@
 
    serial line communication w/ PC weathersensor receiver
 
-   $Id: pcwsr.c,v 1.4 2001/11/22 08:50:47 jahns Exp jahns $
-   $Revision: 1.4 $
+   $Id: pcwsr.c,v 1.5 2003/11/10 13:38:35 jahns Exp jahns $
+   $Revision: 1.5 $
 
-   Copyright (C) 2001 Volker Jahns <Volker.Jahns@thalreit.de>
+   negative temperature patch:
+   Ulrich Vigenschow, vigger@t-online.de 
+
+   Copyright (C) 2001,2002, 2003 Volker Jahns <Volker.Jahns@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -152,7 +155,8 @@ main( int argc, char *argv[]) {
 
 
 
-    printf("pcwsr 0.1 - experimental test version\n");
+    printf("pcwsr 0.1.3 - experimental test version\n");
+    printf("Copyright (C) 2002, 2003 Volker Jahns, Volker.Jahns@thalreit.de\n");
     debug = 0;
     raw   = 0;
 
@@ -183,6 +187,7 @@ main( int argc, char *argv[]) {
 
   
     printf("%s\n", *argv);
+    fflush(stdout);
 
     tzset();                                   /* setting timezone */
     fd = initserial(&newtio, &oldtio, *argv); /* serial initialization */ 
@@ -208,9 +213,9 @@ main( int argc, char *argv[]) {
       styp  = dummy & 0xf0;
       styp  = styp >> 4;
       saddr = dummy & 0xf;
-      name = sname(styp);
-
-      sver = 0x12;
+      name  = sname(styp);
+ 
+      sver  = 0x12;
       if ( ( styp < 0x5 ) && ( saddr < 0x8)) {
 	  sver = 0x11;
       }
@@ -225,9 +230,14 @@ main( int argc, char *argv[]) {
       if ( styp == 0x0 ) {
 	/* temperature */
 	hi = data[2] & mask ;
-        hi = hi << shift;
+        hi = hi << 9;
 	lo = data[3] & mask;
-	t  = ( hi + lo ) / 10.0 ;
+	lo = lo << 2;
+	dummy = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
 
 	if (debug) {
 	  printf("Temperature\n");
@@ -245,9 +255,14 @@ main( int argc, char *argv[]) {
       else if ( styp == 0x1 ) {
 	/* temperature */
 	hi = data[2] & mask ;
-        hi = hi << shift;
+        hi = hi << 9;
 	lo = data[3] & mask;
-	t  = ( hi + lo ) / 10.0 ;
+	lo = lo << 2;
+	dummy = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
 
 	/* humidity */
 	h = data[4] & mask;
@@ -327,9 +342,14 @@ main( int argc, char *argv[]) {
       else if ( styp == 0x4) {  
 	/* temperature */
 	hi = data[2] & mask;
-        hi = hi << shift;
+        hi = hi << 9;
 	lo = data[3] & mask;
-	t  = ( hi + lo ) / 10.0 ;
+	lo = lo << 2;
+	dummy  = hi + lo;
+	/* negative temperatures */
+	if (dummy & 0x00004000)
+	  dummy |= 0xffffc000 ;
+	t  = dummy / 40.0 ;
 
 	/* humidity */
 	h = data[4] & mask;
@@ -417,6 +437,7 @@ main( int argc, char *argv[]) {
 		clk, sver, saddr);
       }
       if (!raw) printf("%s\n", buf);
+      fflush(stdout);
     }
     /* leave serial line in good state */ 
     closeserial(fd, &oldtio); 
