@@ -1,10 +1,13 @@
-/* serial.c */
+/* serial.c
 
-#include "global.h"
-#include "config.h"
-#include "const.h"
-#include "dates.h"
-#include "util.h"
+   serial line communication routine
+
+   $Id: serial.c,v 0.2 2001/03/01 06:30:03 volker Exp $
+   $Revision: 0.2 $
+
+*/
+
+#include "wth.h"
 
 static volatile int STOP = FALSE;
 static volatile int wait_flag = TRUE;
@@ -35,14 +38,11 @@ void sigalrm_h(int signum) {
 
 /*  initserial
 
-
-  well, this means setting some communication params like 
-  9600, 8, Parity 2Stop
-  and rising DTR voltage
-
-  opens serial port for communcation
+  opens serial port for communication
   installs SIGIO asynchronuous signal handler, SIGALRM for read timeout
-  serial port settings 
+  serial port settings:
+     9600, 8, Parity,  2Stop
+     lower RTS and raise DTR voltage
 
 */
 int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
@@ -50,11 +50,10 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
   int i, itio; 
 
   /* open the device to be non-blocking (read will return immediatly) */
-  *pfd = open(MODEMDEVICE, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
-  if (*pfd <0) {perror(MODEMDEVICE); exit(-1); }
+  *pfd = open(SER_DEVICE, O_RDWR | O_NOCTTY );
+  if (*pfd <0) {perror(SER_DEVICE); exit(-1); }
 
 
-    
   /* install the signal handler before making the device asynchronous */
   signal(SIGIO, sigio_h);
   signal(SIGALRM,sigalrm_h);

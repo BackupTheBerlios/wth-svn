@@ -1,32 +1,36 @@
-head	1.2;
+head	0.2;
 access;
 symbols;
-locks; strict;
+locks
+	jahns:0.2; strict;
 comment	@ * @;
 
 
-1.2
-date	2001.02.06.15.55.12;	author volker;	state Exp;
-branches;
-next	1.1;
-
-1.1
-date	2001.01.18.11.50.48;	author volker;	state Exp;
+0.2
+date	2001.03.01.06.31.51;	author volker;	state Exp;
 branches;
 next	;
 
 
 desc
-@1st version
+@WS2000 weatherstation
+unp copy
 @
 
 
-1.2
+0.2
 log
-@FreeBSD OK
+@timezone OK
 @
 text
 @/*
+
+
+  R.W.Stephens, UNP
+
+  $Id&
+  $Revision$
+  
  * Socket wrapper functions.
  * These could all go into separate files, so only the ones needed cause
  * the corresponding function to be added to the executable.  If sockets
@@ -44,7 +48,7 @@ text
  *warning: passing arg 2 of `connect' discards `const' from pointer target type
  */
 
-#include	"unp.h"
+#include	"wth.h"
 
 
 void *
@@ -374,17 +378,4 @@ Readline(int fd, void *ptr, size_t maxlen)
 		err_sys("readline error");
 	return(n);
 }
-@
-
-
-1.1
-log
-@Initial revision
-@
-text
-@d21 1
-d97 2
-a98 2
-	if (mktemp(template) == NULL || template[0] == 0)
-		err_quit("mktemp error");
 @

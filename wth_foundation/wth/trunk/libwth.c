@@ -1,41 +1,13 @@
-head	1.2;
-access;
-symbols;
-locks
-	volker:1.2; strict;
-comment	@ * @;
+/* libwth.c
 
+   all functions related to data time evaluation
 
-1.2
-date	2001.02.06.15.55.50;	author volker;	state Exp;
-branches;
-next	1.1;
+   $Id: libwth.c,v 0.2 2001/03/01 06:29:08 volker Exp jahns $
+   $Revision: 0.2 $
+   
+*/
 
-1.1
-date	2001.01.18.11.51.32;	author volker;	state Exp;
-branches;
-next	;
-
-
-desc
-@1st version
-@
-
-
-1.2
-log
-@FreeBSD OK
-@
-text
-@/* wthlib.c */
-
-#include "global.h"
-#include "config.h"
-#include "const.h"
-#include "dates.h"
-#include "net.h"
-#include "serial.h"
-#include "util.h"
+#include "wth.h"
 
 /* datacorr
   
@@ -96,7 +68,7 @@ int datacorr(u_char *data, int *mdat) {
    check NAK received.
 
 */
-int chkframe(u_char *data, int *mdat) {
+int chkframe(u_char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int chksum;
     int ldat;
@@ -139,7 +111,7 @@ int chkframe(u_char *data, int *mdat) {
 	chksum = chksum + data[i];
         syslog(LOG_DEBUG, "chkframe : data %d: chksum %d\n",data[i], 256 - chksum);
     }
-    chksum = 256 - chksum;
+	chksum = ( 256 - chksum ) & 0xff ;
     if ( chksum == data[ldat - 2] ) syslog(LOG_INFO, "chkframe : checksum match OK\n");
 
 
@@ -156,7 +128,10 @@ int chkframe(u_char *data, int *mdat) {
         
     syslog(LOG_DEBUG, "chkframe : length of data :%d\n", data[1]);
     syslog(LOG_DEBUG, "chkframe : length dataframe : %d\n",ldat);
-   
+	
+    printf("data: %d\n", data[1]);
+    printf("clen: %d\n", c(5)->clen);
+    printf("cmd: %d\n", pcmd->command);
 
     if ( data[1] == (ldat - 4) ) syslog(LOG_INFO, "chkframe : message length OK\n"); 
 
@@ -180,10 +155,12 @@ int getrd (char *data, int *mdat, struct cmd *pcmd) {
 
     /* read answer of weather station from serial port */
     if ( pcmd->netflg == 0 ) {
-	err = getsrd(data, mdat, pcmd);
+	  if ( ( err = getsrd(data, mdat, pcmd)) == -1)
+		return(-1);
     }
     else if (pcmd->netflg == 1 ) {
-	err = getnrd(data, mdat, pcmd);
+	  if ( ( err = getnrd(data, mdat, pcmd)) == -1)
+		return(-1);
     }
     return(0);
 }
@@ -199,14 +176,15 @@ int getcd (char *data, int *mdat, struct cmd *pcmd) {
     int err;
 
     /* read answer of weather station from serial port */
-    err = getrd(data, mdat, pcmd);
+    if ( ( err = getrd(data, mdat, pcmd)) == -1)
+	  return(-1);
     
     /* echo raw dataframe */
     err = echodata(data, *mdat);
     
     /* check data frame and do 
     	 data correction for masqueraded bytes */
-    err = chkframe(data, mdat);
+    err = chkframe(data, mdat, pcmd);
     
     /* echo raw demasqueraded dataframe */
     err = echodata(data, *mdat);
@@ -291,6 +269,7 @@ int wstat(char *data, int mdat, struct DCFstruct *DCF, struct sensor sens[], str
 }
 
 
+
 /* dcftime 
 
    calculate time from weather station response to "poll DCF time"
@@ -303,12 +282,13 @@ int dcftime(u_char *data, int ndat) {
     int err;
     int tmp1;
     int tmp2;   
-
+	
     char *clk;
 
     struct tm t;
     time_t ltim, dtim;
-
+	
+	
     /* 1st byte : flag : B0-B2 : weeday; B4 : DCF ok */
     tmp1 = getbits(data[0], 2,3);
     tmp2 = getbits(data[0], 4,1);
@@ -358,7 +338,13 @@ int dcftime(u_char *data, int ndat) {
 
     t.tm_year = tmp1 + 10*tmp2 + 100;
 
-    err = time(&ltim);
+	/* surprise, surprise */
+    t.tm_isdst = -1;
+	
+	/* time conversion */
+	tzset();
+
+	err = time(&ltim);
     clk = ctime(&ltim);
     syslog(LOG_DEBUG, "dcftime : local clk : %s\n", clk);
     
@@ -367,6 +353,7 @@ int dcftime(u_char *data, int ndat) {
     syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", dtim);
     syslog(LOG_INFO, "dcftime : DCF clk : %s\n", clk);
 
+	
     return(dtim);
 }
 
@@ -392,14 +379,14 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
     syslog(LOG_INFO, "getone : block NO (byte 1) : %d\n", data[0]);
     syslog(LOG_INFO, "getone : block NO (byte 2) : %d\n", data[1]);
 
-    /* age of dataset in minutes up to current time */
+    /* age of dataset is stored as minutes up to current time */
     syslog(LOG_INFO, "getone : age (byte 1) : %d\n", data[2]);
     syslog(LOG_INFO, "getone : age (byte 2) : %d\n", data[3]);
     age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
 
 
     /* convert into seconds and subtract from elapsed seconds since EPOCH */
-    age = age * 60;
+    /* age = age * 60; */
 
 
     /* time of dataset 
@@ -417,8 +404,10 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
 	syslog(LOG_INFO, "getone : seconds since EPOCH (now): %lu\n", mtim);
     }
     
-
-    mtim = mtim - age;
+    /* dataset time is echoed in EPOCH seconds, dataset age in minutes
+	   up to present time
+    */
+    mtim = ( mtim/60 - age) * 60;
     clk = ctime(&mtim);
 
      
@@ -604,7 +593,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
      needed to fill sens.status
   */
   pcmd->command = 5;
-  err = getcd( data, &ndat, pcmd);
+  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+	return(-1);
   pcmd->command = command;
 
   syslog(LOG_INFO, "wcmd : check status OK\n");
@@ -622,16 +612,19 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
   /* command 0 : poll DCF time */
   if (command == 0) {
+	  tzset();
+	
       /* write command and retrieve data */
-      err = getcd( data, &ndat, pcmd);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+	     return(-1);
 
       /* calculate seconds since EPOCH if DCF synchronized */
       DCF.time  = dcftime(data, ndat);
       if (DCF.time == -1) 
-	  printf("Weatherstation not synchronized\n");
+		printf("Weatherstation not synchronized\n");
       else { 
-	  clk = ctime(&DCF.time);
-	  printf("%s", clk);
+		clk = ctime(&DCF.time);
+		printf("%s", clk);
       }
   }
 
@@ -640,14 +633,16 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* first get DCF time if possible */
       pcmd->command = 0;
-      err = getcd( data, &ndat, pcmd);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		   return(-1);
       pcmd->command = command;
 
       /* calculate seconds since EPOCH if DCF synchronized */
       DCF.time  = dcftime(data, ndat);
 
       /* write command and retrieve data */
-      err = getcd( data, &ndat, pcmd);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+	     return(-1);
 
       /* weather station response : no data available: <DLE> */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
@@ -664,7 +659,6 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* echo sensor data */
       err = pdata(sens, snum);
-
   } 
 
 
@@ -672,8 +666,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
   else if (command == 2) {
       /* write the command word to the weather station */ 
       /* extract message datagram */
-      err = getcd( data, &ndat, pcmd);
-      syslog(LOG_INFO, "wcmd : returncode getcd : %d\n", err);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		return(-1);
 
       /* if DLE no data available */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
@@ -698,8 +692,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* write the command word to the weather station */ 
       /* extract message datagram */
-      err = getcd( data, &ndat, pcmd);
-      syslog(LOG_INFO, "wcmd : returncode getcd : %d\n", err);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		return(-1);
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
@@ -715,8 +709,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* write the command word to the weather station */ 
       /* extract message datagram */
-      err = getcd( data, &ndat, pcmd);
-      syslog(LOG_INFO, "wcmd : returncode getcd : %d\n", err);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		return(-1);
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
@@ -730,8 +724,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
   /* command 5 : Request status of weatherstation */
   else if ( command == 5 ) {
       /* check status - this is done at every call of wcmd*/
-      err = getcd( data, &ndat, pcmd);
-      syslog(LOG_INFO, "wcmd : check status OK\n");
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		return(-1);
 
       /* status weatherstation */
       err = wstat(data, ndat, &DCF, sens, &setting);
@@ -761,8 +755,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
       /* write the command word to the weather station */ 
       /* extract message datagram */
-      err = getcd( data, &ndat, pcmd);
-      syslog(LOG_INFO, "wcmd : returncode getcd : %d\n", err);
+	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+	    return(-1);
 
       /* weather station response : <ACK> */
       if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
@@ -782,55 +776,61 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
       
       /* first get DCF time if possible */
       pcmd->command = 0;
-      err = getcd( data, &ndat, pcmd);
+      if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		return(-1);
       pcmd->command = command;
 
       /* calculate seconds since EPOCH if DCF synchronized */
       DCF.time  = dcftime(data, ndat);
 
       while (retval != 16) {
-	  /* write command and retrieve data */
-          pcmd->command = 1;
-	  err = getcd( data, &ndat, pcmd);
+		  /* write command and retrieve data */
+		  pcmd->command = 1;
+		  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+		    return(-1);
 
-	  /* weather station response : no data available: <DLE> */
-	  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	  syslog(LOG_INFO, \
+		  /* weather station response : no data available: <DLE> */
+		  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+			syslog(LOG_INFO, \
               "wcmd : DLE received : weather station :\"no data available\"!\n");
-	      retval = 16;
-	  }
-	  /* fill data structure sens */
-	  else {
-	      /* get one dataset */
-	      err = getone(data, ndat, sens, snum, DCF);
-              syslog(LOG_INFO, "wcmd : returncode getone : %d\n", err);
+			retval = 16;
+		  }
+		  /* fill data structure sens */
+		  else {
+			/* get one dataset */
+			err = getone(data, ndat, sens, snum, DCF);
+            syslog(LOG_INFO, "wcmd : returncode getone : %d\n", err);
 
-	      /* increase dataset number index */
-	      snum++;
-	  }
+			/* increase dataset number index */
+			snum++;
+		  }
  
-	  /* write the command word to select next dataset and retrieve response*/ 
-	  pcmd->command = 2;
-	  err = getcd( data, &ndat, pcmd);
+		  /* write the command word to select next dataset and retrieve response*/ 
+		  pcmd->command = 2;
+		  
+		  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
+			return(-1);
 
-	  /* if DLE no data available */
-	  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	      syslog(LOG_INFO, \
+		  /* if DLE no data available */
+		  if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+			syslog(LOG_INFO, \
 	          "wcmd : DLE received : weather station :\"no data available\"!\n");
 
-	      printf("DLE received : weather station :\"no data available\"!\n");
-	      retval = 16; 
-	  } else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) /* if ACK next dataset is available */ {
-	      syslog(LOG_INFO, \
+			printf("DLE received : weather station :\"no data available\"!\n");
+			retval = 16; 
+		  }
+		  /* if ACK next dataset is available */
+		  else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
+			syslog(LOG_INFO, \
                   "wcmd : ACK received : weather station :\"next dataset available\"!\n");
-	      retval = 6;
-	  }
-	  /* exit if unknown response */
-	  else {
+			retval = 6;
+		  }
+		  /* exit if unknown response */
+		  else {
               syslog(LOG_EMERG, \
 	          "wcmd : error request next dataset : unknown response: exit \n");
-	      retval = -1;
-	  }
+			  retval = -2;
+		  }
           syslog(LOG_INFO, "wcmd : retval : %d\n", retval);
       }
 
@@ -885,64 +885,3 @@ int initsens(struct sensor sens[]) {
   return(0);
 }
 
-@
-
-
-1.1
-log
-@Initial revision
-@
-text
-@d7 1
-d9 1
-a9 1
-#include "unp.h"
-d55 1
-d140 1
-d145 19
-a193 20
-/* getrd
-
-   get raw data
-*/
-int getrd (char *data, int *mdat, struct cmd *pcmd) {
-    int i;
-    int err;
-    int net;
-
-    /* read answer of weather station from serial port */
-    if ( pcmd->netflg == 0 ) {
-	err = getsrd(data, mdat, pcmd);
-    }
-    else if (pcmd->netflg == 1 ) {
-	err = getnrd(data, mdat, pcmd);
-    }
-    return(0);
-}
-
-
-a276 1
-    int retval;
-d338 1
-a338 1
-    syslog(LOG_DEBUG, "dcftime : dtim : %d\n", dtim);
-a351 1
-    int k = 0;
-d355 1
-a355 1
-    int Hi, Lo, byte3;
-d386 1
-a386 1
-	syslog(LOG_ALERT, "getone : DCF not synchronized, using localtime for dataset\n", mtim);
-d388 1
-a388 1
-	syslog(LOG_INFO, "getone : seconds since EPOCH (now): %d\n", mtim);
-d396 2
-a397 2
-    syslog(LOG_INFO, "getone : setno : %d; age[min] : %d\n", setno, age);
-    syslog(LOG_INFO, "getone : seconds since EPOCH (dataset): %d\n", mtim);
-d533 1
-a533 1
-		printf("%d\t%s\t%d\t%d\t%d\t\t%d\t%d%d%d.%d\n", i, \
-d540 1
-@

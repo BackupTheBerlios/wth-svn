@@ -1,102 +1,107 @@
-head	1.4;
+head	0.2;
 access;
 symbols;
 locks
-	volker:1.4; strict;
+	volker:0.2; strict;
 comment	@ * @;
 
 
-1.4
-date	2001.02.09.09.11.02;	author volker;	state Exp;
-branches;
-next	1.3;
-
-1.3
-date	2001.02.06.15.54.04;	author volker;	state Exp;
-branches;
-next	1.2;
-
-1.2
-date	2001.01.29.08.18.02;	author volker;	state Exp;
-branches;
-next	1.1;
-
-1.1
-date	2001.01.18.11.49.43;	author volker;	state Exp;
+0.2
+date	2001.03.01.06.30.03;	author volker;	state Exp;
 branches;
 next	;
 
 
 desc
-@1st version 
+@WS2000 weather station
 @
 
 
-1.4
+0.2
 log
-@closeserial : close fd commented pout as this hangs
-next open for approx 3sec
+@timezone OK
 @
 text
-@/* serial.c */
+@/* serial.c
 
-#include "global.h"
-#include "config.h"
-#include "const.h"
-#include "dates.h"
-#include "util.h"
+   serial line communication routine
+
+   $Id$
+   $Revision$
+
+*/
+
+#include "wth.h"
 
 static volatile int STOP = FALSE;
 static volatile int wait_flag = TRUE;
+static volatile int alrm_flag = FALSE;
 
 
 /* 
-   signal_handler
-
+   sigio_h
+   
    handles SIGIO sent by weather station when data are available
-   and SIGALRM when timer goes off after timeout read
 */
-void signal_handler(int signum) {
-	wait_flag = FALSE;
+void sigio_h(int signum) {
+  wait_flag = FALSE;
+  return;
 }
+
+/*
+   sigalrm_h
+  
+   handles SIGALRM when timer goes off after timeout read
+*/
+void sigalrm_h(int signum) {
+  alrm_flag = TRUE;
+  return;
+}
+
+
 
 /*  initserial
 
-
-  well, this means setting some communication params like 
-  9600, 8, Parity 2Stop
-  and rising DTR voltage
-
-  opens serial port for communcation
+  opens serial port for communication
   installs SIGIO asynchronuous signal handler, SIGALRM for read timeout
-  serial port settings 
+  serial port settings:
+     9600, 8, Parity,  2Stop
+     lower RTS and raise DTR voltage
 
 */
 int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
 
   int i, itio; 
-  struct sigaction saio;           /* definition of signal action */
 
   /* open the device to be non-blocking (read will return immediatly) */
-  *pfd = open(MODEMDEVICE, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK);
-  if (*pfd <0) {perror(MODEMDEVICE); exit(-1); }
+  *pfd = open(SER_DEVICE, O_RDWR | O_NOCTTY );
+  if (*pfd <0) {perror(SER_DEVICE); exit(-1); }
+
 
   /* install the signal handler before making the device asynchronous */
-  saio.sa_handler = signal_handler;
-  saio.sa_flags = 0;
-  sigaction(SIGIO,&saio,NULL);
-  
-  /* sigaction(SIGALRM,&saio,NULL); */
+  signal(SIGIO, sigio_h);
+  signal(SIGALRM,sigalrm_h);
 
   /* allow the process to receive SIGIO */
   fcntl(*pfd, F_SETOWN, getpid());
   /* Make the file descriptor asynchronous (the manual page says only 
      O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
   fcntl(*pfd, F_SETFL, FASYNC);
+
   
+  /* lower DTR and RTS on serial line */
+  ioctl(*pfd, TIOCMGET, &itio);
+  itio &= ~TIOCM_DTR;
+  itio &= ~TIOCM_RTS;
+  ioctl(*pfd, TIOCMSET, &itio); 
+  /* raise DTR */
+  itio |= TIOCM_DTR;
+  ioctl(*pfd, TIOCMSET, &itio);
+
   tcgetattr(*pfd,oldtio);  /* save current port settings */
   tcgetattr(*pfd,newtio); /* prefill port settings */
 
+  
   /* set communication link parameters */
   cfsetispeed(newtio, BAUDRATE);
   cfsetospeed(newtio, BAUDRATE);
@@ -112,7 +117,7 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
   }
   
   
-  newtio->c_iflag &= (IXON | IXOFF | IXANY); 
+  /* newtio->c_iflag &= (IXON | IXOFF | IXANY);  */
   
   newtio->c_cflag |= PARENB;
   newtio->c_cflag &= ~PARODD;
@@ -122,25 +127,12 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
   newtio->c_cflag |= CSTOPB;
   newtio->c_cflag |= CSIZE; 
   
-
-  newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+  /* newtio->c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); */
 
   newtio->c_cc[VMIN]=0;
   newtio->c_cc[VTIME]=10;
 
-
-  /* set serial line using previously defined attributes in structure newtio */ 
   tcsetattr(*pfd,TCSANOW,newtio);
-
-  /* lower DTR and RTS on serial line */
-  ioctl(*pfd, TIOCMGET, &itio);
-  itio &= ~TIOCM_DTR;
-  itio &= ~TIOCM_RTS;
-  ioctl(*pfd, TIOCMSET, &itio);
-  /* raise DTR */
-  itio |= TIOCM_DTR;
-  ioctl(*pfd, TIOCMSET, &itio);
-
   return(0);
 
 }
@@ -156,18 +148,19 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio) {
 int closeserial( int fd, struct termios *oldtio) {
     int tset;
 
-    /* restore old port settings */
-    tcsetattr(fd,TCSANOW,oldtio);
-  
+
     /* lower DTR on serial line */
     ioctl(fd, TIOCMGET, &tset);
     tset &= ~TIOCM_DTR;
     ioctl(fd, TIOCMSET, &tset);
 
+	/* restore old port settings */
+	/* takes approx 3 sec to reopen fd under FreeBSD
+	   if tcsetattr is called to restore */
+    /* tcsetattr(fd,TCSANOW,oldtio);  */
+  
     /* close serial port */
-	/* takes approx 3 sec to reopen fd under FreeBSD */
-    /* close(fd); */
-
+    close(fd);
     return(0);
 }
 
@@ -187,15 +180,14 @@ int readdata (int fd, char *data, int *ndat) {
     char rbuf[MAXBUFF];
 
     /* timeout handling: use function alarm() */
-    /* alarm(TIMEOUT); */
+    alarm(TIMEOUT);
 
     *ndat = 0;
-
 	
 	while ( STOP == FALSE) {
+	  /* input available */
 	  if ( wait_flag == FALSE) {
-		err = read(fd, &rbuf, MAXBUFF);
-		if ( err > 0 ) {
+		if ( ( err = read(fd, &rbuf, MAXBUFF)) > 0 ) {
 		  for ( i = 0; i < err; i++) {
 			data[*ndat + i] = rbuf[i];
 		  }
@@ -207,13 +199,24 @@ int readdata (int fd, char *data, int *ndat) {
 		  }
 		}
 	  }
+	  /* timeout experienced */
+	  if ( alrm_flag == TRUE) {
+		syslog(LOG_INFO, "sigalrm_h : timeout");
+		STOP = TRUE;
+	  }
 	}    
-	
+
+	/* reset loop control flags */
 	STOP = FALSE;
 	wait_flag = TRUE;
+
 	/* turnoff alarm timeout */
-	/* alarm(0); */
-	return(0);
+	alarm(0);
+	
+	if ( alrm_flag == TRUE )
+	  return(-1);
+	else
+	  return(0);
 }
 
 
@@ -260,13 +263,15 @@ int getsrd (char *data, int *mdat, struct cmd *pcmd) {
 
     /* initialize serial port  */
     err = initserial(&fd, &newtio, &oldtio);
-  
+
     /* read ETX from serial port
  
       when the weather station is activated by setting DTR it answers
       with an ETX char to signalize it's OK 
     */
-    err = readdata(fd, data, mdat);
+    if ( (err = readdata(fd, data, mdat)) == -1 )
+	  return(-1);
+	
     /* syslog(LOG_INFO, "wcmd : mdat %d\n", mdat); */
 
     /* modify cword for intervall time */
@@ -282,7 +287,8 @@ int getsrd (char *data, int *mdat, struct cmd *pcmd) {
     syslog(LOG_INFO, "getsrd : command written : %d\n", pcmd->command);
 
     /* read answer of weather station from serial port */
-    err = readdata(fd, data, mdat);
+    if ( ( err = readdata(fd, data, mdat)) == -1)
+	  return(-1);
     
     /* echo raw dataframe */
     err = echodata(data, *mdat);
@@ -293,176 +299,4 @@ int getsrd (char *data, int *mdat, struct cmd *pcmd) {
     syslog(LOG_INFO, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }
-
-
-@
-
-
-1.3
-log
-@FreeBSD OK
-@
-text
-@a20 1
-    return;
-d41 1
-a41 1
-  *pfd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
-a55 1
-
-d73 3
-a75 2
-
-  newtio->c_iflag &= (IXON | IXOFF | IXANY);
-d88 2
-a89 2
-  newtio->c_cc[VMIN]=1;
-  newtio->c_cc[VTIME]=0;
-d128 2
-a129 1
-    close(fd);
-a153 3
-	for ( i = 0; i < MAXBUFF; i++) {
-	  rbuf[i] = 0;
-	}
-a160 1
-			/* printf("%d | %d -\n", data[*ndat +i], rbuf[i]); */
-d170 1
-a170 3
-	}
-
-    
-a255 2
-
-
-@
-
-
-1.2
-log
-@before changes for FreeBSD
-@
-text
-@d9 2
-a10 1
-static volatile int sigio_received = 0;     /* TRUE while no signal received */
-d20 1
-a20 7
-    if ( signum == 14 ) {
-	syslog(LOG_EMERG, "signal_handler : SIGALRM received : signum %d\n",signum);
-        syslog(LOG_EMERG, "signal_handler : Timeout reading data\n");
-    } else if ( signum == 29 ) {
-	syslog(LOG_DEBUG, "signal_handler : SIGIO received : signum %d\n",signum);
-	sigio_received = 1;
-    }
-a23 1
-
-d38 1
-a38 1
-  int itio; 
-d42 1
-a42 1
-  *pfd = open(MODEMDEVICE, O_RDWR | O_NONBLOCK | O_NOCTTY | O_NDELAY);
-a45 2
-  /* sighup.c example m.johnson */
-  memset(&saio,0,sizeof(saio)); 
-d47 1
-a47 3
-  /* saio.sa_mask = 0;  */
-  /* saio.sa_flags = SA_SIGINFO;  */
-  /* saio.sa_restorer = NULL; */ 
-d49 2
-a50 1
-  sigaction(SIGALRM,&saio,NULL);
-d65 3
-a67 2
-  newtio->c_cflag = PARENB | CLOCAL | CREAD | CS8 | CSTOPB ; 
-  newtio->c_iflag = BRKINT | IGNPAR;
-d69 23
-a91 9
-  newtio->c_lflag = PENDIN;
-  newtio->c_cc[VMIN]=0;
-  newtio->c_cc[VTIME]=1;
-
-  /* 
-     tcflush : all data are thrown away which have been received, but
-     not been read by the device 
-  */
-  tcflush(*pfd, TCIFLUSH);
-d96 1
-a96 1
-  /* set DTR on serial line */
-d98 4
-d144 1
-a144 1
-int readdata (int fd, u_char *data, int *ndat) {
-a145 1
-    int done = 0;
-d147 1
-a147 1
-    u_char rbuf[MAXBUFF];
-d150 1
-a150 1
-    alarm(TIMEOUT);
-a152 1
-    while (! done) {
-d154 20
-a173 15
-        if ( sigio_received ) {
-
-            syslog(LOG_DEBUG, "readdata : SIGIO received\n"); 
-	    err = read(fd, &rbuf, MAXBUFF);
-            syslog(LOG_DEBUG, "readdata : Data read :%d\n", err);
-	    for ( i = 0; i < err; i++) {
-		data[*ndat + i] = rbuf[i];
-	    }
-
-	    *ndat += err;
-	    if ( data[*ndat - 1] == ETX ) {
-                syslog(LOG_INFO, "readdata : ETX received\n");
-		done = 1;
-	    }
-            sigio_received = 0;
-a174 1
-    }
-d176 7
-a182 3
-    /* turnoff alarm timeout */
-    alarm(0);
-    return(0);
-@
-
-
-1.1
-log
-@Initial revision
-@
-text
-@d7 1
-a7 1
-#include "serial.h"
-d9 1
-a9 1
-static volatile int sigio_received = 0;           /* TRUE while no signal received */
-d57 1
-a57 1
-  saio.sa_restorer = NULL; 
-d118 4
-a138 6
-/*    struct itimerval itv;
-
-    itv.it_interval.tv_usec = 0;
-    itv.it_interval.tv_sec  = 0;
-    itv.it_value.tv_usec = 0;
-    itv.it_value.tv_sec  = TIMEOUT;
-d140 1
-a140 3
-    setitimer(ITIMER_REAL, &itv, 0);
-*/
-    /* second method of timeout handling: use function alarm() */
-a199 1
-    int i;
-d220 1
-a220 1
-    syslog(LOG_INFO, "wcmd : mdat %d\n", mdat);
 @

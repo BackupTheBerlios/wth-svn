@@ -1,4 +1,11 @@
 /*
+
+
+  R.W.Stephens, UNP
+
+  $Id&
+  $Revision: 0.2 $
+  
  * Socket wrapper functions.
  * These could all go into separate files, so only the ones needed cause
  * the corresponding function to be added to the executable.  If sockets
@@ -16,7 +23,7 @@
  *warning: passing arg 2 of `connect' discards `const' from pointer target type
  */
 
-#include	"unp.h"
+#include	"wth.h"
 
 
 void *

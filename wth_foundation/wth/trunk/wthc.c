@@ -1,4 +1,14 @@
-#include "wthlib.h"
+/* wthc.c
+
+   client program to communicate w/ WS2000 weatherstation
+
+   $Id: wthc.c,v 0.2 2001/03/01 06:30:54 volker Exp jahns $
+   $Revision: 0.2 $
+   
+
+ */
+
+#include "wth.h"
 
 int main (int argc, char **argv) {
   int err;                        /* return value of functions, 
@@ -15,7 +25,7 @@ int main (int argc, char **argv) {
   struct sensor sens[MAXSENSORS]; /* structure contains sensor status, type 
                                      and data */
 
-  openlog(argv[0], LOG_PID , LOGFACILITY);
+  openlog("wthc", LOG_PID , LOGFACILITY);
 
   /* initialize structure sens which holds *all* information on the
      sensors */

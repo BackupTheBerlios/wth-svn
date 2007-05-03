@@ -5,20 +5,24 @@
      
      features
         IPv4
-	TCP
-	iterative
+		TCP
+		iterative
+
+     $Id: wthd.c,v 0.2 2001/03/01 06:31:12 volker Exp jahns $
+     $Revision: 0.2 $
+	 
 */
 
  
-#include        "wthlib.h"
+#include        "wth.h"
 
 
 int
 main(int argc, char **argv)
 {
-        /* network */
+    /* network */
 	int		     listenfd, connfd;
-        int                  servport;
+    int                  servport;
 	struct sockaddr_in   servaddr;
 	char		     readline[MAXLINE];
 

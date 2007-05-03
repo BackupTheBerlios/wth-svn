@@ -1,4 +1,10 @@
 /*
+
+  R.W.Stephens UNP
+
+  $Id: wrapsock.c,v 0.2 2001/03/01 06:31:33 volker Exp jahns $
+  $Revision: 0.2 $
+  
  * Socket wrapper functions.
  * These could all go into separate files, so only the ones needed cause
  * the corresponding function to be added to the executable.  If sockets
@@ -16,7 +22,7 @@
  *warning: passing arg 2 of `connect' discards `const' from pointer target type
  */
 
-#include	"unp.h"
+#include	"wth.h"
 
 int
 Accept(int fd, struct sockaddr *sa, socklen_t *salenptr)

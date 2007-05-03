@@ -1,9 +1,14 @@
-/* util.c */
+/* util.c
 
-#include "global.h"
-#include "const.h"
-#include "unp.h"
-#include "util.h"
+
+   utility functions
+
+   $Id: util.c,v 0.2 2001/03/01 06:32:40 volker Exp jahns $
+   $Revision: 0.2 $
+
+*/
+
+#include "wth.h"
 
 /* 
    getbits

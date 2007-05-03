@@ -1,12 +1,37 @@
-/* wthlib.c */
+head	0.2;
+access;
+symbols;
+locks
+	jahns:0.2; strict;
+comment	@ * @;
 
-#include "global.h"
-#include "config.h"
-#include "const.h"
-#include "dates.h"
-#include "net.h"
-#include "serial.h"
-#include "util.h"
+
+0.2
+date	2001.03.01.06.29.08;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@WS2000 weatherstation
+@
+
+
+0.2
+log
+@timezone OK
+@
+text
+@/* libwth.c
+
+   all functions related to data time evaluation
+
+   $Id$
+   $Revision$
+   
+*/
+
+#include "wth.h"
 
 /* datacorr
   
@@ -265,6 +290,7 @@ int wstat(char *data, int mdat, struct DCFstruct *DCF, struct sensor sens[], str
 }
 
 
+
 /* dcftime 
 
    calculate time from weather station response to "poll DCF time"
@@ -277,12 +303,13 @@ int dcftime(u_char *data, int ndat) {
     int err;
     int tmp1;
     int tmp2;   
-
+	
     char *clk;
 
     struct tm t;
     time_t ltim, dtim;
-
+	
+	
     /* 1st byte : flag : B0-B2 : weeday; B4 : DCF ok */
     tmp1 = getbits(data[0], 2,3);
     tmp2 = getbits(data[0], 4,1);
@@ -332,7 +359,13 @@ int dcftime(u_char *data, int ndat) {
 
     t.tm_year = tmp1 + 10*tmp2 + 100;
 
-    err = time(&ltim);
+	/* surprise, surprise */
+    t.tm_isdst = -1;
+	
+	/* time conversion */
+	tzset();
+
+	err = time(&ltim);
     clk = ctime(&ltim);
     syslog(LOG_DEBUG, "dcftime : local clk : %s\n", clk);
     
@@ -341,6 +374,7 @@ int dcftime(u_char *data, int ndat) {
     syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", dtim);
     syslog(LOG_INFO, "dcftime : DCF clk : %s\n", clk);
 
+	
     return(dtim);
 }
 
@@ -366,14 +400,14 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
     syslog(LOG_INFO, "getone : block NO (byte 1) : %d\n", data[0]);
     syslog(LOG_INFO, "getone : block NO (byte 2) : %d\n", data[1]);
 
-    /* age of dataset in minutes up to current time */
+    /* age of dataset is stored as minutes up to current time */
     syslog(LOG_INFO, "getone : age (byte 1) : %d\n", data[2]);
     syslog(LOG_INFO, "getone : age (byte 2) : %d\n", data[3]);
     age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
 
 
     /* convert into seconds and subtract from elapsed seconds since EPOCH */
-    age = age * 60;
+    /* age = age * 60; */
 
 
     /* time of dataset 
@@ -391,8 +425,10 @@ int getone(char *data, int ndat, struct sensor sens[], long setno, struct DCFstr
 	syslog(LOG_INFO, "getone : seconds since EPOCH (now): %lu\n", mtim);
     }
     
-
-    mtim = mtim - age;
+    /* dataset time is echoed in EPOCH seconds, dataset age in minutes
+	   up to present time
+    */
+    mtim = ( mtim/60 - age) * 60;
     clk = ctime(&mtim);
 
      
@@ -597,6 +633,8 @@ int wcmd (struct sensor sens[], struct cmd *pcmd, int *setno) {
 
   /* command 0 : poll DCF time */
   if (command == 0) {
+	  tzset();
+	
       /* write command and retrieve data */
 	  if ( ( err = getcd( data, &ndat, pcmd)) == -1)
 	     return(-1);
@@ -868,3 +906,4 @@ int initsens(struct sensor sens[]) {
   return(0);
 }
 
+@

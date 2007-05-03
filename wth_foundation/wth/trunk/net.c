@@ -1,10 +1,14 @@
-/* network related functions of wthc and wthd */
+/* net.c
 
-#include "unp.h"
-#include "config.h"
-#include "dates.h"
-#include <syslog.h>
-#include "util.h"
+
+   network related functions of wthc and wthd
+
+   $Id: net.c,v 0.2 2001/03/01 06:30:34 volker Exp jahns $
+   $Revision: 0.2 $
+
+*/
+
+#include "wth.h"
 
 
 #ifdef	HAVE_SOCKADDR_DL_STRUCT
