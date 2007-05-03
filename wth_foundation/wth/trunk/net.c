@@ -386,5 +386,3 @@ int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
 
 
 
-
-

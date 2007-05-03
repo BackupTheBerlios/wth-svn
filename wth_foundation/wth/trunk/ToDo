@@ -1,0 +1,13 @@
+- include support for the PC weatherstation receiver. This
+  needs rewrite of server software as there is no hardware
+  ring buffer in this type of receiver.
+
+- return values of the xmlrpc server should be general for
+  other types of weatherstations as well. The currently 
+  used byte strings are proprietary to the WS2000 
+  weatherstations.
+
+- incorporate logging to database (PostgreSQL, MySQL, Berkeley DB)
+
+- data exchange for other types of weatherstation software.
+

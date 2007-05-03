@@ -50,27 +50,28 @@
 
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 
-#define BAUDRATE B9600
-#define MAXBUFF 255
-#define TIMEOUT 7
-#define SER_DEVICE "/dev/ttyS0"
-#define MAXSENSORS 42
-#define MAXDATA 2048
+#define BAUDRATE    B9600
+#define MAXBUFF     1024
+#define TIMEOUT     60
+#define SER_DEVICE  "/dev/ttyS0"
+#define MAXSENSORS  42
+#define MAXDATA     2048
 #define LOGFACILITY LOG_LOCAL7
-#define WPORT "3900"
-#define TNPORT "3901"
-#define MAXFD   64
-
+#define WPORT       "5001"
+#define TNPORT      "5002"
+#define XMLPORT     "8005"
+#define MAXFD       64
+#define XMLNAME     "XML-RPC Weatherstation C Client"
 
 
 /* from unp.h */
-#define	MAXLINE		4096	/* max text line length */
+#define	MAXLINE      4096	/* max text line length */
 #define	MAXSOCKADDR  128	/* max socket address structure size */
-#define	BUFFSIZE	8192	/* buffer size for reads and writes */
-#define LISTENQ     1024    /* 2nd argument to listen() */
+#define	BUFFSIZE     8192	/* buffer size for reads and writes */
+#define LISTENQ      1024    /* 2nd argument to listen() */
 /* Following shortens all the type casts of pointer arguments */
-#define	SA	struct sockaddr
-#define max(a,b)        ((a) > (b) ? (a) : (b))
+#define	SA	     struct sockaddr
+#define max(a,b)     ((a) > (b) ? (a) : (b))
 
 
 enum {
@@ -99,6 +100,7 @@ enum {
   ERCPT   = -5,
   ENET    = -6,
   ESIG    = -7,
+  ECMD    = -8,
 };
 
 
@@ -147,6 +149,7 @@ struct cmd {
   char *hostname;
   char *port;
   char *tnport;
+  char *xmlport;
 };
 
 struct key {
@@ -171,6 +174,7 @@ int usaged(int exitcode, char *error, char *addl);
 char *readconfig(struct cmd *pcmd);
 char *echoconfig(struct cmd *pcmd);
 
+int getxmlrd(unsigned char *data, int *mdat, struct cmd *);
 int getnrd(unsigned char *data, int *mdat, struct cmd *);
 int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
 

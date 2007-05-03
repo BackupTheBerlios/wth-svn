@@ -390,3 +390,15 @@ int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }
+
+
+
+
+
+
+
+
+
+
+
+

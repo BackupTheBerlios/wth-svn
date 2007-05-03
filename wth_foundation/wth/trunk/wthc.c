@@ -34,7 +34,6 @@ int main (int argc, char **argv) {
   struct cmd cmd;                 /* command structure */
   struct wthio wio;               /* result */
 
-
   initdata(&wio);
   initcmd(&cmd);
   if ( ( rbuf = readconfig(&cmd)) == NULL ) {
@@ -105,7 +104,7 @@ int main (int argc, char **argv) {
   rbuf =  wcmd(&cmd, &wio); 
   printf("%s", rbuf);
   /* syslog(LOG_INFO, "wthc : wcmd : %s\n", c(o)->descr); */
-  
+
   switch (werrno) {
   case -2:
 	printf("serial line error\n");
@@ -116,9 +115,10 @@ int main (int argc, char **argv) {
   case 0:
 	break;
   }
+
   closelog();
-  
-  return(0);  
+  return(0);
+
 } 
 
 

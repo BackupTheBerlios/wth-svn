@@ -43,11 +43,11 @@ static int readdata( int fd, unsigned char *data, int *ndat);
 static Ckey *c(int n);
 int wstrlen(char *s);
 
-static unsigned getbits(unsigned x, int p, int n);
-static char *mkmsg(const char *, ...);
+unsigned getbits(unsigned x, int p, int n);
+char *mkmsg(const char *, ...);
 
-static int demasq(unsigned char *data, int *mdat);
-static int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
-static int datex(unsigned char *data, int ndat, struct wthio *rw);
-static char *pdata(struct wthio *rw);
+int demasq(unsigned char *data, int *mdat);
+int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
+int datex(unsigned char *data, int ndat, struct wthio *rw);
+char *pdata(struct wthio *rw);
 int echodata(unsigned char *data, int mdat);

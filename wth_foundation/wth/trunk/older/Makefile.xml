@@ -1,0 +1,28 @@
+CFLAGS = -g -O2 -D_UNIX -D_FORK -I. -I/usr/include/ -I/usr/include/w3c-libwww -DHAVE_CONFIG_H -Wall
+SLDFLAGS = -lxmlrpc -lxmlrpc_abyss -lxmlrpc_abyss_server -lxmlrpc_xmlparse -lxmlrpc_xmltok
+CLDFLAGS = -lmd5 -lwwwcore -lwwwxml -lwwwzip -lwwwinit -lwwwapp -lwwwhtml -lwwwtelnet -lwwwnews -lwwwhttp -lwwwmime -lwwwgopher -lwwwftp -lwwwfile -lwwwdir -lwwwcache -lwwwstream -lwwwmux -lwwwtrans -lwwwutils -lxmlrpc -lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
+
+wthxmlc: wthxmlc.o
+	gcc ${CLDFLAGS} -o wthxmlc wthxmlc.o
+
+wthxmlc.o: wthxmlc.c
+	gcc ${CFLAGS} -c wthxmlc.c
+
+wthxmld: wthxmld.o 
+	gcc ${SLDFLAGS} -o wthxmld wthxmld.o libwth.a
+
+wthxmld.o: wthxmld.c
+	gcc ${CFLAGS} -c wthxmld.c
+
+clean :
+	@echo 'Cleaning directory'
+	-rm *.o
+	-rm *~
+	-rm client
+	-rm wthxmld
+	-rm wthxmlc
+
+restart:
+	@echo 'Restarting wthxmld service'
+	-killall wthxmld
+	-wthxmld abyss/conf/abyss.conf

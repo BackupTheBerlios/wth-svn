@@ -1,11 +1,14 @@
-wth - experimental test release 0.4.1
+wth -experimental test release 0.4.2
+- added xmlrpc support, this includes new client and server software
+- bug fixed: mean deviation of wind direction is undocumented part 
+  of communication protocol
+- GNU build improved: checking for xmlrpc-c installation
 
+wth - experimental test release 0.4.1
 - config file problem fixed - wouldn't read any config file
 - version.h fixed
 
-
 wth - experimental test release 0.4
-
 - uses GNU style build
 - better seperation of functions into library. Now uses one
   library which high-level interface for communication over

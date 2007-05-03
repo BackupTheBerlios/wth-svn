@@ -1,0 +1,31 @@
+MPATROL Debug Options
+---------------------
+export MPATROL_OPTIONS="LOGALL OFLOWSIZE=4 CHECK=- PAGEALLOC=UPPER DEFALIGN=1"
+
+jahns@nemo wth-0.4.2 > ./wthc -c0 -s
+readconfig: calling mkmsg:addr p: 0x8068ff6
+wstat: calling mkmsg:addr p: 0x8074ff6
+s: Test
+wstat: calling mkmsg:addr p: 0x807dff6
+s: Test
+before strcat
+Aborted
+
+excerpt mpatrol.log
+-------------------
+ERROR: [ILLMEM]: illegal memory access at address 0x0807B000
+    0x0807AFFB (5 bytes) {malloc:145:0} [-|-|-]
+        0x40122477 strdup+103
+        0x0804A1BC wstat+1132
+        0x0804B28E wcmd+158
+        0x080499AB main+539
+        0x400C5C6F __libc_start_main+207
+        0x080496B1 _start+33
+
+    call stack
+        0x0804A29D wstat+1357
+        0x0804B28E wcmd+158
+        0x080499AB main+539
+        0x400C5C6F __libc_start_main+207
+        0x080496B1 _start+33
+

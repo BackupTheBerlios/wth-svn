@@ -45,7 +45,8 @@
 */
 
 
-static int demasq(unsigned char *data, int *mdat) {
+int 
+demasq(unsigned char *data, int *mdat) {
     int i;
     int j;
 
@@ -84,134 +85,12 @@ static int demasq(unsigned char *data, int *mdat) {
 } 
 
 
-/* chkframe
-
-   dataframe format is
-
-   <STX><length>[message]<checksum><ETX>
-     1      1       n        1       1
-
-   i.e. the data frame contains the data messsage 
-     + 2 start bytes 
-     + 2 end bytes
-   message is also denoted as weatherstation response
-	 
-*/
-static int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
-    int i;
-    int chksum;
-    int ldat;
-    char *nakfram = "\x02\x01\x15\xe8\x03";
-
-    ldat = *mdat;
-
-    /* check fist byte is STX */
-    if ( data[0]      == STX ) 
-	  syslog(LOG_DEBUG, "chkframe : STX OK\n");
-    else {
-	  syslog(LOG_DEBUG, "chkframe : STX NOK\n");
-	  werrno = ECHKSUM;
-	  return(-1);
-	}
-
-    /* check last byte is ETX */
-    if ( data[ldat-1] == ETX ) 
-	  syslog(LOG_DEBUG, "chkframe : ETX OK\n");
-    else {
-	  syslog(LOG_DEBUG, "chkframe : ETX NOK\n");
-	  return(-1);
-	}
-
-    /* check length of dataframe :
-
-       mdat is number of elements in array data
-       calculate length by function wstrlen and compare both integers
-    */
-    if ( wstrlen(data) == ldat ) 
-	  syslog(LOG_DEBUG, "chkframe : frame length OK\n");
-	else {
-	  syslog(LOG_DEBUG, "chkframe : frame length NOK\n");
-	  return(-1);
-	}
-	
-    /* to calculate checksum demasquerade <STX, <ETX> and <ENQ> first */
-    demasq(data, &ldat);
-
-    /* calculate checksum */
-    chksum = 0;
-    for ( i = 0; i < ldat - 2; i++ ) {
-	    chksum = chksum + data[i];
-    }
-    chksum = ( 256 - chksum ) & 0xff;
-	if ( chksum == data[ldat - 2] )
-	  syslog(LOG_DEBUG, "chkframe : checksum match OK\n");
-	else {
-	  syslog(LOG_DEBUG, "chkframe : checksum match NOK\n");
-	  werrno = ECHKSUM;
-	  return(-1);
-	}
-
-
-    /* check length of message 
-
-       actual length of message is returned in data[1], 2nd byte of dataframe  
-       expected length of message is defined in structure Ckey c 
-
-	   as response length for command 1 can have 3 different values
-	   depending on state of weatherstation c.clen serves as an upper bound
-	   
-    */        
-    syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
-/*    syslog(LOG_DEBUG, "chkframe : expected length: %d\n",
-		   c(pcmd->command)->id);
-
-    if ( data[1] <= c(pcmd->command)->id )
-	  syslog(LOG_DEBUG, "chkframe : response and expected length OK\n"); 
-    else {
-	  syslog(LOG_INFO, "chkframe : response and expected length NOK\n");
-	  werrno = ECHKLEN;
-	  return(-1);
-	}
-*/
-	
-    /* check if NAK dataframe has been received */
-    if ( !strcmp(data,nakfram) ) {
-	  syslog(LOG_INFO, 
-		 "chkframe : NAK received : faulty data reception\n");
-	  werrno = ERCPT;
-	  return(-1);
-    }
-    *mdat = ldat;
-    return(0);
-} 
-
-
-
-/* getrd
-
-   get raw data
-*/
-int getrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
-    int err;
-
-    if ( pcmd->netflg == 0 ) /* read serial interface */ {
-	  if ( ( err = getsrd(data, mdat, pcmd)) == -1)
-		return(-1);
-    }
-    else if (pcmd->netflg == 1 ) /* read network interface */ {
-	  if ( ( err = getnrd(data, mdat, pcmd)) == -1)
-		return(-1);
-    }
-    return(0);
-}
-
-
-
 /* getcd
 
    get corrected data
 */
-int getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
+int 
+getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int err;
 
@@ -240,6 +119,111 @@ int getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     return(0);
 }
 
+/* chkframe
+
+   dataframe format is
+
+   <STX><length>[message]<checksum><ETX>
+     1      1       n        1       1
+
+   i.e. the data frame contains the data messsage 
+     + 2 start bytes 
+     + 2 end bytes
+   message is also denoted as weatherstation response
+	 
+*/
+int 
+chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
+    int i;
+    int chksum;
+    int ldat;
+    unsigned char *nakfram = "\x02\x01\x15\xe8\x03";
+
+    ldat = *mdat;
+
+    /* check fist byte is STX */
+    if ( data[0]      == STX ) 
+	  syslog(LOG_DEBUG, "chkframe : STX OK\n");
+    else {
+	  syslog(LOG_DEBUG, "chkframe : STX NOK\n");
+	  werrno = ECHKSUM;
+	  return(-1);
+	}
+
+    /* check last byte is ETX */
+    if ( data[ldat-1] == ETX ) 
+	  syslog(LOG_DEBUG, "chkframe : ETX OK\n");
+    else {
+	  syslog(LOG_DEBUG, "chkframe : ETX NOK\n");
+	  return(-1);
+	}
+
+    /* check length of dataframe :
+
+       mdat is number of elements in array data
+       calculate length by function wstrlen and compare both integers
+    */
+    if ( wstrlen(data) == ldat ) 
+	  syslog(LOG_DEBUG, "chkframe : frame length OK\n");
+    else {
+	  syslog(LOG_DEBUG, "chkframe : frame length NOK\n");
+	  return(-1);
+    }
+	
+    /* to calculate checksum demasquerade <STX, <ETX> and <ENQ> first */
+    demasq(data, &ldat);
+
+    /* calculate checksum */
+    chksum = 0;
+    for ( i = 0; i < ldat - 2; i++ ) {
+	    chksum = chksum + data[i];
+    }
+    chksum = ( 256 - chksum ) & 0xff;
+
+    if ( chksum == data[ldat - 2] )
+      syslog(LOG_DEBUG, "chkframe : checksum match OK\n");
+    else {
+      syslog(LOG_DEBUG, "chkframe : checksum match NOK\n");
+      werrno = ECHKSUM;
+      return(-1);
+    }
+
+
+    /* check length of message 
+
+       actual length of message is returned in data[1], 2nd byte of dataframe  
+       expected length of message is defined in structure Ckey c 
+
+	   as response length for command 1 can have 3 different values
+	   depending on state of weatherstation c.clen serves as an upper bound
+	   
+    */        
+    syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
+/*    syslog(LOG_DEBUG, "chkframe : expected length: %d\n",
+		   c(pcmd->command)->id);
+
+    if ( data[1] <= c(pcmd->command)->id )
+	  syslog(LOG_DEBUG, "chkframe : response and expected length OK\n"); 
+    else {
+	  syslog(LOG_INFO, "chkframe : response and expected length NOK\n");
+	  werrno = ECHKLEN;
+	  return(-1);
+	}
+*/
+	
+    /* check if NAK dataframe has been received */
+    if ( !strncmp(data, nakfram, *mdat) ) {
+	  syslog(LOG_INFO, 
+		 "chkframe : NAK received : faulty data reception\n");
+	  werrno = ERCPT;
+	  return(-1);
+    }  
+    *mdat = ldat;
+    return(0);
+} 
+
+
+
 
 
 /* wstat 
@@ -253,8 +237,11 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     int i;
     char frame[255] = "";
     char sf[3] = "";
-	char *t = "";
-	static char *s;
+    static char t[MAXBUFF];
+    char *s;
+
+    /* empty t */
+    t[0] = '\0';
 
     /* status of first 8 temperature/humidity sensors */
     for ( i = 0; i < 8; i++) {
@@ -278,10 +265,11 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
 	  rw->sens[2*i+1].status = data[i];
     }
 
-	for ( i = 0; i < MAXSENSORS; i++ ) {
-	  sprintf(sf, "%2d:",i);
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+      sprintf(sf, "%2d:",i);
       strcat(frame, sf);
     }
+
     syslog(LOG_DEBUG, "wstat : %s\n", frame);    
     strcpy(frame, "");
 
@@ -311,7 +299,7 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     /* version number */
     rw->wstat.version = data[20];
 
-	/* syslog messages */
+    /* syslog messages */
     syslog(LOG_DEBUG, "wstat : Intervall time [min] : %d\n", data[18]);
     syslog(LOG_DEBUG, "wstat : DCF Status   Bit 0 : %d\n",
 		   getbits(data[19],0,1));
@@ -332,43 +320,48 @@ wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     syslog(LOG_DEBUG, "wstat: number sensors : %d\n", rw->wstat.nsens);
     syslog(LOG_DEBUG, "wstat: version : %x\n", rw->wstat.version);
 
+
     /* fill return buffer */
     s = mkmsg(
 	      "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
 	      rw->wstat.version, rw->wstat.intvaltime);
-    /*
-      if ((t = malloc(size)) == NULL )
-      return NULL;
-      t = strdup("");
-    */
-    t = strdup(s);
-	
-    if ( rw->DCF.stat == 1 )
+    strncat( t, s, strlen(s));   
+
+    if ( rw->DCF.stat == 1 ) {
       s = mkmsg("DCF status\t:\t%d (DCF receiver present)\n", 
 		rw->DCF.stat);
-    else
+    }
+    else {
       s = mkmsg("DCF status\t:\t%d (no DCF receiver found)\n", 
 		rw->DCF.stat);
-    strcat(t,s);
-		
-    if ( rw->DCF.sync == 1 )
+    }
+
+    strncat(t, s, strlen(s));
+	
+    if ( rw->DCF.sync == 1 ) {
       s = mkmsg("DCF sync.\t:\t%d (DCF synchronized)\n", rw->DCF.sync);
-    else
+    }
+    else {
       s = mkmsg("DCF sync.\t:\t%d (DCF NOT synchronized)\n", rw->DCF.sync);
-      strcat(t,s);
-      s = mkmsg("Sensor status\t:\t( %d sensors)\n", rw->wstat.nsens);
-      strcat(t,s);
-      for ( i = 0; i < rw->wstat.nsens; i++ ) {
-	s = mkmsg("%2d|", i);
-	strcat(t,s);
-      }
-      strcat(t,"\n");
-      for ( i = 0; i < rw->wstat.nsens; i++ ) {
+    }
+    strcat(t,s);
+      
+    s = mkmsg("Sensor status\t:\t( %d sensors)\n", rw->wstat.nsens);
+    strcat(t,s);
+      
+    for ( i = 0; i < rw->wstat.nsens; i++ ) {
+      s = mkmsg("%2d|", i);
+      strcat(t,s);  
+    }
+    strcat(t,"\n");
+      
+    for ( i = 0; i < rw->wstat.nsens; i++ ) {
 	s= mkmsg("%2x|", rw->sens[i].status);
 	strcat(t,s);
-      }
-      strcat(t,"\n");    
-      return (t);
+      
+    }  
+    strcat(t,"\n");
+    return (t);
 }
 
 
@@ -466,7 +459,8 @@ time_t dcftime(unsigned char *data, int ndat) {
    stores the message datagram of the weather station to structure sens
 
 */
-static int datex(unsigned char *data, int ndat, struct wthio *rw) {
+int 
+datex(unsigned char *data, int ndat, struct wthio *rw) {
     int i;
     int j;
     int err;
@@ -607,23 +601,35 @@ static int datex(unsigned char *data, int ndat, struct wthio *rw) {
     rw->sens[18].mess[rw->wstat.ndats].sign     = 0;
     /* sens[18].mess[rw->wstat.ndats].hundreds = getbits(data[29], 3, 4); */
     /* hmm is this a violation of the protocol specification ? */
+    /*
     rw->sens[18].mess[rw->wstat.ndats].value =
       100 * ( data[29] & 0x03) +
       10  * getbits(data[28], 7, 4) +
       getbits(data[28], 3, 4);
+    */
+    rw->sens[18].mess[rw->wstat.ndats].value =
+      100 * getbits( data[29], 1, 2 ) +
+      10  * getbits(data[28], 7, 4 ) +
+      getbits(data[28], 3, 4 );
 
-    /* indoor pressure */
+    /* mean deviation of wind direction */
     rw->sens[19].mess[rw->wstat.ndats].time     = mtim;
     rw->sens[19].mess[rw->wstat.ndats].sign     = 0;
-    rw->sens[19].mess[rw->wstat.ndats].value = 
+    rw->sens[19].mess[rw->wstat.ndats].value    =
+      getbits( data[29], 4, 2 );
+   
+    /* indoor pressure */
+    rw->sens[20].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[20].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[20].mess[rw->wstat.ndats].value = 
       100 *  getbits(data[30], 7, 4) +
       10  *  getbits(data[30], 3, 4) +
       getbits(data[29], 7, 4);
 
     /* indoor temperature */
-    rw->sens[20].mess[rw->wstat.ndats].time     = mtim;
-    rw->sens[20].mess[rw->wstat.ndats].sign     = 0;
-    rw->sens[20].mess[rw->wstat.ndats].value    = 
+    rw->sens[21].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[21].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[21].mess[rw->wstat.ndats].value    = 
       10  * getbits(data[32], 3, 4) + 
       getbits(data[31], 7, 4) +
       0.1 * getbits(data[31], 7, 4);
@@ -631,9 +637,9 @@ static int datex(unsigned char *data, int ndat, struct wthio *rw) {
     /* indoor humidity */
     Lo = getbits(data[32], 7, 4);
     Hi = getbits(data[33], 2, 3) << 4;
-    rw->sens[21].mess[rw->wstat.ndats].time     = mtim;
-    rw->sens[21].mess[rw->wstat.ndats].sign     = 0;
-    rw->sens[21].mess[rw->wstat.ndats].value    = Hi + Lo;
+    rw->sens[22].mess[rw->wstat.ndats].time     = mtim;
+    rw->sens[22].mess[rw->wstat.ndats].sign     = 0;
+    rw->sens[22].mess[rw->wstat.ndats].value    = Hi + Lo;
 	
     return(0);
 };
@@ -644,12 +650,14 @@ static int datex(unsigned char *data, int ndat, struct wthio *rw) {
    print the sensor data as hold in structure sens
 
 */
-static char *
+char *
 pdata(struct wthio *wth) {
   int i,j;         /* array indices of sensor and setno */
   int size = 100;
-  char *t = "";
+  static char t[MAXBUFF];
   char *s;
+
+  t[0] = '\0';
 
   s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
   /* code won't work on LINUX, FreeBSD OK
@@ -658,7 +666,7 @@ pdata(struct wthio *wth) {
 		return NULL;
 	 strcat(t,s);
   */
-  t = strdup(s);
+  strncat(t, s, strlen(s));
   
   for ( i = 0; i < MAXSENSORS; i++ ) {
     if ( wth->sens[i].status != 0 ) {   
@@ -669,9 +677,7 @@ pdata(struct wthio *wth) {
                                   wth->sens[i].mess[j].sign,
                                   wth->sens[i].mess[j].value);
 		size = size + strlen(s) + 1;
-		if ((t = realloc(t,size)) == NULL )
-		  return NULL;
-		strcat(t,s);
+		strncat(t, s, strlen(s));
       }
     }
   }
@@ -694,12 +700,10 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
   long snum = 0;                   /* current dataset number */
   int command;
   int argcm;
-
-
   unsigned char data[MAXBUFF];    /* data array to store the raw dataframe 
                                      and the message datagram */
   char *clk;                      /* display time in reasonable format */
-  char *rbuf ="";                 /* return buffer */
+  char *rbuf;                 /* return buffer */
   
 
   syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",pcmd->command);  
@@ -726,27 +730,27 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
   
   /* command 0 : poll DCF time */
   if (command == 0) {
-	  tzset();
+    tzset();
 	
-      /* write command and retrieve data */
-	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
-		rbuf = mkmsg("wcmd: error data reception\n");
-		return (rbuf);
-	  }
+    /* write command and retrieve data */
+    if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
 
-      /* calculate seconds since EPOCH if DCF synchronized */
-      rw->DCF.time  = dcftime(data, ndat);
-      if (rw->DCF.time == -1) 
-		rbuf = mkmsg("DCF not synchronized\n");
-      else {
-		clk = ctime(&rw->DCF.time);
-		rbuf = mkmsg("%s", clk);
-      }
+    /* calculate seconds since EPOCH if DCF synchronized */
+    rw->DCF.time  = dcftime(data, ndat);
+    if (rw->DCF.time == -1) {
+      rbuf = mkmsg("DCF not synchronized\n");
+    }
+    else {
+      clk = ctime(&rw->DCF.time);
+      rbuf = mkmsg("%s", clk);
+    }
   }
 
   /* command 1 : Request Dataset */
   else if (command == 1)  {
-
       /* first get DCF time if possible */
       pcmd->command = 0;
 	  if ( ( err = getcd( data, &ndat, pcmd)) == -1) {
@@ -766,21 +770,20 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
 
       /* weather station response : no data available: <DLE> */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-		rbuf = mkmsg("no data available (<DLE> received)\n");
+	rbuf = mkmsg("no data available (<DLE> received)\n");
       }
       /* fill data structure sens */
       else {
-		/* get one dataset */
-		err = datex(data, ndat, rw);
-		syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
-		rw->wstat.ndats = rw->wstat.ndats + 1;
-		snum++;
+	/* get one dataset */
+	err = datex(data, ndat, rw);
+	syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
+	rw->wstat.ndats = rw->wstat.ndats + 1;
+	snum++;
       }
 
       /* echo sensor data */
-	  if ( rw->wstat.ndats > 0 )
-		rbuf = pdata(rw);
-	 
+      if ( rw->wstat.ndats > 0 )
+	rbuf = pdata(rw);
   } 
 
 
@@ -893,7 +896,8 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
 	rbuf = mkmsg("wcmd: error data reception\n");
 	return (rbuf);
       }
-      if ( ( wstat(data, ndat, rw)) == NULL) {
+
+      if ( ( wstat( data, ndat, rw)) == NULL) {
 	rbuf = mkmsg("wcmd: error in subroutine wstat\n");
 	return (rbuf);
       }
@@ -978,7 +982,6 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
   }
   syslog(LOG_DEBUG, "wcmd: exit OK\n");
   return(rbuf);
-
 }
 
 
@@ -1005,19 +1008,20 @@ int initdata(struct wthio *rw) {
   /* wind sensor */
   rw->sens[17].type  = "wspd";
   rw->sens[18].type  = "wdir";
+  rw->sens[19].type  = "wdev";
   /* indoor sensor : temp, hum, press */
-  rw->sens[19].type  = "pres";
-  rw->sens[20].type  = "temp";
-  rw->sens[21].type  = "hum";
+  rw->sens[20].type  = "pres";
+  rw->sens[21].type  = "temp";
+  rw->sens[22].type  = "hum";
   /* sensor 9 is combined temperature/humidity */
-  rw->sens[22].type  = "temp";
-  rw->sens[23].type  = "hum";
+  rw->sens[23].type  = "temp";
+  rw->sens[24].type  = "hum";
       
   /* status of pressure/temperature/humidity sensor 10 to 15 */
   for ( i = 0; i < 18; i = i + 3) {
-      rw->sens[24 + i    ].type   = "pres";
-      rw->sens[24 + i + 1].type = "temp";
-      rw->sens[24 + i + 2].type = "hum";
+      rw->sens[25 + i    ].type = "pres";
+      rw->sens[25 + i + 1].type = "temp";
+      rw->sens[25 + i + 2].type = "hum";
   }
   return(0);
 }
@@ -1041,6 +1045,7 @@ int initcmd(struct cmd *pcmd) {
   pcmd->hostname    = "localhost"; 
   pcmd->port        = WPORT; 
   pcmd->tnport      = TNPORT;   
+  pcmd->xmlport     = XMLPORT;
   return(0);
 }
 
@@ -1049,7 +1054,7 @@ int initcmd(struct cmd *pcmd) {
    getbits
 
    transfrom bytes of weather station data to BCD, otherwise picking single
-   or groups of bits.
+   or group of bits.
    Kerninghan, Ritchie, The C Programming Language, p49.
  */
 unsigned
@@ -1122,11 +1127,36 @@ int
 wstrlen (char *s) {
     char *p = s;
 
-    while ( *p != ETX ) {
-	p++;
-    }
-    return p + 1 - s;
-    
+    while ( *p != ETX ) p++;
+
+    return p + 1 - s;    
+}
+
+
+/*
+   mkmsg
+
+   fixed size of p
+
+*/
+char *
+new_mkmsg(const char *fmt, ...) {
+  int n;
+  static char *p;
+
+  //p = (char *) calloc(10, sizeof(char));
+  //strcpy(p, "Test");
+  va_list ap;
+
+  if ( ( p = (char *) malloc(2*MAXBUFF)) == NULL)
+    return NULL;
+
+  va_start(ap, fmt);
+  n = snprintf(p, MAXBUFF, fmt, ap);
+  va_end(ap);
+  //printf("addr p: %p\n", p);
+  return(p);
+
 }
 
 
@@ -1134,14 +1164,16 @@ wstrlen (char *s) {
 
    man snprintf (LINUX) sample code modified
    
+   old version - does malloc lead to seg fault?
 */
 char *
 mkmsg(const char *fmt, ...) {
-   int n, size = 100;
+   int n, size = 1024;
    char *p;
    va_list ap;
-   if ((p = malloc (size)) == NULL)
+   if ((p = malloc(MAXBUFF)) == NULL)
       return NULL;
+   //printf("mkmsg: alloc p OK\n");
    while (1) {
       va_start(ap, fmt);
       n = vsnprintf (p, size, fmt, ap);
@@ -1228,14 +1260,10 @@ readconfig(struct cmd *pcmd) {
   char *name;
   char *value;
   char *cp, *cp2;
-  char *rbuf = "";
+  char *rbuf;
   char *cfgfile;
 
-  rbuf = (char *) malloc(size);
-  if ( rbuf == NULL)
-	return NULL;
-  
-  if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
+   if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
     cfgfile = "/etc/wth/wth.conf";
   }
   else if ( ( cfg = fopen("/usr/local/etc/wth/wth.conf","r")) != NULL ) {
@@ -1337,8 +1365,10 @@ readconfig(struct cmd *pcmd) {
 		  pcmd->port = strdup(value);
         } else if ( strcasecmp( name, "tnport" ) == 0 ) {
 		  pcmd->tnport = strdup(value);
+        } else if ( strcasecmp( name, "xmlport" ) == 0 ) {
+		  pcmd->xmlport = strdup(value);
         } else {
-		  rbuf = mkmsg("unknown option '%s' inf configuration file\n", name );
+	  rbuf = mkmsg("unknown option '%s' inf configuration file\n", name );
           return(rbuf);
         }
     }		
@@ -1355,77 +1385,38 @@ char *
 echoconfig (struct cmd *pcmd) {
   int size;
   char *s;
-  char *t;
+  static char t[MAXBUFF];
 
   s = mkmsg("Configuration parameters\n");
   size = strlen(s) + 1;
   
-  /* t = strdup(s); */
-  /* printf("echoconfig: t: \"%s\"\n", t); */
-  
-  
-  t = (char *) malloc(strlen(s) + 1);
-  if ( t == NULL)
-	return NULL;
-  strcpy(t,s);
-    
+  strncat(t,s,strlen(s));
   s = mkmsg("\tpcmd->command: %d\n", pcmd->command);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
 
   s = mkmsg("\tpcmd->argcmd: %d\n",pcmd->argcmd);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
+
   s = mkmsg("\tpcmd->netflg: %d\n",pcmd->netflg);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->verbose: %d\n",pcmd->verbose);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->timeout: %d\n",pcmd->timeout);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->baudrate: %d\n",pcmd->baudrate);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->logfacility: %d\n",pcmd->logfacility);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->device: %s\n",pcmd->device);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->hostname: %s\n",pcmd->hostname);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->port: %s\n",pcmd->port);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
+  strncat(t,s, strlen(s));
   s = mkmsg("\tpcmd->tnport: %s\n",pcmd->tnport);
-  size = size + strlen(s) +1;
-  if ((t = realloc(t,size)) == NULL )
-    return NULL;
-  strcat(t,s);
- 
+  strncat(t,s, strlen(s)); 
+  s = mkmsg("\tpcmd->xmlport: %s\n",pcmd->xmlport);
+  strncat(t,s, strlen(s)); 
 
   return(t);
 }

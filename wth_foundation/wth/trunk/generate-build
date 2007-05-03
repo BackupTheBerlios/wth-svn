@@ -1,11 +1,16 @@
 #!/bin/sh
 set -x
-
 #
 # generate GNU build files
 #
 
-aclocal
+
+#
+rm -f config.cache
+
+#
+aclocal -I m4
 autoconf
-autoheader
+# do _not_ use autoheader 
+# it will destroy the hand-edited config.h.in
 automake -a

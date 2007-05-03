@@ -1,9 +1,11 @@
-/* The "real" version string */
-#undef VERSION
-
-/* The package name */
+/* wth */
 #undef PACKAGE
 
-/* Enable GNU extensions */
-#undef _GNU_SOURCE
+/* 0.4.2 */
+#undef VERSION
 
+/* Enable GNU extensions */
+#define _GNU_SOURCE
+
+/* CPU_VENDOR_OS */
+#undef CPU_VENDOR_OS

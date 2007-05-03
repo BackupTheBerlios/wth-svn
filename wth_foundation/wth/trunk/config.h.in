@@ -22,7 +22,10 @@
 #undef TM_IN_SYS_TIME
 
 /* Enable GNU extensions */
-#undef _GNU_SOURCE
+#define _GNU_SOURCE
+
+/* CPU_VENDOR_OS */
+#undef CPU_VENDOR_OS
 
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
@@ -59,6 +62,15 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* Define if you have the <xmlrpc.h> header file.  */
+#undef HAVE_XMLRPC_H
+
+/* Define if you have the <xmlrpc_abyss.h> header file.  */
+#undef HAVE_XMLRPC_ABYSS_H
+
+/* Define if you have the <xmlrpc_client.h> header file.  */
+#undef HAVE_XMLRPC_CLIENT_H
 
 /* Name of package */
 #undef PACKAGE

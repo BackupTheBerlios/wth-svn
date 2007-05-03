@@ -26,9 +26,9 @@ do
 done
 
 ac_given_srcdir=.
-ac_given_INSTALL="$/usr/bin/ginstall -c"
+ac_given_INSTALL="/usr/bin/install -c"
 
-trap 'rm -fr Makefile conftest*; exit 1' 1 2 15
+trap 'rm -fr Makefile config.h conftest*; exit 1' 1 2 15
 
 # Protect against being on the right side of a sed subst in config.status.
 sed 's/%@/@@/; s/@%/@@/; s/%g$/@g/; /@g$/s/[\\&%]/\\&/g;
@@ -37,12 +37,12 @@ sed 's/%@/@@/; s/@%/@@/; s/%g$/@g/; /@g$/s/[\\&%]/\\&/g;
 
 s%@SHELL@%/bin/sh%g
 s%@CFLAGS@%-g -O2%g
-s%@CPPFLAGS@%%g
+s%@CPPFLAGS@% -I/usr/local/include/%g
 s%@CXXFLAGS@%%g
 s%@FFLAGS@%%g
-s%@DEFS@% -DPACKAGE=\"wth\" -DVERSION=\"0.4.1\" -D_GNU_SOURCE=1 -DSTDC_HEADERS=1 -DHAVE_SYS_WAIT_H=1 -DHAVE_FCNTL_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_IOCTL_H=1 -DHAVE_SYSLOG_H=1 -DHAVE_UNISTD_H=1 -DRETSIGTYPE=void -DHAVE_MKTIME=1 -DHAVE_SELECT=1 -DHAVE_SOCKET=1 -DHAVE_STRCSPN=1 -DHAVE_STRDUP=1 -DHAVE_STRERROR=1 -DHAVE_STRSPN=1 %g
+s%@DEFS@%-DHAVE_CONFIG_H%g
 s%@LDFLAGS@%%g
-s%@LIBS@%%g
+s%@LIBS@% -L/usr/local/lib/%g
 s%@exec_prefix@%${prefix}%g
 s%@prefix@%/usr/local%g
 s%@program_transform_name@%s,x,x,%g
@@ -58,11 +58,16 @@ s%@includedir@%${prefix}/include%g
 s%@oldincludedir@%/usr/include%g
 s%@infodir@%${prefix}/info%g
 s%@mandir@%${prefix}/man%g
+s%@host@%i386-unknown-freebsd4.4%g
+s%@host_alias@%i386-unknown-freebsd4.4%g
+s%@host_cpu@%i386%g
+s%@host_vendor@%unknown%g
+s%@host_os@%freebsd4.4%g
 s%@INSTALL_PROGRAM@%${INSTALL}%g
 s%@INSTALL_SCRIPT@%${INSTALL_PROGRAM}%g
 s%@INSTALL_DATA@%${INSTALL} -m 644%g
 s%@PACKAGE@%wth%g
-s%@VERSION@%0.4.1%g
+s%@VERSION@%0.4.2%g
 s%@ACLOCAL@%aclocal%g
 s%@AUTOCONF@%autoconf%g
 s%@AUTOMAKE@%automake%g
@@ -71,7 +76,7 @@ s%@MAKEINFO@%makeinfo%g
 s%@SET_MAKE@%%g
 s%@CC@%gcc%g
 s%@RANLIB@%ranlib%g
-s%@CPP@%$gcc -E%g
+s%@CPP@%gcc -E%g
 
 CEOF
 
@@ -164,6 +169,166 @@ s%@INSTALL@%$INSTALL%g
 fi; done
 rm -f conftest.s*
 
+# These sed commands are passed to sed as "A NAME B NAME C VALUE D", where
+# NAME is the cpp macro being defined and VALUE is the value it is being given.
+#
+# ac_d sets the value in "#define NAME VALUE" lines.
+ac_dA='s%^\([ 	]*\)#\([ 	]*define[ 	][ 	]*\)'
+ac_dB='\([ 	][ 	]*\)[^ 	]*%\1#\2'
+ac_dC='\3'
+ac_dD='%g'
+# ac_u turns "#undef NAME" with trailing blanks into "#define NAME VALUE".
+ac_uA='s%^\([ 	]*\)#\([ 	]*\)undef\([ 	][ 	]*\)'
+ac_uB='\([ 	]\)%\1#\2define\3'
+ac_uC=' '
+ac_uD='\4%g'
+# ac_e turns "#undef NAME" without trailing blanks into "#define NAME VALUE".
+ac_eA='s%^\([ 	]*\)#\([ 	]*\)undef\([ 	][ 	]*\)'
+ac_eB='$%\1#\2define\3'
+ac_eC=' '
+ac_eD='%g'
 
+if test "${CONFIG_HEADERS+set}" != set; then
+  CONFIG_HEADERS="config.h"
+fi
+for ac_file in .. $CONFIG_HEADERS; do if test "x$ac_file" != x..; then
+  # Support "outfile[:infile[:infile...]]", defaulting infile="outfile.in".
+  case "$ac_file" in
+  *:*) ac_file_in=`echo "$ac_file"|sed 's%[^:]*:%%'`
+       ac_file=`echo "$ac_file"|sed 's%:.*%%'` ;;
+  *) ac_file_in="${ac_file}.in" ;;
+  esac
+
+  echo creating $ac_file
+
+  rm -f conftest.frag conftest.in conftest.out
+  ac_file_inputs=`echo $ac_file_in|sed -e "s%^%$ac_given_srcdir/%" -e "s%:% $ac_given_srcdir/%g"`
+  cat $ac_file_inputs > conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}PACKAGE${ac_dB}PACKAGE${ac_dC}"wth"${ac_dD}
+${ac_uA}PACKAGE${ac_uB}PACKAGE${ac_uC}"wth"${ac_uD}
+${ac_eA}PACKAGE${ac_eB}PACKAGE${ac_eC}"wth"${ac_eD}
+${ac_dA}VERSION${ac_dB}VERSION${ac_dC}"0.4.2"${ac_dD}
+${ac_uA}VERSION${ac_uB}VERSION${ac_uC}"0.4.2"${ac_uD}
+${ac_eA}VERSION${ac_eB}VERSION${ac_eC}"0.4.2"${ac_eD}
+${ac_dA}_GNU_SOURCE${ac_dB}_GNU_SOURCE${ac_dC}1${ac_dD}
+${ac_uA}_GNU_SOURCE${ac_uB}_GNU_SOURCE${ac_uC}1${ac_uD}
+${ac_eA}_GNU_SOURCE${ac_eB}_GNU_SOURCE${ac_eC}1${ac_eD}
+${ac_dA}CPU_VENDOR_OS${ac_dB}CPU_VENDOR_OS${ac_dC}"freebsd4.4"${ac_dD}
+${ac_uA}CPU_VENDOR_OS${ac_uB}CPU_VENDOR_OS${ac_uC}"freebsd4.4"${ac_uD}
+${ac_eA}CPU_VENDOR_OS${ac_eB}CPU_VENDOR_OS${ac_eC}"freebsd4.4"${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}STDC_HEADERS${ac_dB}STDC_HEADERS${ac_dC}1${ac_dD}
+${ac_uA}STDC_HEADERS${ac_uB}STDC_HEADERS${ac_uC}1${ac_uD}
+${ac_eA}STDC_HEADERS${ac_eB}STDC_HEADERS${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SYS_WAIT_H${ac_dB}HAVE_SYS_WAIT_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYS_WAIT_H${ac_uB}HAVE_SYS_WAIT_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYS_WAIT_H${ac_eB}HAVE_SYS_WAIT_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_FCNTL_H${ac_dB}HAVE_FCNTL_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_FCNTL_H${ac_uB}HAVE_FCNTL_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_FCNTL_H${ac_eB}HAVE_FCNTL_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_STRINGS_H${ac_dB}HAVE_STRINGS_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STRINGS_H${ac_uB}HAVE_STRINGS_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STRINGS_H${ac_eB}HAVE_STRINGS_H${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_SYS_IOCTL_H${ac_dB}HAVE_SYS_IOCTL_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYS_IOCTL_H${ac_uB}HAVE_SYS_IOCTL_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYS_IOCTL_H${ac_eB}HAVE_SYS_IOCTL_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SYSLOG_H${ac_dB}HAVE_SYSLOG_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYSLOG_H${ac_uB}HAVE_SYSLOG_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYSLOG_H${ac_eB}HAVE_SYSLOG_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_UNISTD_H${ac_dB}HAVE_UNISTD_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_UNISTD_H${ac_uB}HAVE_UNISTD_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_UNISTD_H${ac_eB}HAVE_UNISTD_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_XMLRPC_H${ac_dB}HAVE_XMLRPC_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_XMLRPC_H${ac_uB}HAVE_XMLRPC_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_XMLRPC_H${ac_eB}HAVE_XMLRPC_H${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_XMLRPC_CLIENT_H${ac_dB}HAVE_XMLRPC_CLIENT_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_XMLRPC_CLIENT_H${ac_uB}HAVE_XMLRPC_CLIENT_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_XMLRPC_CLIENT_H${ac_eB}HAVE_XMLRPC_CLIENT_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_XMLRPC_ABYSS_H${ac_dB}HAVE_XMLRPC_ABYSS_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_XMLRPC_ABYSS_H${ac_uB}HAVE_XMLRPC_ABYSS_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_XMLRPC_ABYSS_H${ac_eB}HAVE_XMLRPC_ABYSS_H${ac_eC}1${ac_eD}
+${ac_dA}RETSIGTYPE${ac_dB}RETSIGTYPE${ac_dC}void${ac_dD}
+${ac_uA}RETSIGTYPE${ac_uB}RETSIGTYPE${ac_uC}void${ac_uD}
+${ac_eA}RETSIGTYPE${ac_eB}RETSIGTYPE${ac_eC}void${ac_eD}
+${ac_dA}HAVE_MKTIME${ac_dB}HAVE_MKTIME${ac_dC}1${ac_dD}
+${ac_uA}HAVE_MKTIME${ac_uB}HAVE_MKTIME${ac_uC}1${ac_uD}
+${ac_eA}HAVE_MKTIME${ac_eB}HAVE_MKTIME${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_SELECT${ac_dB}HAVE_SELECT${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SELECT${ac_uB}HAVE_SELECT${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SELECT${ac_eB}HAVE_SELECT${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SOCKET${ac_dB}HAVE_SOCKET${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SOCKET${ac_uB}HAVE_SOCKET${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SOCKET${ac_eB}HAVE_SOCKET${ac_eC}1${ac_eD}
+${ac_dA}HAVE_STRCSPN${ac_dB}HAVE_STRCSPN${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STRCSPN${ac_uB}HAVE_STRCSPN${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STRCSPN${ac_eB}HAVE_STRCSPN${ac_eC}1${ac_eD}
+${ac_dA}HAVE_STRDUP${ac_dB}HAVE_STRDUP${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STRDUP${ac_uB}HAVE_STRDUP${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STRDUP${ac_eB}HAVE_STRDUP${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_STRERROR${ac_dB}HAVE_STRERROR${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STRERROR${ac_uB}HAVE_STRERROR${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STRERROR${ac_eB}HAVE_STRERROR${ac_eC}1${ac_eD}
+${ac_dA}HAVE_STRSPN${ac_dB}HAVE_STRSPN${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STRSPN${ac_uB}HAVE_STRSPN${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STRSPN${ac_eB}HAVE_STRSPN${ac_eC}1${ac_eD}
+s%^[ 	]*#[ 	]*undef[ 	][ 	]*[a-zA-Z_][a-zA-Z_0-9]*%/* & */%
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  rm -f conftest.frag conftest.h
+  echo "/* $ac_file.  Generated automatically by configure.  */" > conftest.h
+  cat conftest.in >> conftest.h
+  rm -f conftest.in
+  if cmp -s $ac_file conftest.h 2>/dev/null; then
+    echo "$ac_file is unchanged"
+    rm -f conftest.h
+  else
+    # Remove last slash and all that follows it.  Not all systems have dirname.
+      ac_dir=`echo $ac_file|sed 's%/[^/][^/]*$%%'`
+      if test "$ac_dir" != "$ac_file" && test "$ac_dir" != .; then
+      # The file is in a subdirectory.
+      test ! -d "$ac_dir" && mkdir "$ac_dir"
+    fi
+    rm -f $ac_file
+    mv conftest.h $ac_file
+  fi
+fi; done
+
+
+
+test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h
 
 exit 0
