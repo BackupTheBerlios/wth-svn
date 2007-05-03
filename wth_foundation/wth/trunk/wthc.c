@@ -104,7 +104,7 @@ int main (int argc, char **argv) {
   /* sending command to weather station */  
   rbuf =  wcmd(&cmd, &wio); 
   printf("%s", rbuf);
-  syslog(LOG_INFO, "wthc : wcmd : %s\n", c(o)->descr);
+  /* syslog(LOG_INFO, "wthc : wcmd : %s\n", c(o)->descr); */
   
   switch (werrno) {
   case -2:

@@ -23,7 +23,7 @@
 */
 
 #include "wth.h"
-
+#include "wthprv.h"
 
 /* demasq
   

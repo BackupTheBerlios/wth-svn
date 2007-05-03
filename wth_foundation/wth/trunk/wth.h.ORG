@@ -1,6 +1,8 @@
 #/* wth.h
 
-   global header file for WS2000 weatherstation communication
+   global header file 
+   includes, defines, data structures, function prototypes
+   for WS2000 weatherstation communication
    
    $Id: wth.h,v 0.4 2001/09/14 15:42:15 jahns Exp jahns $
    $Revision: 0.4 $
@@ -23,9 +25,10 @@
  
 */
 
-
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
+#include <netdb.h>
 #include <poll.h>		/* for convenience */
 #include <signal.h>
 #include <stdarg.h>
@@ -36,6 +39,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
+#include <sys/select.h>	/* for convenience */
+#include <sys/socket.h>	/* basic socket definitions */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
 #include <sys/un.h>		/* for Unix domain sockets */
 #include <sys/wait.h>
@@ -44,16 +49,6 @@
 #include <time.h>		/* timespec{} for pselect() */
 #include <unistd.h>
 #include <math.h>
-
-#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
-#include <netdb.h>
-#include <sys/select.h>	/* for convenience */
-#include <sys/socket.h>	/* basic socket definitions */
-#ifdef	HAVE_SOCKADDR_DL_STRUCT
-# include	<net/if_dl.h>
-#endif
-
-
 
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 
@@ -97,18 +92,6 @@ enum {
   FALSE = 0,
   TRUE  = 1
 };
-
- 
-/* weatherstation errors */
-enum {
-  ESERIAL = -2,
-  ECHKSUM = -3,
-  ECHKLEN = -4,
-  ERCPT   = -5,
-  ENET    = -6,
-  ESIG    = -7,
-};
-
 
 /* data structures */
 struct dataset {
@@ -165,34 +148,74 @@ struct key {
 
 
 typedef struct key Ckey;
+typedef void Sigfunc (int);  
 
 /* global variables */
 static int werrno;      /* weatherstation errors */
-int daemon_proc; 		/* set nonzero by daemon_init() */
+int daemon_proc;		/* set nonzero by daemon_init() */
 
+/* weatherstation errors */
+enum {
+  ESERIAL = -2,
+  ECHKSUM = -3,
+  ECHKLEN = -4,
+  ERCPT   = -5,
+  ENET    = -6,
+  ESIG    = -7,
+};
 
 /* function prototypes */
-int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-int getnrd(unsigned char *data, int *mdat, struct cmd *);
-
-int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
-
-char *wcmd(struct cmd *pcmd, struct wthio *rw);
-char *wstat(unsigned char *data, int mdat, struct wthio *rw);
-
-int initdata(struct wthio *rw);
-int initcmd(struct cmd *pcmd);
+/* these are ALL functions used */
+int Socket(int, int, int); 
+ssize_t Read(int, void *, size_t); 
+int Write(int, void *, size_t);   
+int Accept(int, SA *, socklen_t *);
+int Bind(int, const SA *, socklen_t);
+int Listen(int, int); 
+int Close(int); 
 int daemon_init(const char *, int); 
 
+pid_t Fork(void); 
+int Setsockopt(int, int, int, const void *, socklen_t); 
+int Writen(int, void *, size_t);  
 
-char *readconfig(struct cmd *pcmd);
-char *echoconfig(struct cmd *pcmd);
+void sigio_h(int signum);
+void sigalrm_h(int signum);
 
+int initserial( int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd);
+int closeserial( int fd, struct termios *oldtio);
+int readdata( int fd, unsigned char *data, int *ndat);
+Ckey *c(int n);
+int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
 
-time_t dcftime(unsigned char *data, int ndat);
+unsigned getbits(unsigned x, int p, int n);
+/* int digitize(int val, char *tdigit, char *hdigit, 
+             char *tendigit, char *udigit); 
+*/
 int echodata(unsigned char *data, int mdat);
+int wstrlen(char *s);
+char *mkmsg(const char *, ...);
 char *tnusage(int exitcode, char *error, char *addl);
 int usage(int exitcode, char *error, char *addl);
 int usaged(int exitcode, char *error, char *addl);
+char *readconfig(struct cmd *pcmd);
+char *echoconfig(struct cmd *pcmd);
+Sigfunc *signal(int signo, Sigfunc *func);
+Sigfunc *Signal(int signo, Sigfunc *func);	/* for our signal() function */
+
+const char *inet_ntop(int, const void *, char *, size_t);
+int inet_pton(int, const char *, void *); 
+int getnrd(unsigned char *data, int *mdat, struct cmd *);
+
+int demasq(unsigned char *data, int *mdat);
+int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
+int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
+int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
+char *wstat(unsigned char *data, int mdat, struct wthio *rw);
+time_t dcftime(unsigned char *data, int ndat);
+int datex(unsigned char *data, int ndat, struct wthio *rw);
 char *pdata(struct sensor sens[], int snum);
+char *wcmd(struct cmd *pcmd, struct wthio *rw);
+
+int initdata(struct wthio *rw);
+int initcmd(struct cmd *pcmd);

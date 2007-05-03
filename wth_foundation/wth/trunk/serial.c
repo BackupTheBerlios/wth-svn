@@ -2,7 +2,7 @@
 
    serial line communication routine
 
-   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp jahns $
+   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp $
    $Revision: 0.4 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>

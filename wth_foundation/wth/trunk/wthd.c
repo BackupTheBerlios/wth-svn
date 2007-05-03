@@ -39,7 +39,6 @@
  
 #include        "wth.h"
 
-
 int
 main(int argc, char **argv)
 {
@@ -138,7 +137,7 @@ main(int argc, char **argv)
       }
 		 
       Write(connfd, data, ndata);
-      syslog(LOG_INFO,"command request: %s\n", c(o)->descr);
+      /* syslog(LOG_INFO,"command request: %s\n", c(o)->descr); */
       Close(connfd);
     }
 		

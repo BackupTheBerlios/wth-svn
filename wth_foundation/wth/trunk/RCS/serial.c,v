@@ -1,8 +1,7 @@
 head	0.4;
 access;
 symbols;
-locks
-	jahns:0.4; strict;
+locks; strict;
 comment	@ * @;
 
 

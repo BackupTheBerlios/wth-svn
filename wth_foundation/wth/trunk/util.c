@@ -26,6 +26,7 @@
 */
 
 #include "wth.h"
+#include "wthprv.h"
 
 /* 
    getbits

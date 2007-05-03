@@ -8,23 +8,11 @@ comment	@ * @;
 
 0.4
 date	2001.09.14.15.38.56;	author jahns;	state Exp;
-branches
-	0.4.1.1;
+branches;
 next	0.3;
 
 0.3
 date	2001.08.10.12.41.07;	author jahns;	state Exp;
-branches
-	0.3.1.1;
-next	;
-
-0.3.1.1
-date	2001.09.17.13.54.25;	author jahns;	state Exp;
-branches;
-next	;
-
-0.4.1.1
-date	2001.09.17.13.57.10;	author jahns;	state Exp;
 branches;
 next	;
 
@@ -1084,20 +1072,6 @@ int initcmd(struct cmd *pcmd) {
 @
 
 
-0.4.1.1
-log
-@x
-@
-text
-@d3 2
-a4 2
-   $Id: libwth.c,v 0.4 2001/09/14 15:38:56 jahns Exp jahns $
-   $Revision: 0.4 $
-a24 1
-#
-@
-
-
 0.3
 log
 @final stuff
@@ -1107,33 +1081,4 @@ text
 a3 1
    $Id: libwth.c,v 0.3 2001/08/10 12:38:46 jahns Exp jahns $
 d5 17
-@
-
-
-0.3.1.1
-log
-@new release 0.3.1
-@
-text
-@d3 2
-a4 19
-   $Id: libwth.c,v 0.4 2001/09/14 15:38:56 jahns Exp jahns $
-   $Revision: 0.4 $
-
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@@thalreit.de>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
- 
 @
