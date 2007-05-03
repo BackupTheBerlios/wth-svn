@@ -17,11 +17,20 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `md5' library (-lmd5). */
+#undef HAVE_LIBMD5
+
+/* Define to 1 if you have the `pq' library (-lpq). */
+#undef HAVE_LIBPQ
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
 /* Define to 1 if you have the `mktime' function. */
 #undef HAVE_MKTIME
+
+/* Define to 1 if you have the <pgsql/libpq-fe.h> header file. */
+#undef HAVE_PGSQL_LIBPQ_FE_H
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
@@ -109,6 +118,9 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Compile with xmlrpc functionality. */
+#undef WITH_LIBXMLRPC
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

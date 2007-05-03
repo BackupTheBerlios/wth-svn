@@ -47,7 +47,7 @@ DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
 	ChangeLog INSTALL NEWS acconfig.h config.guess config.sub \
-	depcomp install-sh mkinstalldirs
+	depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -234,7 +234,7 @@ noinst_HEADERS = wth.h wthnet.h wthprv.h
 lib_LIBRARIES = libwth.a libwthxml.a
 libwth_a_SOURCES = libwth.c data.c serial.c net.c wth.h wthnet.h wthprv.h 
 libwthxml_a_SOURCES = libwth.c dataxml.c serial.c net.c xml.c wth.h wthnet.h wthprv.h 
-EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc
+EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc php/ postgres/ example/ Flash/
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 

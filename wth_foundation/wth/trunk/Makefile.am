@@ -54,4 +54,4 @@ xmltest: wthxmld wthxc
 	-wthxc -c5 -h localhost -x
 	-killall wthxmld
 
-EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc
+EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc php/ postgres/ example/ Flash/

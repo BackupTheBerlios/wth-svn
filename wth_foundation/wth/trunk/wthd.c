@@ -12,7 +12,7 @@
    		TCP
    		iterative
    
-   $Id: wthd.c,v 1.1 2002/07/04 09:51:52 jahns Exp $
+   $Id: wthd.c,v 1.1 2002/07/04 09:51:52 jahns Exp jahns $
    $Revision: 1.1 $
 
 
@@ -49,7 +49,7 @@ main(int argc, char **argv)
   char		       readline[MAXLINE];
 
   /* data */
-  struct cmd           cmd;
+  struct cmd           *pcmd;
   struct wthio         wio;
   int                  ndata = 0;
   int                  nobg = 0;
@@ -63,8 +63,8 @@ main(int argc, char **argv)
   werrno = 0;
 
   initdata(&wio);
-  initcmd(&cmd);
-  readconfig(&cmd);
+  pcmd = initcmd();
+  readconfig(pcmd);
 	
   /* parse commandline */
   while ((o = getopt(argc, argv, "dp:")) != -1) {
@@ -73,7 +73,7 @@ main(int argc, char **argv)
       nobg = 1;
       break;
     case 'p':
-      cmd.port = strdup(optarg);
+      pcmd->port = strdup(optarg);
       break;
     case '?':
       usaged(1,"command line error","");
@@ -95,7 +95,7 @@ main(int argc, char **argv)
   bzero(&servaddr, sizeof(servaddr));
   servaddr.sin_family      = AF_INET;
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port        = htons(atoi(cmd.port));
+  servaddr.sin_port        = htons(atoi(pcmd->port));
   Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
   Listen(listenfd, LISTENQ);
 
@@ -105,7 +105,7 @@ main(int argc, char **argv)
   bzero(&tnservaddr, sizeof(tnservaddr));
   tnservaddr.sin_family      = AF_INET;
   tnservaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  tnservaddr.sin_port        = htons(atoi(cmd.tnport));
+  tnservaddr.sin_port        = htons(atoi(pcmd->tnport));
 	
   Bind(telnetfd, (SA *) &tnservaddr, sizeof(tnservaddr));
   Listen(telnetfd, LISTENQ);
@@ -127,11 +127,11 @@ main(int argc, char **argv)
     if ( FD_ISSET(listenfd, &rset)) {
       connfd = accept(listenfd, (SA *) NULL, NULL); 
       Read(connfd, readline, MAXLINE);
-      cmd.command = o = atoi(readline);
-      cmd.argcmd  = 0;
-      cmd.netflg  = 0;
+      pcmd->command = o = atoi(readline);
+      pcmd->argcmd  = 0;
+      pcmd->netflg  = 0;
          
-      if ( getsrd( data, &ndata, &cmd) == -1 ) {
+      if ( getsrd( data, &ndata, pcmd) == -1 ) {
 	syslog(LOG_INFO,"error reading serial data");
 	strncpy(data, nakfram, strlen(nakfram));
 	ndata = strlen(nakfram);
@@ -147,8 +147,8 @@ main(int argc, char **argv)
       snprintf(readline, sizeof(readline), "\n\n%s\n\t%s\n>",
 	       "Welcome to wth service","Type h for help");
       Write(connfd, readline, strlen(readline));
-      cmd.argcmd = 0;
-      cmd.netflg = 0;
+      pcmd->argcmd = 0;
+      pcmd->netflg = 0;
       for ( ; ; ) {
 	Read(connfd, readline, MAXLINE);
 
@@ -157,27 +157,27 @@ main(int argc, char **argv)
 	  Write(connfd, readline, strlen(readline));
 	}
 	else if ( ( err = strncmp(readline, "0", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "1", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "2", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "3", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "4", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "5", 1)) == 0) {
-	  cmd.command = o = atoi(readline);
+	  pcmd->command = o = atoi(readline);
 	  is_command = 1;
 	}
 	else if ( ( err = strncmp(readline, "q", 1)) == 0)
@@ -190,12 +190,12 @@ main(int argc, char **argv)
 	}
 			
 	if ( is_command == 1 ) {
-	  rbuf = wcmd(&cmd, &wio);
+	  rbuf = wcmd(pcmd, &wio);
 	  printf("rbuf: %s\n", rbuf);
 	  snprintf(readline, sizeof(readline), rbuf);
 	  Write(connfd, readline, strlen(readline));
-	  cmd.argcmd  = 0;
-	  cmd.netflg  = 0;
+	  pcmd->argcmd  = 0;
+	  pcmd->netflg  = 0;
 	  is_command = 0;
 	}
 			

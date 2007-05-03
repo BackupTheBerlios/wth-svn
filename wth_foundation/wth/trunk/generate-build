@@ -4,7 +4,6 @@ set -x
 # generate GNU build files
 #
 
-
 #
 rm -f config.cache
 
@@ -14,3 +13,4 @@ autoconf
 # do _not_ use autoheader 
 # it will destroy the hand-edited config.h.in
 automake -a
+
