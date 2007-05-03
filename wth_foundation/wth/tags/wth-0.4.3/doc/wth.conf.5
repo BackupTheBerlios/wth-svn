@@ -1,0 +1,72 @@
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+.TH WTH.CONF 5 "13 March 2002"
+.SH NAME
+wth.conf \- wth configuration file
+.SH SYNOPSIS
+\fB/etc/wth/wth.conf \fb/usr/local/etc/wth/wth.conf
+.SH DESCRIPTION
+The \fIwth.conf\fP configuration file is setting up the
+communication parameters for wthc resp wthd.
+
+.SS OPTIONS
+.TP
+\fBtimeout\fR
+specifies the timeout of the serial line in seconds, default is 60 seconds.
+.TP
+\fBbaudrate\fP
+specifies the baudrate of the serial line in BAUD, default is 9600 BAUD.
+.TP
+\fBlogfacility\fP
+the logfacility with which wthd resp wthc commands are logged, default is
+info.
+.TP
+\fBdevice\fP
+specifies the serial device, which is used for communication. Default is
+the first serial device, e.g. /dev/ttyS0 for LINUX or /dev/ttyd0 for FreeBSD.
+.TP
+\fBport\fP
+specifies the network port number which is used for data communication, 
+default is 5001.
+.TP
+\fBtnport\fP
+specifies the telnet port which is used for a telnet connection to the
+serial interface, default is 5003.
+.TP
+\fBxmlport\fP
+specifies the network port number which is used for xmlrpc communication, 
+default is 8005.
+.SH FILES
+.Vb 2
+\fI/etc/wth/wth.conf\fR 
+\fI/usr/local/etc/wth/wth.conf\fR
+.Ve
+.bp
+.SH EXAMPLE FILE
+For reference purposes a sample configuration file is reproduced in this
+section.
+.Vb 11
+#
+# wth weatherstation configuration file
+#
+timeout 7
+port 5001
+tnport 5002
+xmlport 8005
+logfacility local7
+baudrate 9600
+device /dev/ttyS0
+.Ve
+.SH "SEE ALSO"
+wthc(1), wthd(1)
+.SH BUGS
+Prototype version. Network code probably unreliable.
+

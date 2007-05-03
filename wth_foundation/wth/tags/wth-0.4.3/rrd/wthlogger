@@ -1,0 +1,78 @@
+#!/bin/sh
+
+#
+# logging of weatherstation values
+# by rrdtool and logfile
+
+# $Id$
+# $Log$
+#
+#
+WTHC="/usr/local/bin/wthc"
+OPTIONS="-c 12 -s"
+SENSORS="20 21 22"
+TMPLOG="/tmp/wthlog.$$"
+WTHLOG="/proj/wetter/logs/wthlog"
+RRDTOOL="/usr/bin/rrdtool"
+RRD="/proj/wetter/logs/sens"
+AWK="/usr/bin/awk"
+
+DEBUG=1
+
+# read data of weatherstation
+$WTHC $OPTIONS >$TMPLOG
+
+# append data to logfile
+cat $TMPLOG |egrep -v '^Sensor|^DLE' >>$WTHLOG
+
+#
+# loop over sensors
+#
+for s in $SENSORS 
+do
+  cat $TMPLOG |\
+	$AWK -vrrdpath="$RRD" -vsensor=$s \
+               'BEGIN {
+                    cnt  = 0;
+                    rrd0 = "/usr/bin/rrdtool update " rrdpath sensor ".rrd ";
+                    rrd  = rrd0;
+                    print rrd;
+		}
+
+                /^'"$s"\\t'/ { 
+                    cnt = cnt + 1;
+                    # negative temperatures have 1 in column 6, positive have 0
+	            if ($2 == "temp" && $6 == 1) {
+                        print $1, $2, $3, $4, $5, $6, $7
+			rrd = rrd sprintf("%d:%.1f ", $5, -$7);
+	       	    }
+	       	    else {
+                        print $1, $2, $3, $4, $5, $6, $7
+	       	        rrd = rrd sprintf("%d:%.1f ", $5, $7);
+                    }
+                    if (cnt == 3 ) {
+			if ( rrd != rrd0 )
+                            print rrd;
+			    system(rrd);
+			
+	                cnt = 0;
+                        rrd = "/usr/bin/rrdtool update " rrdpath sensor ".rrd ";
+	       	    } 
+	        }
+
+                END {
+			if ( rrd != rrd0 )
+			    system(rrd);
+                }'
+done
+
+
+#
+# cleanup
+#
+if [ $DEBUG -eq 0 ]; then
+    if [ -w $TMPLOG ]; then 
+        rm $TMPLOG
+    fi
+fi
+

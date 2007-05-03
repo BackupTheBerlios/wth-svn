@@ -1,0 +1,87 @@
+<!DOCTYPE weatherReportList [
+  <!ELEMENT weatherReportList (weatherReport *)>
+  <!ELEMENT weatherReport 
+     ( 
+       time, date, timeAlarm?, units,
+       outdoorTemperature?, outdoorHumidity?,
+       indoorTemperature?, indoorHumidity?, barometricPressure?,
+       wind?, rain?
+     )>  
+  <!ATTLIST weatherReport stationId CDATA #REQUIRED>
+
+  <!ELEMENT time #PCDATA>
+  <!ELEMENT date #PCDATA>
+  <!ELEMENT timeAlarm #PCDATA>
+  <!ELEMENT units #PCDATA>
+  <!ELEMENT outdoorTemperature 
+   (
+     average, high?, low?, dewpoint?, 
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT outdoorHumidity 
+   (
+     average, high?, low?, dewpoint?, 
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT indoorTemperature 
+   (
+     average, high?, low?, dewpoint?, 
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT indoorHumidity 
+   (
+     average, high?, low?, dewpoint?, 
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT barometricPressure 
+   (
+     local, sealevel?, tendency?,
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT wind 
+   (
+     averageSpeed, averageDirection, medianDeviation?,
+     gustSpeed?, gustDirection?, highSpeed?, highDirection?,
+     chill?,
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+  <!ELEMENT rain 
+   (
+     total, rate?, yesterday?,
+     batteryStatus?, alarmSet?, receiveErr?
+   )>
+
+  <!-- all temperature and humidity -->
+  <!ELEMENT average #PCDATA>
+  <!ELEMENT high #PCDATA>
+  <!ELEMENT low #PCDATA>
+  <!ELEMENT dewpoint #PCDATA> 
+
+  <!-- barometricPressure -->
+  <!ELEMENT local #PCDATA>
+  <!ELEMENT sealevel #PCDATA>
+  <!ELEMENT tendency #PCDATA>
+ 
+  <!-- wind -->
+  <!ELEMENT averageSpeed #PCDATA>
+  <!ELEMENT averageDirection #PCDATA>
+  <!ELEMENT medianDeviation #PCDATA>
+  <!ELEMENT gustSpeed #PCDATA>
+  <!ELEMENT gustDirection #PCDATA>
+  <!ELEMENT highSpeed #PCDATA>
+  <!ELEMENT highDirection #PCDATA>
+  <!ELEMENT chill #PCDATA>
+  <!-- rain -->
+  <!ELEMENT total #PCDATA>
+  <!ELEMENT rate #PCDATA>
+  <!ELEMENT yesterday #PCDATA>
+  <!-- general for all sensors -->
+  <!ELEMENT batteryStatus #PCDATA>
+  <!ELEMENT alarmSet #PCDATA>
+  <!ELEMENT receiveErr #PCDATA>
+]>
+
+
+
+
+

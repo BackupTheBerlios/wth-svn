@@ -1,0 +1,13 @@
+wthc v 0.4.2.1  working OK
+
+/dev/ttyS0, Line 0, UART: 16550A, Port: 0x03f8, IRQ: 4
+        Baud_base: 115200, close_delay: 500, divisor: 0
+        closing_wait: 30000
+        Flags: spd_normal skip_test
+
+
+/dev/ttyS0, Line 0, UART: 16550A, Port: 0x03f8, IRQ: 4
+	Baud_base: 115200, close_delay: 500, divisor: 0
+	closing_wait: 30000
+	Flags: spd_normal skip_test
+
