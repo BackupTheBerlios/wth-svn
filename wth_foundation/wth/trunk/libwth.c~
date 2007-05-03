@@ -228,7 +228,7 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
 char *
 wstat(unsigned char *data, int mdat, struct wthio *rw ) {
     int i;
-    char frame[MAXBUFF] = ""; /* WS2000 can hold 32 kByte of data, 
+    char frame[100000] = ""; /* WS2000 can hold 32 kByte of data, 
                                 one dataset is 56 byte long, makes 572 max.
                              */
     char sf[3] = "";
@@ -1130,8 +1130,6 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
     /* echo sensor data */
     if ( rw->wstat.ndats > 0 ) {
       rbuf = pdata(rw);
-      printf("w/o statement: return (rbuf)"); 
-      //return ( rbuf);
 #if defined POSTGRES
       if ( command == 7 ) {
 	if ( ( err = pg_data( pcmd, rw)) == -1 ) {
@@ -1248,7 +1246,7 @@ getbits(unsigned x, int p, int n) {
 int
 echodata(unsigned char *data, int mdat) {
     int i;
-    char frame[MAXBUFF] = "";
+    char frame[100000] = "";
     char sf[3] = "";
 
     syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);

@@ -25,7 +25,6 @@
 */
 
 #include "wth.h"
-#include <unistd.h>
 #include "config.h"
 
 int main (int argc, char **argv) {
@@ -44,8 +43,7 @@ int main (int argc, char **argv) {
   }
   
   openlog("wthc", LOG_PID , pcmd->logfacility);
-  //setlogmask(LOG_UPTO(LOG_ERR));
-  syslog(LOG_DEBUG, "wthc: %s\n", VERSION);
+  syslog(LOG_INFO, "wthc: %s\n", VERSION);
                                                                     
   /* parsing command line arguments */
   while (( oarg = getopt(argc, argv, "c:h:i:p:stu:v")) != -1 ) {

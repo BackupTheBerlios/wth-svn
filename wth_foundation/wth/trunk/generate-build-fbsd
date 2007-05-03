@@ -8,9 +8,10 @@ set -x
 rm -f config.cache
 
 #
-aclocal -I m4
-autoconf
+aclocal19
+autoconf259
+#autoheader213
 # do _not_ use autoheader 
 # it will destroy the hand-edited config.h.in
-automake -a
+automake19
 

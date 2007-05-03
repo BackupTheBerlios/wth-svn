@@ -1,0 +1,34 @@
+***************
+*** 107,109
+-   /* sending command to weather station */ 
+-   rbuf =  wcmd(&cmd, &wio);
+-   printf("%s", rbuf);
+--- 110,132 -----
++   if(o == 12)
++   {
++     do
++     {
++       /* sending command to weather station */ 
++         cmd.command = 1;
++       rbuf =  wcmd(&cmd, &wio);
++         if(cmd.retval == 0)
++       {
++               printf("%s", rbuf);
++               cmd.command = 2;
++               rbuf =  wcmd(&cmd, &wio);
++       }
++       else
++               break;
++     }while(cmd.retval == 6);
++   }
++   else
++   {
++     /* sending command to weather station */ 
++     rbuf =  wcmd(&cmd, &wio);
++     printf("%s", rbuf);
++   }
+***************
+*** 129
+-   return(0);
+--- 152 -----
++   return(cmd.retval);

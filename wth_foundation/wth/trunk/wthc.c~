@@ -44,7 +44,7 @@ int main (int argc, char **argv) {
   }
   
   openlog("wthc", LOG_PID , pcmd->logfacility);
-  //setlogmask(LOG_UPTO(LOG_ERR));
+  setlogmask(LOG_UPTO(LOG_ERR));
   syslog(LOG_DEBUG, "wthc: %s\n", VERSION);
                                                                     
   /* parsing command line arguments */

@@ -45,6 +45,6 @@ char *mkmsg(const char *, ...);
 
 int demasq(unsigned char *data, int *mdat);
 int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
-int datex(unsigned char *data, int ndat, struct wthio *rw);
+int datex(unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
 char *pdata(struct wthio *rw);
 int echodata(unsigned char *data, int mdat);

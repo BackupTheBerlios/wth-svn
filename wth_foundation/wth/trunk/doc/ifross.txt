@@ -1,6 +1,0 @@
-Ist es legal, Code unter der GPL Lizenz zu veroeffentlichen, der mit 
-Bibliotheken gelinkt wurde, die unter einer BSD artigen Lizenz stehen?
-Konkret: im C-Code sind Funktionsaufrufe vorhanden, die auf Bibliotheken
-zurueckgreifen, die nicht unter GPL stehen.
-Falls eine Veroeffentlichung des Codes unter GPL nicht moeglich ist,
-welche andere Moeglichkeiten stehen mir sonst zur Verfuegung?

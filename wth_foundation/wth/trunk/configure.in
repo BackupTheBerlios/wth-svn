@@ -6,7 +6,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(libwth.c)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(wth, 0.4.4)
+AM_INIT_AUTOMAKE(wth, 0.4.5)
 AM_CONFIG_HEADER(config.h)
 AC_DEFINE(_GNU_SOURCE)
 #AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
@@ -68,6 +68,7 @@ if test "$enable_xmlrpc" = yes; then
 fi
 
 if test "$enable_postgres" = yes; then
+  LIBS="$LIBS -L/usr/local/lib"
   AC_CHECK_LIB(pq,PQsetdbLogin,,
     AC_MSG_ERROR(wth needs postgres library. Please install postgres first.))
 
