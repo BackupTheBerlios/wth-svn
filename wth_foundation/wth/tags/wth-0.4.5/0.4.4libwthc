@@ -1,0 +1,180 @@
+231c231,233
+<     char frame[255] = "";
+---
+>     char frame[MAXBUFF] = ""; /* WS2000 can hold 32 kByte of data, 
+>                                 one dataset is 56 byte long, makes 572 max.
+>                              */
+482c484
+< datex(unsigned char *data, int ndat, struct wthio *rw) {
+---
+> datex(unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd) {
+492d493
+<   //JJY added this floating point temporary variable
+519c520,521
+< 	   "datex : present time: %lu (seconds since EPOCH)\n", (long int)mtim);
+---
+> 	   "datex : present time: %lu (seconds since EPOCH)\n", 
+>            (long int)mtim);
+532a535
+>   syslog(LOG_DEBUG, "datex : units : %s\n", pcmd->units);
+552c555
+< 	if(FARENH){
+---
+> 	if( strncmp( pcmd->units, "US", 2) == 0 ) {
+554c557
+< 	  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32;
+---
+> 	  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
+590c593
+< 	if(FARENH){
+---
+> 	if( strncmp( pcmd->units, "US", 2) == 0 ){
+592c595
+< 	  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32;
+---
+> 	  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
+627,629c630,632
+<   rw->sens[17].mess[rw->wstat.ndats].time = mtim;
+<   rw->sens[17].mess[rw->wstat.ndats].age = age;
+<   rw->sens[17].mess[rw->wstat.ndats].sign   = 0;
+---
+>   rw->sens[17].mess[rw->wstat.ndats].time  = mtim;
+>   rw->sens[17].mess[rw->wstat.ndats].age   = age;
+>   rw->sens[17].mess[rw->wstat.ndats].sign  = 0;
+636c639
+<   if(MPH){
+---
+>   if( strncmp( pcmd->units, "US", 2) == 0 ) {
+638c641
+<     rw->sens[17].mess[rw->wstat.ndats].value = temp/1.609;
+---
+>     rw->sens[17].mess[rw->wstat.ndats].value = temp/1.609; // speed mph
+651,654c654,657
+<   rw->sens[19].mess[rw->wstat.ndats].time = mtim;
+<   rw->sens[19].mess[rw->wstat.ndats].age = age;//JJY added this
+<   rw->sens[19].mess[rw->wstat.ndats].sign     = 0;
+<   rw->sens[19].mess[rw->wstat.ndats].value    =
+---
+>   rw->sens[19].mess[rw->wstat.ndats].time  = mtim;
+>   rw->sens[19].mess[rw->wstat.ndats].age   = age;
+>   rw->sens[19].mess[rw->wstat.ndats].sign  = 0;
+>   rw->sens[19].mess[rw->wstat.ndats].value =
+659,660c662,663
+<   rw->sens[20].mess[rw->wstat.ndats].age = age;
+<   rw->sens[20].mess[rw->wstat.ndats].sign     = 0;
+---
+>   rw->sens[20].mess[rw->wstat.ndats].age  = age;
+>   rw->sens[20].mess[rw->wstat.ndats].sign = 0;
+665a669,672
+>   if( strncmp( pcmd->units, "US", 2) == 0 ) {
+>     temp = rw->sens[20].mess[rw->wstat.ndats].value;
+>     rw->sens[20].mess[rw->wstat.ndats].value = temp/33.86389; // pressure inHg
+>   }
+668,671c675,678
+<   rw->sens[21].mess[rw->wstat.ndats].time = mtim;
+<   rw->sens[21].mess[rw->wstat.ndats].age = age;
+<   rw->sens[21].mess[rw->wstat.ndats].sign     = 0;
+<   rw->sens[21].mess[rw->wstat.ndats].value    = 
+---
+>   rw->sens[21].mess[rw->wstat.ndats].time  = mtim;
+>   rw->sens[21].mess[rw->wstat.ndats].age   = age;
+>   rw->sens[21].mess[rw->wstat.ndats].sign  = 0;
+>   rw->sens[21].mess[rw->wstat.ndats].value = 
+676c683
+<   if(FARENH){
+---
+>   if( strncmp( pcmd->units, "US", 2) == 0 ) {
+678c685
+<     rw->sens[21].mess[rw->wstat.ndats].value = 9*temp/5+32;
+---
+>     rw->sens[21].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
+684,687c691,694
+<   rw->sens[22].mess[rw->wstat.ndats].time = mtim;
+<   rw->sens[22].mess[rw->wstat.ndats].age = age;
+<   rw->sens[22].mess[rw->wstat.ndats].sign     = 0;
+<   rw->sens[22].mess[rw->wstat.ndats].value    = Hi + Lo;
+---
+>   rw->sens[22].mess[rw->wstat.ndats].time  = mtim;
+>   rw->sens[22].mess[rw->wstat.ndats].age   = age;
+>   rw->sens[22].mess[rw->wstat.ndats].sign  = 0;
+>   rw->sens[22].mess[rw->wstat.ndats].value = Hi + Lo;
+710c717
+<      if ((t = malloc(size)) == NULL )
+---
+>      if ((t = calloc(size,sizeof(char))) == NULL )
+923c930
+<       err = datex(data, ndat, rw);
+---
+>       err = datex(data, ndat, rw, pcmd);
+1086c1093
+< 	if ( ( err = datex(data, ndat, rw)) == -1) {
+---
+> 	if ( ( err = datex(data, ndat, rw, pcmd)) == -1) {
+1125a1133,1134
+>       printf("w/o statement: return (rbuf)"); 
+>       //return ( rbuf);
+1213a1223
+>   inipcmd->units       = UNITS;
+1216,1233c1226
+< 
+< 
+<   /* initialize struct pcmd */
+<   /*
+<     pcmd->argcmd      = 0;
+<     pcmd->timeout     = TIMEOUT;
+<     pcmd->baudrate    = BAUDRATE;
+<     pcmd->logfacility = LOGFACILITY;
+<     pcmd->device      = SER_DEVICE;
+<     pcmd->verbose     = 0;
+<     pcmd->netflg      = -1;
+<     pcmd->hostname    = "localhost"; 
+<     pcmd->port        = WPORT; 
+<     pcmd->tnport      = TNPORT;   
+<     pcmd->wstype      = WSTYPE;
+<     pcmd->xmlport     = XMLPORT;
+<   */
+<   return(0);
+---
+>   //return(0);
+1258c1251
+<     char frame[255] = "";
+---
+>     char frame[MAXBUFF] = "";
+1365,1366c1358,1363
+< 	  "\t-t\t\tset time using internal DCF77 receiver TTTTTEEEESTTTT\n"
+< 	  "\t\t\tneeds superuser privileges\n--\n", bufstr);
+---
+> 	  "\t-t\t\tset time using internal DCF77 receiver\n"
+> 	  "\t\tneeds superuser privileges\n" 
+> 	  "\t-u <units>\tset the units of measured values\n"
+>           "\t\tSI\tuse SI units for output: °C, m/s, hPa\n"
+>           "\t\tUS\tuse US units for output: °F, mph, inHg\n"
+>   ,bufstr);
+1369,1395d1365
+< 
+<   /*
+<   fprintf(stderr,"Usage: wthc [Options]\n"
+< 	  "where options include:\n"
+< 	  "\t-c <command>\texecute command\n"
+< 	  "\t\t0\tPoll DCF Time\n"
+< 	  "\t\t1\tRequest dataset\n"
+< 	  "\t\t2\tSelect next dataset\n"
+< 	  "\t\t3\tActivate 9 temperature sensors\n"
+< 	  "\t\t4\tActivate 16 temperature sensors\n"
+< 	  "\t\t5\tRequest status\n"
+< 	  "\t\t6\tSet interval time,\n" 
+< 	  "\t\t\t\trequires extra parameter specified by option -i\n"
+< 	  "\t\t7\tEvery 30 seconds, request data from the data\n"
+< 	  "\t\t\tlogger,and store it into the weather table of a\n"
+< 	  "\t\t\tpostgres database named weather\n"
+< 	  "\t\t12\tRequest all available data recursively\n"
+< 	  "\t-i <interval>\tspecifies interval time\n"
+< 	  "\t\tpermissible values for the interval lie\n"
+< 	  "\t\twithin the range from 1 to 60 minutes\n"
+< 	  "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
+< 	  "\t-p <portnumber>\tuse portnumber at remote host\n"
+< 	  "\t\tfor connection\n"
+< 	  "\t-s\t\tuse local serial connection\n"
+< 	  "\t-t\t\tset time using internal DCF77 receiver\n"
+< 	  "\t\t\tneeds superuser privileges\n--\n");
+<   */

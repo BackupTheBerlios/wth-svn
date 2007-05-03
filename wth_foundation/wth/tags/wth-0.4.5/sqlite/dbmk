@@ -1,0 +1,182 @@
+#!/usr/bin/perl
+
+#
+# SQLITE Database description for WS2000 and Lacrosse Weatherstation
+#
+
+use strict;
+use DBI;
+
+my $res;
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=ws2000.db","","")
+  or die ("Can't get DB handle: $DBI::Errstr");
+
+
+$dbh->do("
+  CREATE TABLE 
+  sensordata
+  (
+    dataset_no INT,
+    dataset_date DATE,
+    sensor_meas_no INT,
+    meas_value FLOAT,
+    PRIMARY KEY (dataset_no),
+    FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
+  )
+");
+
+$dbh->do("
+  CREATE TABLE
+  sensorstatus
+  (
+    statusset_no INT,
+    statuset_date DATE,
+    sensor_no INT,
+    sensor_status INT,
+    PRIMARY KEY (statusset_no),
+    FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+  )
+");
+
+
+$dbh->do("
+  create table
+  sensornames
+  (
+    sensor_no INT,
+    sensorname VARCHAR(255),
+    PRIMARY KEY (sensor_no)
+  )
+");
+
+$dbh->do("
+  create table
+  parameternames
+  (
+    parameter_no INT,
+    parameter_name VARCHAR(64),
+    parameter_unit VARCHAR(64),
+    PRIMARY KEY (parameter_no)
+  )
+");
+
+$dbh->do("
+  create table
+  sensorparameters
+  (
+    sensor_meas_no INT,
+    sensor_no INT,
+    parameter_no INT,
+    PRIMARY KEY (sensor_meas_no),
+    FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
+    FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+  )
+");
+
+#
+# table parameternames will not change (WS2000 can't do more)
+#
+$dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('2','Feuchte','% rel.hum.') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('3','Regen','mm') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('4','Windgeschwindigkeit','m/s') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('5','Schwankungsbreite','deg') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('6','Windrichtung','deg') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('7','Luftdruck','hPa') ");
+
+#
+# table sensornames will not change (WS2000 can't do more)
+#
+$dbh->do(" INSERT INTO sensornames VALUES ('1','Tempsensor 1') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('2','Tempsensor 2') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('3','Tempsensor 3') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('4','Tempsensor 4') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('5','Tempsensor 5') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('6','Tempsensor 6') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('7','Tempsensor 7') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('8','Tempsensor 8') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('9','Regensensor') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('10','Windsensor') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('11','Innensensor') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('12','Tempsensor 9') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('13','Tempsensor 10') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('14','Tempsensor 11') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('15','Tempsensor 12') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('16','Tempsensor 13') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('17','Tempsensor 14') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('18','Tempsensor 15') ");
+
+#
+# table sensorparameters 
+#
+# Tempsensor 1
+$dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') ");
+# Tempsensor 2
+$dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('5','3','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('6','3','2') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('7','4','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('8','4','2') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('9','5','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('10','5','2') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('11','6','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('12','6','2') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('13','7','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('14','7','2') ");
+# Tempsensor 8
+$dbh->do(" INSERT INTO sensorparameters VALUES ('15','8','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('16','8','2') ");
+# Regensensor
+$dbh->do(" INSERT INTO sensorparameters VALUES ('17','9','3') ");
+# Windsensor
+$dbh->do(" INSERT INTO sensorparameters VALUES ('18','10','4') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('19','10','5') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('20','10','6') ");
+# Innensensor
+$dbh->do(" INSERT INTO sensorparameters VALUES ('21','11','7') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('22','11','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('23','11','2') ");
+# Tempsensor 9
+$dbh->do(" INSERT INTO sensorparameters VALUES ('24','12','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('25','12','2') ");
+# Tempsensor 10
+$dbh->do(" INSERT INTO sensorparameters VALUES ('26','13','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('27','13','2') ");
+# Tempsensor 11
+$dbh->do(" INSERT INTO sensorparameters VALUES ('28','14','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('29','14','2') ");
+# Tempsensor 12
+$dbh->do(" INSERT INTO sensorparameters VALUES ('30','15','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('31','15','2') ");
+# Tempsensor 13
+$dbh->do(" INSERT INTO sensorparameters VALUES ('32','16','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('33','16','2') ");
+# Tempsensor 14
+$dbh->do(" INSERT INTO sensorparameters VALUES ('34','17','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('35','17','2') ");
+# Tempsensor 15
+$dbh->do(" INSERT INTO sensorparameters VALUES ('36','18','1') ");
+$dbh->do(" INSERT INTO sensorparameters VALUES ('37','18','2') ");
+
+
+#
+#
+#
+$res = $dbh->selectall_arrayref("
+  SELECT sn.sensorname, pn.parameter_name, pn.parameter_unit 
+    FROM sensorparameters AS sp 
+      JOIN sensornames AS sn 
+        ON sp.sensor_no = sn.sensor_no 
+      JOIN parameternames AS pn 
+        ON sp.parameter_no = pn.parameter_no");
+
+
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+	print "$_->[$i] "
+    }
+    print "\n";
+}
