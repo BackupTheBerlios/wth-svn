@@ -1,0 +1,40 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2001.01.18.11.54.36;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@1st version
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* global.h */
+
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <termios.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/signal.h>
+#include <syslog.h>
+
+#define _POSIX_SOURCE 1 /* POSIX compliant source */
+@

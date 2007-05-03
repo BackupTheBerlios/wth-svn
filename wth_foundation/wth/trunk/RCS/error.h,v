@@ -1,0 +1,33 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2001.02.06.15.56.22;	author volker;	state Exp;
+branches;
+next	;
+
+
+desc
+@FreeBSD OK
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* error.h */
+
+void     err_dump(const char *, ...);
+void     err_msg(const char *, ...);
+void     err_quit(const char *, ...);
+void     err_ret(const char *, ...);
+void     err_sys(const char *, ...);
+
+
+@
