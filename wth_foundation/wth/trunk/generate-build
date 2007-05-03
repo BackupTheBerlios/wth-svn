@@ -1,0 +1,11 @@
+#!/bin/sh
+set -x
+
+#
+# generate GNU build files
+#
+
+aclocal
+autoconf
+autoheader
+automake -a

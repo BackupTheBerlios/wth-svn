@@ -25,29 +25,10 @@
 */
 
 #include "wth.h"
+#include "wthnet.h"
 #include "wthprv.h"
 
-
-/* function prototypes */
-int Socket(int, int, int); 
-ssize_t Read(int, void *, size_t); 
-int Write(int, void *, size_t);   
-int Accept(int, SA *, socklen_t *);
-int Bind(int, const SA *, socklen_t);
-int Listen(int, int); 
-int Close(int); 
-int daemon_init(const char *, int); 
-
-pid_t Fork(void); 
-int Setsockopt(int, int, int, const void *, socklen_t); 
-int Writen(int, void *, size_t);  
-
-const char *inet_ntop(int, const void *, char *, size_t);
-int inet_pton(int, const char *, void *); 
-
-
-extern int      daemon_proc;    /* defined in error.c */
-
+extern int daemon_proc; 
 
 /* include sock_ntop */
 char *

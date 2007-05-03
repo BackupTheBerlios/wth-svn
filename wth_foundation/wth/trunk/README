@@ -1,0 +1,20 @@
+wth is a free software solution to read weatherstation data
+of the Conrad or ELV WS2000 PC interface, which stores
+data of as many as 16 temperature and humidity sensors, 1 wind 
+sensor and 1 rainfall sensor. A DCF77 receiver is built into 
+the interface. The interface connects thru the serial port to
+the computing equipment. The communication protocol has been 
+published by the manufacturer and is fully implemented by the 
+wth software.
+
+The code is seperated in three parts:
+
+(1) a library which offers a high level functions to connect to the 
+    PC interface or over the network.
+
+(2) the TCP server code which allows for a network connection
+    for remote data retrieval. This includes telnet access.
+
+(3) the wthc client code either reads the PC interface or connects
+    to the wthd server to retrieve data.
+

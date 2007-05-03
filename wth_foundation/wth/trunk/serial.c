@@ -1,8 +1,8 @@
 /* serial.c
 
-   serial line communication routine
+   serial line communication routine for WS2000 weatherstation
 
-   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp $
+   $Id: serial.c,v 0.4 2001/09/14 15:40:20 jahns Exp jahns $
    $Revision: 0.4 $
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
@@ -24,6 +24,7 @@
 */
 
 #include "wth.h"
+#include "wthprv.h"
 
 static volatile int STOP = FALSE;
 static volatile int wait_flag = TRUE;
@@ -35,7 +36,7 @@ static volatile int alrm_flag = FALSE;
    
    handles SIGIO sent by weather station when data are available
 */
-void sigio_h(int signum) {
+static void sigio_h(int signum) {
   wait_flag = FALSE;
   return;
 }
@@ -45,7 +46,7 @@ void sigio_h(int signum) {
   
    handles SIGALRM when timer goes off after timeout read
 */
-void sigalrm_h(int signum) {
+static void sigalrm_h(int signum) {
   alrm_flag = TRUE;
   return;
 }
@@ -57,11 +58,11 @@ void sigalrm_h(int signum) {
   opens serial port for communication
   installs SIGIO asynchronuous signal handler, SIGALRM for read timeout
   serial port settings:
-     9600, 8, Parity,  2Stop
+     9600, 8, Even Parity,  2Stop
      lower RTS and raise DTR voltage
 
 */
-int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd) {
+static int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd) {
   int i, itio;
 
   /* open the device to be non-blocking (read will return immediatly) */
@@ -200,7 +201,7 @@ int initserial (int *pfd, struct termios *newtio, struct termios *oldtio, struct
    lower DTR on serial line
 
 */
-int closeserial( int fd, struct termios *oldtio) {
+static int closeserial( int fd, struct termios *oldtio) {
     int tset;
 
     /* lower DTR on serial line */
@@ -248,7 +249,7 @@ int closeserial( int fd, struct termios *oldtio) {
   huh - the weather station sends its data frame in chunks of several bytes   
 
 */
-int readdata (int fd, unsigned char *data, int *ndat) {
+static int readdata (int fd, unsigned char *data, int *ndat) {
     int i;
     int err;
     char rbuf[MAXBUFF];
@@ -311,7 +312,7 @@ int readdata (int fd, unsigned char *data, int *ndat) {
     6   : Set interval time               : 1
     shouldn't this go into a configuration file?
  */
-Ckey *c(int n){
+static Ckey *c(int n){
   static Ckey p[] = {
 	{"\x01\x30\xcf\x04", 7, "Poll DCF time"},
 	{"\x01\x31\xce\x04", 61, "Request dataset"},

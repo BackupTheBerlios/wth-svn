@@ -38,6 +38,7 @@
 
  
 #include        "wth.h"
+#include        "wthnet.h"
 
 int
 main(int argc, char **argv)

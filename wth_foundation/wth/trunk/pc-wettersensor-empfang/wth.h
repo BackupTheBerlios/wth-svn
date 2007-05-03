@@ -1,42 +1,11 @@
-head	0.4;
-access;
-symbols;
-locks
-	jahns:0.4; strict;
-comment	@ * @;
+#/* wth.h
 
-
-0.4
-date	2001.09.14.15.42.15;	author jahns;	state Exp;
-branches;
-next	0.3;
-
-0.3
-date	2001.08.10.12.43.46;	author jahns;	state Exp;
-branches;
-next	;
-
-
-desc
-@wth header file
-@
-
-
-0.4
-log
-@GPL'ed
-@
-text
-@#/* wth.h
-
-   global header file 
-   includes, defines, data structures, function prototypes
-   for WS2000 weatherstation communication
+   global header file for WS2000 weatherstation communication
    
-   $Id: wth.h,v 0.3 2001/08/10 12:43:46 jahns Exp jahns $
-   $Revision: 0.3 $
+   $Id: wth.h,v 0.4 2001/09/14 15:42:15 jahns Exp jahns $
+   $Revision: 0.4 $
 
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@@thalreit.de>
+   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -84,7 +53,7 @@ text
 #define BAUDRATE B9600
 #define MAXBUFF 255
 #define TIMEOUT 7
-#define SER_DEVICE "/dev/ttyd0"
+#define SER_DEVICE "/dev/ttyS0"
 #define MAXSENSORS 42
 #define MAXDATA 2048
 #define LOGFACILITY LOG_LOCAL7
@@ -122,6 +91,17 @@ enum {
   TRUE  = 1
 };
 
+/* weatherstation errors */
+enum {
+  ESERIAL = -2,
+  ECHKSUM = -3,
+  ECHKLEN = -4,
+  ERCPT   = -5,
+  ENET    = -6,
+  ESIG    = -7,
+};
+
+
 /* data structures */
 struct dataset {
   time_t time;
@@ -143,7 +123,7 @@ struct DCFstruct {
 
 struct wstatus {
   int nsens;
-  int itime;
+  int intvaltime;
   int version;
   long ndats;
   char *ebuf;
@@ -177,88 +157,28 @@ struct key {
 
 
 typedef struct key Ckey;
-typedef void Sigfunc (int);  
 
 /* global variables */
-static int werrno;      /* weatherstation errors */
+int werrno;      /* weatherstation errors */
 int daemon_proc;		/* set nonzero by daemon_init() */
 
-/* weatherstation errors */
-enum {
-  ESERIAL = -2,
-  ECHKSUM = -3,
-  ECHKLEN = -4,
-  ERCPT   = -5,
-  ENET    = -6,
-  ESIG    = -7,
-};
-
 /* function prototypes */
-/* these are ALL functions used */
-int Socket(int, int, int); 
-ssize_t Read(int, void *, size_t); 
-int Write(int, void *, size_t);   
-int Accept(int, SA *, socklen_t *);
-int Bind(int, const SA *, socklen_t);
-int Listen(int, int); 
-int Close(int); 
 int daemon_init(const char *, int); 
 
-pid_t Fork(void); 
-int Setsockopt(int, int, int, const void *, socklen_t); 
-int Writen(int, void *, size_t);  
-
-void sigio_h(int signum);
-void sigalrm_h(int signum);
-
-int initserial( int *pfd, struct termios *newtio, struct termios *oldtio, struct cmd *pcmd);
-int closeserial( int fd, struct termios *oldtio);
-int readdata( int fd, unsigned char *data, int *ndat);
-Ckey *c(int n);
-int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-
-unsigned getbits(unsigned x, int p, int n);
-/* int digitize(int val, char *tdigit, char *hdigit, 
-             char *tendigit, char *udigit); 
-*/
-int echodata(unsigned char *data, int mdat);
-int wstrlen(char *s);
-char *mkmsg(const char *, ...);
 char *tnusage(int exitcode, char *error, char *addl);
 int usage(int exitcode, char *error, char *addl);
 int usaged(int exitcode, char *error, char *addl);
 char *readconfig(struct cmd *pcmd);
 char *echoconfig(struct cmd *pcmd);
-Sigfunc *signal(int signo, Sigfunc *func);
-Sigfunc *Signal(int signo, Sigfunc *func);	/* for our signal() function */
 
-const char *inet_ntop(int, const void *, char *, size_t);
-int inet_pton(int, const char *, void *); 
 int getnrd(unsigned char *data, int *mdat, struct cmd *);
+int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
 
-int demasq(unsigned char *data, int *mdat);
-int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
 int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
 int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
 char *wstat(unsigned char *data, int mdat, struct wthio *rw);
 time_t dcftime(unsigned char *data, int ndat);
-int datex(unsigned char *data, int ndat, struct wthio *rw);
-char *pdata(struct sensor sens[], int snum);
 char *wcmd(struct cmd *pcmd, struct wthio *rw);
 
 int initdata(struct wthio *rw);
 int initcmd(struct cmd *pcmd);
-@
-
-
-0.3
-log
-@finish 0.3
-@
-text
-@d7 2
-a8 2
-   $Id: wth.h,v 1.1 2001/08/10 12:43:18 jahns Exp jahns $
-   $Revision: 1.1 $
-d10 16
-@

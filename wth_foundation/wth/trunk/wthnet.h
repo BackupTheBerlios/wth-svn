@@ -24,7 +24,7 @@
 */
 
 /* function prototypes */
-int Socket(int, int, int); 
+extern int Socket(int, int, int); 
 ssize_t Read(int, void *, size_t); 
 int Write(int, void *, size_t);   
 int Accept(int, SA *, socklen_t *);

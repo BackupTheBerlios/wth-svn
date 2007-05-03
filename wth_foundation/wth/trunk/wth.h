@@ -23,9 +23,10 @@
  
 */
 
-
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
+#include <netdb.h>
 #include <poll.h>		/* for convenience */
 #include <signal.h>
 #include <stdarg.h>
@@ -36,6 +37,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
+#include <sys/select.h>	/* for convenience */
+#include <sys/socket.h>	/* basic socket definitions */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
 #include <sys/un.h>		/* for Unix domain sockets */
 #include <sys/wait.h>
@@ -45,22 +48,12 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
-#include <netdb.h>
-#include <sys/select.h>	/* for convenience */
-#include <sys/socket.h>	/* basic socket definitions */
-#ifdef	HAVE_SOCKADDR_DL_STRUCT
-# include	<net/if_dl.h>
-#endif
-
-
-
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 
 #define BAUDRATE B9600
 #define MAXBUFF 255
 #define TIMEOUT 7
-#define SER_DEVICE "/dev/ttyd0"
+#define SER_DEVICE "/dev/ttyS0"
 #define MAXSENSORS 42
 #define MAXDATA 2048
 #define LOGFACILITY LOG_LOCAL7
@@ -98,7 +91,6 @@ enum {
   TRUE  = 1
 };
 
- 
 /* weatherstation errors */
 enum {
   ESERIAL = -2,
@@ -131,7 +123,7 @@ struct DCFstruct {
 
 struct wstatus {
   int nsens;
-  int itime;
+  int intvaltime;
   int version;
   long ndats;
   char *ebuf;
@@ -167,32 +159,26 @@ struct key {
 typedef struct key Ckey;
 
 /* global variables */
-static int werrno;      /* weatherstation errors */
-int daemon_proc; 		/* set nonzero by daemon_init() */
-
+int werrno;      /* weatherstation errors */
+int daemon_proc;		/* set nonzero by daemon_init() */
 
 /* function prototypes */
-int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-int getnrd(unsigned char *data, int *mdat, struct cmd *);
-
-int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
-
-char *wcmd(struct cmd *pcmd, struct wthio *rw);
-char *wstat(unsigned char *data, int mdat, struct wthio *rw);
-
-int initdata(struct wthio *rw);
-int initcmd(struct cmd *pcmd);
 int daemon_init(const char *, int); 
 
-
-char *readconfig(struct cmd *pcmd);
-char *echoconfig(struct cmd *pcmd);
-
-
-time_t dcftime(unsigned char *data, int ndat);
-int echodata(unsigned char *data, int mdat);
 char *tnusage(int exitcode, char *error, char *addl);
 int usage(int exitcode, char *error, char *addl);
 int usaged(int exitcode, char *error, char *addl);
-char *pdata(struct sensor sens[], int snum);
+char *readconfig(struct cmd *pcmd);
+char *echoconfig(struct cmd *pcmd);
+
+int getnrd(unsigned char *data, int *mdat, struct cmd *);
+int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
+
+int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
+int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
+char *wstat(unsigned char *data, int mdat, struct wthio *rw);
+time_t dcftime(unsigned char *data, int ndat);
+char *wcmd(struct cmd *pcmd, struct wthio *rw);
+
+int initdata(struct wthio *rw);
+int initcmd(struct cmd *pcmd);
