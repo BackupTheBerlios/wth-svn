@@ -1,6 +1,6 @@
-News from Martin Johnson ( Sun, December 21, 2003 6:16 pm)
+Volker,
 
-PCWSR for the ELV weatherstations
+Thanks for writing PCWSR for the ELV weatherstations!
 
 I have one of these systems, and PCWSR is working for me.  I have edited the
 source code of pcwsr v0.1.2 to add a "-p" (Pipeline) command option which
@@ -17,4 +17,17 @@ On STDERR, you still see the original human-readable output from v0.1.2.
 My next job is to write a process to read the STDOUT pipeline data, and
 import it into a PostGreSQL database.  After that, I hope to write some PHP
 code to show interesting data and plot graphs with GD.
+
+I'd like to commit my changes to your CVS repository sometime, but meanwhile
+I notice that you've announced v0.1.3.  However, the download link for 0.1.3
+seems to be broken, and the CVS repository only has 0.1.2.
+
+Thanks and best regards,
+
+--
+-- Martin Johnson.
+
+
+
+
 
