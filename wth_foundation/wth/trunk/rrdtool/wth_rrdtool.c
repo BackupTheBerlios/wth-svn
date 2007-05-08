@@ -134,6 +134,6 @@ void Free_argv(char** argv)
         free(argv);
 }
 /*
- compile command: gcc -L/usr/local/lib -lrrd -o wth_rrdcreat wth_rrdcreat.c
+ compile command: gcc -L/usr/local/lib -lrrd -o wth_rrdtool wth_rrdtool.c
  please check for location of librrd.a
 */
