@@ -12,22 +12,26 @@ void Free_argv(char** argv);
 
 
 int main ( int argc, char **argv) {
-    int rrd_argc,i;
+    int rrd_argc, ret;
     char **rrd_argv;
-    char *argstr = "test.rrd --start 920804400 DS:speed:COUNTER:600:U:U RRA:AVERAGE:0.5:1:24 RRA:AVERAGE:0.5:6:10";
+    char *argstr = "test.rrd --start 920804400  \
+                    DS:speed:COUNTER:600:U:U   \
+                    RRA:AVERAGE:0.5:1:24 \
+                    RRA:AVERAGE:0.5:6:10";
 
     if((rrd_argv = string_to_argv(argstr, &rrd_argc)) != NULL)
         {
                 optind=0; /* reset gnu getopt */
                 opterr=0; /* no error messages */
 
-                i = rrd_create(rrd_argc, rrd_argv);
+                ret = rrd_create(rrd_argc, rrd_argv);
 
                 //      free up the memory
                 Free_argv(rrd_argv);
 
-                return i;
+                return(ret);
         }
+    return(0);
 }
 
 
