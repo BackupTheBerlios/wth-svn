@@ -1,6 +1,6 @@
 /* 
-    sample program to test creating rrd's
-    directly from with wth
+    sample program to fiddle with rrd's
+    directly from within wth
 
     Volker Jahns, May 2007
 */
@@ -14,10 +14,13 @@ void Free_argv(char** argv);
 int main ( int argc, char **argv) {
     int rrd_argc, ret;
     char **rrd_argv;
-    char *argstr = "test.rrd --start 920804400  \
-                    DS:speed:COUNTER:600:U:U   \
-                    RRA:AVERAGE:0.5:1:24 \
-                    RRA:AVERAGE:0.5:6:10";
+    char *argstr = "PressureI.rrd --start 973709203 \
+       DS:PressureI:GAUGE:600:800:1100 \
+       RRA:AVERAGE:0.5:1:600 \
+       RRA:AVERAGE:0.5:6:700 \
+       RRA:AVERAGE:0.5:24:775 \
+       RRA:AVERAGE:0.5:288:797 \
+       RRA:LAST:0.5:1:1";
 
     if((rrd_argv = string_to_argv(argstr, &rrd_argc)) != NULL)
         {
