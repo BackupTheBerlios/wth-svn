@@ -4,7 +4,11 @@
 
     Volker Jahns, May 2007
 */
-#include "rrd_tool.h"
+//#include "rrd_tool.h"
+#include <rrd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 char** string_to_argv(char *argstring, int *argc);
 void Free_argv(char** argv);
@@ -20,6 +24,8 @@ int main ( int argc, char **argv) {
        RRA:AVERAGE:0.5:6:700 \
        RRA:AVERAGE:0.5:24:775 \
        RRA:AVERAGE:0.5:288:797 \
+       RRA:AVERAGE:0.5:2016:520 \
+       RRA:AVERAGE:0.5:8460:600 \
        RRA:LAST:0.5:1:1";
 
     if((rrd_argv = string_to_argv(argstr, &rrd_argc)) != NULL)

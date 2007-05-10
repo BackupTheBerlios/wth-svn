@@ -3,7 +3,7 @@
    $Id: libwth.c,v 1.2 2005/10/14 14:21:53 jahns Exp jahns $
    $Revision: 1.2 $
 
-   Copyright (C) 2000-2002,2005 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2000-2002,2005,2007 Volker Jahns <volker@thalreit.de>
 
    some code orginates from UNIX network programming (R.Stevens)
      http://www.kohala.com/start
@@ -96,21 +96,21 @@ demasq(unsigned char *data, int *mdat) {
    get corrected data
 */
 int 
-getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
+getcd ( unsigned char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int err;
 
     /* read answer of weather station from serial port */
-    if ( ( err = getrd(data, mdat, pcmd)) == -1)
+    if ( ( err = getrd( data, mdat, pcmd)) == -1)
 	  return(-1);
     
     /* echo raw dataframe */
-    err = echodata(data, *mdat);
+    err = echodata( data, *mdat);
     
     /* check data frame and do 
     	 data correction for masqueraded bytes */
-    if ( ( err = chkframe(data, mdat, pcmd)) == -1)
-	  return(-1);
+    if ( ( err = chkframe( data, mdat, pcmd)) == -1)
+         return(-1);
     
     /* echo raw demasqueraded dataframe */
     err = echodata(data, *mdat);
@@ -139,7 +139,7 @@ getcd (unsigned char *data, int *mdat, struct cmd *pcmd) {
 	 
 */
 int 
-chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
+chkframe( unsigned char *data, int *mdat, struct cmd *pcmd) {
     int i;
     int chksum;
     int ldat;
@@ -169,7 +169,7 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
        mdat is number of elements in array data
        calculate length by function wstrlen and compare both integers
     */
-    if ( wstrlen(data) == ldat ) 
+    if ( wstrlen( data) == ldat ) 
 	  syslog(LOG_DEBUG, "chkframe : frame length OK\n");
     else {
 	  syslog(LOG_DEBUG, "chkframe : frame length NOK\n");
@@ -177,7 +177,7 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
     }
 	
     /* to calculate checksum demasquerade <STX, <ETX> and <ENQ> first */
-    demasq(data, &ldat);
+    demasq( data, &ldat);
 
     /* calculate checksum */
     chksum = 0;
@@ -207,12 +207,12 @@ chkframe(unsigned char *data, int *mdat, struct cmd *pcmd) {
     syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
 	
     /* check if NAK dataframe has been received */
-    if ( !strncmp(data, nakfram, *mdat) ) {
+    if ( !strncmp( data, nakfram, *mdat) ) {
 	  syslog(LOG_INFO, 
 		 "chkframe : NAK received : faulty data reception\n");
 	  werrno = ERCPT;
 	  return(-1);
-    }  
+    }
     *mdat = ldat;
     return(0);
 } 
@@ -442,7 +442,7 @@ time_t dcftime(unsigned char *data, int ndat) {
     
     dtim = mktime(&t);
     clk = ctime(&dtim);
-    syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", (long int)dtim);
+    syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", (long unsigned int)dtim);
     syslog(LOG_DEBUG, "dcftime : DCF clk : %s\n", clk);
 
 	
@@ -703,37 +703,44 @@ print the sensor data as hold in structure sens
 
 */
 char *
-pdata(struct wthio *wth) {
+pdata(struct wthio *wth, struct cmd *pcmd) {
   int i,j; 
   int size = 100;
   static char t[MAXBUFF];
   char *s;
 
-  t[0] = '\0';
 
-  s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
-  /* code won't work on LINUX, FreeBSD OK
-     size = strlen(s) + 1; 
-     if ((t = calloc(size,sizeof(char))) == NULL )
-     return NULL;
-     strcat(t,s);
-  */
-  strncat(t, s, strlen(s));
+  printf("outfmt: %s\n", pcmd->outfmt);
+  if ( strncmp(pcmd->outfmt,"old",3) == 0) {
+    t[0] = '\0';
+    s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
+    /* code won't work on LINUX, FreeBSD OK
+       size = strlen(s) + 1; 
+       if ((t = calloc(size,sizeof(char))) == NULL )
+       return NULL;
+       strcat(t,s);
+    */
+    strncat(t, s, strlen(s));
   
-  for ( i = 0; i < MAXSENSORS; i++ ) {
-    if ( wth->sens[i].status != 0 ) {   
-      for ( j = 0; j < wth->wstat.ndats; j++) {
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+      if ( wth->sens[i].status != 0 ) {   
+	for ( j = 0; j < wth->wstat.ndats; j++) {
 
-	s = mkmsg("%d\t%s\t%d\t%d\t%lu\t%d\t%8.1f\n", i, 
-		  wth->sens[i].type, wth->sens[i].status, j, 
-		  wth->sens[i].mess[j].time,
-		  wth->sens[i].mess[j].sign,
-		  wth->sens[i].mess[j].value);
+	  s = mkmsg("%d\t%s\t%d\t%d\t%lu\t%d\t%8.1f\n", i, 
+		    wth->sens[i].type, wth->sens[i].status, j, 
+		    wth->sens[i].mess[j].time,
+		    wth->sens[i].mess[j].sign,
+		    wth->sens[i].mess[j].value);
 	
-	size = size + strlen(s) + 1;
-	strncat(t, s, strlen(s));
+	  size = size + strlen(s) + 1;
+	  strncat(t, s, strlen(s));
+	}
       }
     }
+  } else if ( strncmp(pcmd->outfmt,"std",3) == 0) {
+      t[0] = '\0';
+      s = mkmsg("Not implemented\n");
+      strncat(t, s, strlen(s));
   }
   return (t);
 }
@@ -935,7 +942,7 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
 
     /* echo sensor data */
     if ( rw->wstat.ndats > 0 )
-      rbuf = pdata(rw);
+      rbuf = pdata(rw, pcmd);
   } 
 
 
@@ -1129,7 +1136,7 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
 
     /* echo sensor data */
     if ( rw->wstat.ndats > 0 ) {
-      rbuf = pdata(rw);
+      rbuf = pdata(rw, pcmd);
       printf("w/o statement: return (rbuf)"); 
       //return ( rbuf);
 #if defined POSTGRES
@@ -1221,6 +1228,7 @@ struct cmd
   inipcmd->database    = DATABASE;
   inipcmd->dbuser      = DBUSER;
   inipcmd->units       = UNITS;
+  inipcmd->outfmt      = OUTFMT;
 
   return(inipcmd);
   //return(0);
@@ -1234,8 +1242,8 @@ struct cmd
    or group of bits.
    Kerninghan, Ritchie, The C Programming Language, p49.
 */
-unsigned
-getbits(unsigned x, int p, int n) {
+unsigned char
+getbits(unsigned char x, int p, int n) {
   return ( x>>(p+1-n)) & ~(~0 <<n);
 }
 
@@ -1278,8 +1286,8 @@ echodata(unsigned char *data, int mdat) {
 
 */
 int
-wstrlen (char *s) {
-    char *p = s;
+wstrlen ( unsigned char *s) {
+    unsigned char *p = s;
 
     while ( *p != ETX ) p++;
 

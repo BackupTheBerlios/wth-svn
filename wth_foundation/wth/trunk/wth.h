@@ -77,8 +77,8 @@
 #define WSTYPE      "WS2000"
 #define DATABASE    "weather"
 #define DBUSER      "postgres"
-
 #define UNITS       "SI"
+#define OUTFMT      "old"
 
 /* from unp.h */
 #define	MAXLINE      4096	/* max text line length */
@@ -176,6 +176,7 @@ struct cmd {
   int nbits;
   int parity;
   char *units;
+  char *outfmt;
 };
 
 struct key {

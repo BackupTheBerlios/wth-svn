@@ -48,10 +48,13 @@ int main (int argc, char **argv) {
   syslog(LOG_DEBUG, "wthc: %s\n", VERSION);
                                                                     
   /* parsing command line arguments */
-  while (( oarg = getopt(argc, argv, "c:h:i:p:stu:v")) != -1 ) {
+  while (( oarg = getopt(argc, argv, "c:f:h:i:p:stu:v")) != -1 ) {
     switch (oarg) {
     case 'c':
       pcmd->command = atoi(optarg);
+      break;
+    case 'f':
+      pcmd->outfmt = optarg;
       break;
     case 'h':
       pcmd->hostname = optarg;

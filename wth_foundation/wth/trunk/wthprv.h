@@ -25,9 +25,9 @@
 */
 
 
-typedef void Sigfunc (int);  
+typedef void Sigfunc ( int);  
 
-Sigfunc *signal(int signo, Sigfunc *func);
+Sigfunc *signal( int signo, Sigfunc *func);
 /* for our signal() function */
 /* static Sigfunc *Signal(int signo, Sigfunc *func); */
 
@@ -37,14 +37,14 @@ int closeserial( int fd, struct termios *oldtio);
 int readdata( int fd, unsigned char *data, 
   int *ndat, struct cmd *pcmd);
 
-Ckey *c(int n);
-int wstrlen(char *s);
+Ckey *c( int n);
+int wstrlen( unsigned char *s);
 
-unsigned getbits(unsigned x, int p, int n);
-char *mkmsg(const char *, ...);
+unsigned char getbits( unsigned char x, int p, int n);
+char *mkmsg( const char *, ...);
 
-int demasq(unsigned char *data, int *mdat);
-int chkframe(unsigned char *data, int *mdat, struct cmd *pcmd);
-int datex(unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
-char *pdata(struct wthio *rw);
-int echodata(unsigned char *data, int mdat);
+int demasq( unsigned char *data, int *mdat);
+int chkframe( unsigned char *data, int *mdat, struct cmd *pcmd);
+int datex( unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
+char *pdata( struct wthio *rw, struct cmd *pcmd);
+int echodata( unsigned char *data, int mdat);

@@ -1,4 +1,9 @@
 wth - experimental test release 
+
+release 0.4.6
+- using absolute pressure, was before:
+  absolute pressure (in hPa) minus 200 (hPa)
+
 release 0.4.5
 - bugfix segmentation fault
 - SI units default, but can now do US units

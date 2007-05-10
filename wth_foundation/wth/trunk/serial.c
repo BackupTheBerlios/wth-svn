@@ -283,7 +283,7 @@ readdata (int fd, unsigned char *data, int *ndat,
 {
   int i,n;
   int err;
-  char rbuf[MAXBUFF];
+  unsigned char rbuf[MAXBUFF];
   int maxfd;
   int loop = 1;
   fd_set readfs;
@@ -384,11 +384,11 @@ Ckey *c(int n){
 
    get raw data from serial interface
 */
-int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
+int getsrd ( unsigned char *data, int *mdat, struct cmd *pcmd) {
     int fd;                         /* filedescriptor serial port */
     char lword[5];                  /* temporary array to hold commandword */
-    struct termios newtio,oldtio; /* termios structures to set 
-                                     comm parameters */
+    struct termios newtio,oldtio;   /* termios structures to set 
+                                       comm parameters */
 
     
     if ( initserial(&fd, &newtio, &oldtio, pcmd) == -1 )
@@ -434,7 +434,7 @@ int getsrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
     }
     
     /* echo raw dataframe */
-    if ( echodata(data, *mdat) == -1)
+    if ( echodata( data, *mdat) == -1)
 	  return(-1);
 
     closeserial(fd, &oldtio);

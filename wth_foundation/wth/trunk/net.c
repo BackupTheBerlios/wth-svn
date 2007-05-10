@@ -307,9 +307,10 @@ Bind(int fd, const struct sockaddr *sa, socklen_t salen)
    IPv4 version
  
 */
-int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
+int getnrd( unsigned char *data, int *mdat, struct cmd *pcmd) {
     int                  sockfd, n, len;
     char                 sendline[MAXLINE] = "1";
+    unsigned char nbuf[MAXBUFF];
     struct sockaddr_in   servaddr;
 
     struct in_addr **pptr, *addrs[2];
@@ -347,15 +348,15 @@ int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
       if ( ( sockfd = Socket(AF_INET, SOCK_STREAM, 0)) == -1 )
 	return(-1);
 
-      memmove(&servaddr.sin_addr, *pptr, sizeof(struct in_addr));
-      Sock_ntop((SA *) &servaddr, sizeof(servaddr));
+      memmove( &servaddr.sin_addr, *pptr, sizeof( struct in_addr));
+      Sock_ntop((SA *) &servaddr, sizeof( servaddr));
 	  
-      if (connect(sockfd, (SA *) &servaddr, sizeof(servaddr)) == 0)
+      if ( connect( sockfd, (SA *) &servaddr, sizeof( servaddr)) == 0)
 	break; /* success */
 
       werrno = errno;
-      syslog(LOG_INFO, "getnrd: connect error: %s",
-	     strerror(werrno));
+      syslog( LOG_INFO, "getnrd: connect error: %s",
+	     strerror( werrno));
       return(-1);
 
       close(sockfd);
@@ -367,13 +368,13 @@ int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
     }
 
     /* write command to server */
-    snprintf(sendline, sizeof(sendline), "%d\r\n", (*pcmd).command);
-    if ( Writen(sockfd, sendline, 1) == -1 )
+    snprintf( sendline, sizeof(sendline), "%d\r\n", (*pcmd).command);
+    if ( Writen( sockfd, sendline, 1) == -1 )
       return(-1);
     
     /* read response. rwstephens unp p.10 */
-    while ( ( n = read(sockfd, data, MAXBUFF)) > 0) {
-      data[n] = 0;
+    while ( ( n = read( sockfd, nbuf, MAXBUFF)) > 0) {
+      nbuf[n] = 0;
     }
 
     /* code doesn't work. why?
@@ -381,8 +382,9 @@ int getnrd(unsigned char *data, int *mdat, struct cmd *pcmd) {
        err_quit("getnrd: server terminated prematurely");
     */
 
-    len = wstrlen(data);
+    len = wstrlen( nbuf);
     *mdat = len;
+    strncpy( data, nbuf, MAXBUFF);
 	
     return(0);
 }

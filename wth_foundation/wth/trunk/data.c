@@ -29,15 +29,15 @@
 
    get raw data
 */
-int getrd (unsigned char *data, int *mdat, struct cmd *pcmd) {
+int getrd ( unsigned char *data, int *mdat, struct cmd *pcmd) {
     int err;
 
     if ( pcmd->netflg == 0 ) /* read serial interface */ {
-	  if ( ( err = getsrd(data, mdat, pcmd)) == -1)
+	  if ( ( err = getsrd( data, mdat, pcmd)) == -1)
 		return(-1);
     }
     else if (pcmd->netflg == 1 ) /* read network interface */ {
-	  if ( ( err = getnrd(data, mdat, pcmd)) == -1)
+	  if ( ( err = getnrd( data, mdat, pcmd)) == -1)
 		return(-1);
     }
     return(0);
