@@ -36,15 +36,15 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = i386-unknown-freebsd6.2
-host_triplet = i386-unknown-freebsd6.2
-target_triplet = i386-unknown-freebsd6.2
+build_triplet = i386-unknown-freebsd6.1
+host_triplet = i386-unknown-freebsd6.1
+target_triplet = i386-unknown-freebsd6.1
 bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT)
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
-	ChangeLog INSTALL NEWS acconfig.h config.guess config.sub \
-	depcomp install-sh missing mkinstalldirs
+	ChangeLog INSTALL NEWS config.guess config.sub depcomp \
+	install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -65,9 +65,8 @@ am_libwth_a_OBJECTS = libwth.$(OBJEXT) data.$(OBJEXT) serial.$(OBJEXT) \
 libwth_a_OBJECTS = $(am_libwth_a_OBJECTS)
 libwthxml_a_AR = $(AR) $(ARFLAGS)
 libwthxml_a_LIBADD =
-am_libwthxml_a_OBJECTS = libwth.$(OBJEXT) dataxml.$(OBJEXT) \
-	serial.$(OBJEXT) net.$(OBJEXT) xml.$(OBJEXT)
-libwthxml_a_OBJECTS = $(am_libwthxml_a_OBJECTS)
+libwthxml_a_SOURCES = libwthxml.c
+libwthxml_a_OBJECTS = libwthxml.$(OBJEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
@@ -84,10 +83,10 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libwth_a_SOURCES) $(libwthxml_a_SOURCES) $(wthc_SOURCES) \
+SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
 	$(wthd_SOURCES)
-DIST_SOURCES = $(libwth_a_SOURCES) $(libwthxml_a_SOURCES) \
-	$(wthc_SOURCES) $(wthd_SOURCES)
+DIST_SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
+	$(wthd_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -102,14 +101,14 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run aclocal-1.9
+ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run aclocal-1.9
 AMDEP_FALSE = #
 AMDEP_TRUE = 
-AMTAR = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run tar
-AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoconf
-AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoheader
-AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run automake-1.9
-AWK = nawk
+AMTAR = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run tar
+AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoconf
+AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoheader
+AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run automake-1.9
+AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2 -DFREEBSD -Wall
@@ -131,7 +130,7 @@ LDFLAGS =
 LIBOBJS = 
 LIBS = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run makeinfo
+MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run makeinfo
 OBJEXT = o
 PACKAGE = wth
 PACKAGE_BUGREPORT = 
@@ -156,21 +155,21 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = i386-unknown-freebsd6.2
+build = i386-unknown-freebsd6.1
 build_alias = 
 build_cpu = i386
-build_os = freebsd6.2
+build_os = freebsd6.1
 build_vendor = unknown
 datadir = ${prefix}/share
 exec_prefix = ${prefix}
-host = i386-unknown-freebsd6.2
+host = i386-unknown-freebsd6.1
 host_alias = 
 host_cpu = i386
-host_os = freebsd6.2
+host_os = freebsd6.1
 host_vendor = unknown
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/install-sh
+install_sh = /proj/wetter/software/serial/wth/trunk/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -182,14 +181,13 @@ program_transform_name = s,x,x,
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
-target = i386-unknown-freebsd6.2
+target = i386-unknown-freebsd6.1
 target_alias = 
 target_cpu = i386
-target_os = freebsd6.2
+target_os = freebsd6.1
 target_vendor = unknown
 noinst_LIBRARIES = libwth.a libwthxml.a
 libwth_a_SOURCES = libwth.c data.c serial.c net.c wth.h wthnet.h wthprv.h 
-libwthxml_a_SOURCES = libwth.c dataxml.c serial.c net.c xml.c wth.h wthnet.h wthprv.h 
 #bin_PROGRAMS = wthc wthd wthxc wthxmld 
 wthc_SOURCES = wthc.c wth.h
 wthc_LDADD = libwth.a 
@@ -270,7 +268,7 @@ config.h: stamp-h1
 stamp-h1: $(srcdir)/config.h.in $(top_builddir)/config.status
 	@rm -f stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status config.h
-$(srcdir)/config.h.in:  $(am__configure_deps) $(top_srcdir)/acconfig.h
+$(srcdir)/config.h.in:  $(am__configure_deps) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	rm -f stamp-h1
 	touch $@
@@ -325,13 +323,12 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/data.Po
-include ./$(DEPDIR)/dataxml.Po
 include ./$(DEPDIR)/libwth.Po
+include ./$(DEPDIR)/libwthxml.Po
 include ./$(DEPDIR)/net.Po
 include ./$(DEPDIR)/serial.Po
 include ./$(DEPDIR)/wthc.Po
 include ./$(DEPDIR)/wthd.Po
-include ./$(DEPDIR)/xml.Po
 
 .c.o:
 	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

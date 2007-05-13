@@ -19,6 +19,12 @@ int main ( int argc, char **argv) {
     int rrd_argc, ret;
     char **rrd_argv;
     char *argstr = "PressureI.rrd --start 973709203 \
+       DS:Temp1:GAUGE:600:-50:100 \
+       DS:Humidity1:GAUGE:600:10:100 \
+       DS:Rain:GAUGE:600:0:10000 \
+       DS:Windspeed:GAUGE:600:0:250 \
+       DS:Winddir:GAUGE:600:0:400 \
+       DS:Winddev:GAUGE:600:0:100 \
        DS:PressureI:GAUGE:600:800:1100 \
        RRA:AVERAGE:0.5:1:600 \
        RRA:AVERAGE:0.5:6:700 \
@@ -143,6 +149,8 @@ void Free_argv(char** argv)
         free(argv);
 }
 /*
- compile command: gcc -L/usr/local/lib -lrrd -o wth_rrdtool wth_rrdtool.c
+ compile command: 
+ gcc -L/usr/local/lib -I/usr/local/include -lrrd -o wth_rrdtool wth_rrdtool.c
+
  please check for location of librrd.a
 */

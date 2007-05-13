@@ -708,18 +708,11 @@ pdata(struct wthio *wth, struct cmd *pcmd) {
   int size = 100;
   static char t[MAXBUFF];
   char *s;
+  struct tm tm_buff;
 
-
-  printf("outfmt: %s\n", pcmd->outfmt);
   if ( strncmp(pcmd->outfmt,"old",3) == 0) {
     t[0] = '\0';
     s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
-    /* code won't work on LINUX, FreeBSD OK
-       size = strlen(s) + 1; 
-       if ((t = calloc(size,sizeof(char))) == NULL )
-       return NULL;
-       strcat(t,s);
-    */
     strncat(t, s, strlen(s));
   
     for ( i = 0; i < MAXSENSORS; i++ ) {
@@ -741,9 +734,53 @@ pdata(struct wthio *wth, struct cmd *pcmd) {
       t[0] = '\0';
       s = mkmsg("Not implemented\n");
       strncat(t, s, strlen(s));
+  } else if ( strncmp(pcmd->outfmt,"lline",5) == 0) {
+#ifdef YYY
+    strcpy(t, mkmsg("#time"));
+    size = strlen(t);
+
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+#ifdef XXX
+      if ( wth->sens[i].status != 0 )
+	{        s = mkmsg("\t%s_%d", wth->sens[i].type, i );
+#else
+	{       s = mkmsg("\t%d", i);
+#endif
+	size = size + strlen(s) + 1;
+	strncat(t, s, strlen(s));
+	}
+	}
+      size++;
+      strncat(t,"\n",1);
+#else
+      t[0] = '\0';
+#endif
+      localtime_r(&wth->sens[0].mess[0].time, &tm_buff);
+      s = mkmsg("%04d-%02d-%02d %02d:%02d:%02d", tm_buff.tm_year+1900,tm_buff.tm_mon+1,tm_buff.tm_mday,tm_buff.tm_hour,tm_buff.tm_min,tm_buff.tm_sec);
+      size = size + strlen(s) + 1;
+      strncat(t, s, strlen(s));
+
+      for ( i = 0; i < MAXSENSORS; i++ ) {
+	for ( j = 0; j < wth->wstat.ndats; j++) {
+	  if ( wth->sens[i].status != 0 )
+	    {
+              s = mkmsg("\t%.1f", wth->sens[i].mess[j].value);
+	    }
+	  else
+	    s = "\t-";
+	  size = size + strlen(s) + 1;
+	  strncat(t, s, strlen(s));
+	}
+
+      }
+
+      size++;
+      strncat(t,"\n",1);
+      return (t);
+    }
+
+    return (t);
   }
-  return (t);
-}
 
 #if defined POSTGRES
 /* pg_data
