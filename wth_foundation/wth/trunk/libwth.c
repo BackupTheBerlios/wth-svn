@@ -1174,8 +1174,8 @@ wcmd (struct cmd *pcmd, struct wthio *rw) {
     /* echo sensor data */
     if ( rw->wstat.ndats > 0 ) {
       rbuf = pdata(rw, pcmd);
-      printf("w/o statement: return (rbuf)"); 
-      //return ( rbuf);
+      //printf("w/o statement: return (rbuf)"); 
+      return ( rbuf);
 #if defined POSTGRES
       if ( command == 7 ) {
 	if ( ( err = pg_data( pcmd, rw)) == -1 ) {
