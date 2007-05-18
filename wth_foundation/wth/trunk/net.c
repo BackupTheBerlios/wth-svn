@@ -28,8 +28,6 @@
 */
 
 #include "wth.h"
-#include "wthnet.h"
-#include "wthprv.h"
 
 extern int daemon_proc; 
 

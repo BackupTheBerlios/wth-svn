@@ -177,6 +177,7 @@ struct cmd {
   int parity;
   char *units;
   char *outfmt;
+  char *rrdfile;
 };
 
 struct key {
@@ -192,7 +193,7 @@ typedef struct key Ckey;
 int werrno;      /* weatherstation errors */
 int daemon_proc;		/* set nonzero by daemon_init() */
 
-/* function prototypes */
+
 int daemon_init(const char *, int); 
 
 char *tnusage(int exitcode, char *error, char *addl);
@@ -214,3 +215,41 @@ char *wcmd(struct cmd *pcmd, struct wthio *rw);
 
 int initdata(struct wthio *rw);
 struct cmd *initcmd(void );
+
+
+extern int Socket(int, int, int); 
+ssize_t Read(int, void *, size_t); 
+int Write(int, void *, size_t);   
+int Accept(int, SA *, socklen_t *);
+int Bind(int, const SA *, socklen_t);
+int Listen(int, int); 
+int Close(int); 
+
+pid_t Fork(void); 
+int Setsockopt(int, int, int, const void *, socklen_t); 
+int Writen(int, void *, size_t);  
+
+const char *inet_ntop(int, const void *, char *, size_t);
+int inet_pton(int, const char *, void *); 
+
+typedef void Sigfunc ( int);  
+
+Sigfunc *signal( int signo, Sigfunc *func);
+
+int initserial( int *pfd, struct termios *newtio, 
+		struct termios *oldtio, struct cmd *pcmd);
+int closeserial( int fd, struct termios *oldtio);
+int readdata( int fd, unsigned char *data, 
+  int *ndat, struct cmd *pcmd);
+
+Ckey *c( int n);
+int wstrlen( unsigned char *s);
+
+unsigned char getbits( unsigned char x, int p, int n);
+char *mkmsg( const char *, ...);
+
+int demasq( unsigned char *data, int *mdat);
+int chkframe( unsigned char *data, int *mdat, struct cmd *pcmd);
+int datex( unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
+char *pdata( struct wthio *rw, struct cmd *pcmd);
+int echodata( unsigned char *data, int mdat);

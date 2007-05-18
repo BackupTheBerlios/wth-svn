@@ -9,7 +9,7 @@ rm -f config.cache
 
 #
 aclocal19
-autoconf259
+autoconf261
 #autoheader213
 # do _not_ use autoheader 
 # it will destroy the hand-edited config.h.in

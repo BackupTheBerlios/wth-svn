@@ -1,11 +1,12 @@
 wth is a free software solution to read weatherstation data
-of the Conrad or ELV WS2000 PC interface, which stores
-data of as many as 16 temperature and humidity sensors, 1 wind 
-sensor and 1 rainfall sensor. A DCF77 receiver is built into 
-the interface. The interface connects thru the serial port to
-the computing equipment. The communication protocol has been 
-published by the manufacturer and is fully implemented by the 
-wth software.
+of the Lacrosse Technology WS2010 or Conrad resp. ELV WS2000 PC 
+interface, which stores data of 16 temperature, humidity and 
+pressure sensors, 1 wind sensor and 1 rainfall sensor. 
+
+A DCF77 receiver is built into the interface. The interface connects 
+thru the serial port to the computing equipment. The communication 
+protocol has been published by the manufacturer and is fully 
+implemented by the wth software.
 
 The code is seperated in three parts:
 
@@ -20,6 +21,7 @@ The code is seperated in three parts:
 
 
 Pressure is logged as received, i.e. as an absolute pressure value.
+
 In order to change it to sealevel based value the following RRD CDEF 
 will do
 Thalreit HEIGHT = 456m
@@ -53,17 +55,13 @@ php
 crontab
 postgres
 
-I modified wthc.c and libwth.c to enable the application to update a
+wthc.c and libwth.c code have been modified to enable the application 
+to update a
 postgres database with the data collected from a WS2010 data logger.
 The data is used to update a PHP based weather web-site.  Flash based
 weather dials and graphs are dynamically updated with the data from
 the database when a user loads/reloads weather.php.  See the file
 "JJYs_wthc_Modification_Notes-Sep_10_2005.txt" for details.
-
-I had to use cron to check wthc every 15 minutes or so.  If wthc
-crashes, which it sometimes does, the cron daemon will restart wthc
-automatically. See the file nomad2crontab in the crontab directory of
-the tar-ball.
 
 The weather station has been running quite nicely now for a number of
 weeks, so I figured I would share my work with you.  Please feel free

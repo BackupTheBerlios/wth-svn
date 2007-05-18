@@ -4,6 +4,8 @@ dnl
 dnl Copyright (C) Jun 2002,2005 Volker Jahns (Volker.Jahns@thalreit.de)
 dnl
 dnl Process this file with autoconf to produce a configure script.
+USE_AUTOHEADER
+
 AC_INIT(libwth.c)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(wth, 0.4.5)

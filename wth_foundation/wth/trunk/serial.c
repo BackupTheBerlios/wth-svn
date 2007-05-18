@@ -24,7 +24,6 @@
 */
 
 #include "wth.h"
-#include "wthprv.h"
 
 int
 bitstat( int byte, char *s_reg  ) 

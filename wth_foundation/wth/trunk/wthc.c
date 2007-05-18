@@ -2,8 +2,8 @@
 
    client program to communicate w/ WS2000 weatherstation
 
-   $Id: wthc.c,v 1.1 2002/07/04 09:51:48 jahns Exp jahns $
-   $Revision: 1.1 $
+   $Id$
+   $Revision$
    
    Copyright (C) 2000-2001,2005,2007 Volker Jahns <volker@thalreit.de>
                                      Rob Burrowes <rob@cs.auckland.ac.nz>
@@ -31,8 +31,6 @@
 int main (int argc, char **argv) {
   int oarg, stime = 0;
   char *rbuf;
-  extern int optind;              
-  extern char *optarg;
   struct cmd  *pcmd;
   struct wthio wio;
 
