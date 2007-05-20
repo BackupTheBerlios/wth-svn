@@ -25,6 +25,298 @@
 #include <wth.h>
 
 
+/* pdata 
+
+print the sensor data as hold in structure sens
+
+*/
+char *
+pdata(struct wthio *wth, struct cmd *pcmd) {
+  int i,j; 
+  int size = 100;
+  static char t[MAXBUFF];
+  char *s;
+  struct tm tm_buff;
+
+  if ( strncmp(pcmd->outfmt,"old",3) == 0) {
+    t[0] = '\0';
+    s = mkmsg("Sensor\tType\tStatus\tdataset\ttime\t\tsign\tabs.value\n");
+    strncat(t, s, strlen(s));
+  
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+      if ( wth->sens[i].status != 0 ) {   
+	for ( j = 0; j < wth->wstat.ndats; j++) {
+
+	  s = mkmsg("%d\t%s\t%d\t%d\t%lu\t%d\t%8.1f\n", i, 
+		    wth->sens[i].type, wth->sens[i].status, j, 
+		    wth->sens[i].mess[j].time,
+		    wth->sens[i].mess[j].sign,
+		    wth->sens[i].mess[j].value);
+	
+	  size = size + strlen(s) + 1;
+	  strncat(t, s, strlen(s));
+	}
+      }
+    }
+  } else if ( strncmp(pcmd->outfmt,"std",3) == 0) {
+      t[0] = '\0';
+      s = mkmsg("Not implemented\n");
+      strncat(t, s, strlen(s));
+  } else if ( strncmp(pcmd->outfmt,"lline",5) == 0) {
+#ifdef YYY
+    strcpy(t, mkmsg("#time"));
+    size = strlen(t);
+
+    for ( i = 0; i < MAXSENSORS; i++ ) {
+#ifdef XXX
+      if ( wth->sens[i].status != 0 )
+	{        s = mkmsg("\t%s_%d", wth->sens[i].type, i );
+#else
+	{       s = mkmsg("\t%d", i);
+#endif
+	size = size + strlen(s) + 1;
+	strncat(t, s, strlen(s));
+	}
+	}
+      size++;
+      strncat(t,"\n",1);
+#else
+      t[0] = '\0';
+#endif
+      localtime_r(&wth->sens[0].mess[0].time, &tm_buff);
+      s = mkmsg("%04d-%02d-%02d %02d:%02d:%02d", tm_buff.tm_year+1900,tm_buff.tm_mon+1,tm_buff.tm_mday,tm_buff.tm_hour,tm_buff.tm_min,tm_buff.tm_sec);
+      size = size + strlen(s) + 1;
+      strncat(t, s, strlen(s));
+
+      for ( i = 0; i < MAXSENSORS; i++ ) {
+	for ( j = 0; j < wth->wstat.ndats; j++) {
+	  if ( wth->sens[i].status != 0 )
+	    {
+              s = mkmsg("\t%.1f", wth->sens[i].mess[j].value);
+	    }
+	  else
+	    s = "\t-";
+	  size = size + strlen(s) + 1;
+	  strncat(t, s, strlen(s));
+	}
+
+      }
+
+      size++;
+      strncat(t,"\n",1);
+      return (t);
+    }
+
+    return (t);
+  }
+
+#if defined POSTGRES
+/* pg_data
+
+insert sensor data into postgresql database
+
+*/
+int 
+pg_data ( struct cmd *pcmd, struct wthio *wth) 
+{
+  int j;
+
+  /* database variables */
+  char *conninfo;
+  PGconn *conn;
+  PGresult *res;
+  int humi, humo, bar, windd, rain;
+  float tempi, tempo, winds;
+  char sqlstr[300];
+
+  time_t tpc; 
+  struct tm *tmpc; 
+  char timebuff[40] = "";
+
+  int conncount;
+
+  /* make a connection to the database "weather" */
+  if (( conninfo = malloc(MAXBUFF)) == NULL )
+    return 1;
+
+  snprintf( conninfo, MAXBUFF, "dbname=%s user=%s", 
+	    pcmd->database, pcmd->dbuser);
+  conn = PQconnectdb(conninfo);
+
+  /* Check to see that the backend connection was successfully made */
+  if (PQstatus(conn) != CONNECTION_OK){
+    syslog(LOG_INFO, "pg_data: Connection to database failed: %s",
+	    PQerrorMessage(conn));
+    PQfinish(conn);
+    return(1);
+  }
+
+  /* reset data logger access command counter */
+  conncount=0;
+
+  /* Use simple variable names for the data just retreived */
+
+  for ( j = 0; j < wth->wstat.ndats; j++) {
+    tempo = -wth->sens[0].mess[j].value;
+    if(!wth->sens[0].mess[j].sign){
+      tempo = -tempo;
+    }
+    humo = (int)wth->sens[1].mess[j].value;
+    rain = (int)wth->sens[16].mess[j].value;
+    winds = wth->sens[17].mess[j].value;
+    windd = (int)wth->sens[18].mess[j].value;
+    bar = (int)wth->sens[20].mess[j].value;
+    tempi = -wth->sens[21].mess[j].value;
+    if(!wth->sens[21].mess[j].sign){
+      tempi = -tempi;
+    }
+    humi = (int)wth->sens[22].mess[j].value;
+      
+    tpc = wth->sens[20].mess[j].time;
+    tmpc = localtime(&tpc);
+    strftime(timebuff, sizeof(timebuff), "%Y-%m-%d %X", tmpc);
+
+    /* Write data out to the database */
+    snprintf(sqlstr, MAXBUFF,
+	    "INSERT into weather (" 
+	    "tempo,"
+	    "humo,"
+	    "rain,"
+	    "winds,"
+	    "windd,"
+	    "bar,"
+	    "tempi,"
+	    "humi,"
+	    "t )"
+	    " values ( '%3.1f', "
+	    "'%3d','%4d','%3.1f','%3d','%3d','%3.1f','%3d','%s')",
+	    tempo,humo,rain,winds,windd,bar,tempi,humi,timebuff);
+    syslog(LOG_DEBUG, "pg_data: sqlstr: %s\n",sqlstr);
+      
+    res = PQexec(conn, sqlstr);
+    if( PQresultStatus( res ) != PGRES_COMMAND_OK ) { 
+      syslog(LOG_INFO, "pg_data: PQexec failed: %s", PQerrorMessage( conn ) );
+      PQfinish(conn);
+      return(1);
+    }
+    PQclear(res);
+  }
+
+  /* Clean up database connection when exiting */
+  PQfinish(conn);
+  return(0);
+
+}
+#endif
+
+
+/* initdata 
+
+presets the datastructures
+rw->sens
+pcmd
+
+*/
+int initdata(struct wthio *rw) {
+  int i;  /* array subscription */  
+
+  /* set type of the sensors */
+  /* first 8 temperature/humidity sensors */
+  for ( i = 0; i < 8; i++) {
+    rw->sens[2*i].type   = "temp";
+    rw->sens[2*i+1].type = "hum";
+  }
+  
+  /* rain sensor */
+  rw->sens[16].type  = "rain";
+  /* wind sensor */
+  rw->sens[17].type  = "wspd";
+  rw->sens[18].type  = "wdir";
+  rw->sens[19].type  = "wdev";
+  /* indoor sensor : temp, hum, press */
+  rw->sens[20].type  = "pres";
+  rw->sens[21].type  = "temp";
+  rw->sens[22].type  = "hum";
+  /* sensor 9 is combined temperature/humidity */
+  rw->sens[23].type  = "temp";
+  rw->sens[24].type  = "hum";
+      
+  /* status of pressure/temperature/humidity sensor 10 to 15 */
+  for ( i = 0; i < 18; i = i + 3) {
+    rw->sens[25 + i    ].type = "pres";
+    rw->sens[25 + i + 1].type = "temp";
+    rw->sens[25 + i + 2].type = "hum";
+  }
+  return(0);
+}
+
+
+/* initcmd
+
+presets the datastructures
+pcmd
+
+*/
+struct cmd
+*initcmd( void) {  
+
+  struct cmd *inipcmd;   
+  /* initialize struct pcmd */
+  inipcmd = ( struct cmd *) malloc(sizeof(struct cmd *));
+  inipcmd->argcmd      = 0;
+  inipcmd->timeout     = TIMEOUT;
+  inipcmd->baudrate    = BAUDRATE;
+  inipcmd->logfacility = LOGFACILITY;
+  inipcmd->device      = SER_DEVICE;
+  inipcmd->verbose     = 0;
+  inipcmd->netflg      = -1;
+  inipcmd->hostname    = "localhost"; 
+  inipcmd->port        = WPORT; 
+  inipcmd->tnport      = TNPORT;   
+  inipcmd->wstype      = WSTYPE;
+  inipcmd->xmlport     = XMLPORT;
+  inipcmd->database    = DATABASE;
+  inipcmd->dbuser      = DBUSER;
+  inipcmd->units       = UNITS;
+  inipcmd->outfmt      = OUTFMT;
+
+  return(inipcmd);
+  //return(0);
+}
+
+
+
+/* echodata
+  
+   print out raw data frame reveived from weather station 
+
+*/
+int
+echodata(unsigned char *data, int mdat) {
+    int i;
+    char frame[MAXBUFF] = "";
+    char sf[3] = "";
+
+    syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);
+
+    /* for better readability label each byte in frame */    
+    for ( i = 0; i < mdat; i++ ) {
+	  sprintf(sf, "%2d:",i);
+      strcat(frame, sf);
+    }
+    syslog(LOG_DEBUG, "echodata : %s\n", frame);    
+    strcpy(frame, "");
+
+    for ( i = 0; i < mdat; i++ ) {
+	  sprintf(sf, "%2x:",data[i]);
+      strcat(frame, sf);
+    }
+
+    syslog(LOG_DEBUG, "echodata : %s\n", frame);   
+
+    return(0);
+} 
+
 /* 
    getbits
 
