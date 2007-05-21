@@ -89,18 +89,230 @@ int initdata( ) {
   ws2000station.sensor[9].sensorname = "Wind";
   ws2000station.sensor[9].rrdfile    = "Wind.rrd";
   ws2000station.sensor[9].param[0].paramname ="WindSpeed";
-  ws2000station.sensor[9].param[1].paramname ="WindDir";
-  ws2000station.sensor[9].param[2].paramname ="WindDev";
+  ws2000station.sensor[9].param[1].paramname ="WindDirection";
+  ws2000station.sensor[9].param[2].paramname ="WindDeviation";
   ws2000station.sensor[10].sensorname = "Indoor";
   ws2000station.sensor[10].rrdfile    = "Indoor.rrd";
   ws2000station.sensor[10].param[0].paramname ="PressureI";
   ws2000station.sensor[10].param[1].paramname ="TempI";
   ws2000station.sensor[10].param[2].paramname ="HumiI";
+  ws2000station.sensor[11].sensorname = "Sensor9";
+  ws2000station.sensor[11].rrdfile    = "Sensor9.rrd";
+  ws2000station.sensor[11].param[0].paramname ="Pressure9";
+  ws2000station.sensor[11].param[1].paramname ="Temp9";
+  ws2000station.sensor[11].param[2].paramname ="Humi9";
+  ws2000station.sensor[12].sensorname = "Sensor10";
+  ws2000station.sensor[12].rrdfile    = "Sensor10.rrd";
+  ws2000station.sensor[12].param[0].paramname ="Pressure10";
+  ws2000station.sensor[12].param[1].paramname ="Temp10";
+  ws2000station.sensor[12].param[2].paramname ="Humi10";
+  ws2000station.sensor[13].sensorname = "Sensor11";
+  ws2000station.sensor[13].rrdfile    = "Sensor11.rrd";
+  ws2000station.sensor[13].param[0].paramname ="Pressure11";
+  ws2000station.sensor[13].param[1].paramname ="Temp11";
+  ws2000station.sensor[13].param[2].paramname ="Humi11";
+  ws2000station.sensor[14].sensorname = "Sensor12";
+  ws2000station.sensor[14].rrdfile    = "Sensor12.rrd";
+  ws2000station.sensor[14].param[0].paramname ="Pressure12";
+  ws2000station.sensor[14].param[1].paramname ="Temp12";
+  ws2000station.sensor[14].param[2].paramname ="Humi12";
+  ws2000station.sensor[15].sensorname = "Sensor13";
+  ws2000station.sensor[15].rrdfile    = "Sensor13.rrd";
+  ws2000station.sensor[15].param[0].paramname ="Pressure13";
+  ws2000station.sensor[15].param[1].paramname ="Temp13";
+  ws2000station.sensor[15].param[2].paramname ="Humi13";
+  ws2000station.sensor[16].sensorname = "Sensor14";
+  ws2000station.sensor[16].rrdfile    = "Sensor14.rrd";
+  ws2000station.sensor[16].param[0].paramname ="Pressure14";
+  ws2000station.sensor[16].param[1].paramname ="Temp14";
+  ws2000station.sensor[16].param[2].paramname ="Humi14";
   ws2000station.config.dbfile        = "ws2000.db";
   ws2000station.config.device        = "/dev/ttyd0";
   ws2000station.status.interval      = 300;  
 
   /* pcwsr sensors */
+  /* T outdoor sensor V1.1 */
+  pcwsrstation.sensor[0x00].sensorname  = "T_OutdoorSensor1V1";
+  pcwsrstation.sensor[0x00].rrdfile     = "T_OutdoorSensor1V1.rrd";
+  pcwsrstation.sensor[0x00].address     = 0x00;
+  pcwsrstation.sensor[0x00].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x01].sensorname  = "T_OutdoorSensor2V1";
+  pcwsrstation.sensor[0x01].rrdfile     = "T_OutdoorSensor2V1.rrd";
+  pcwsrstation.sensor[0x01].address     = 0x01;
+  pcwsrstation.sensor[0x01].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x02].sensorname  = "T_OutdoorSensor3V1";
+  pcwsrstation.sensor[0x02].rrdfile     = "T_OutdoorSensor3V1.rrd";
+  pcwsrstation.sensor[0x02].address     = 0x02;
+  pcwsrstation.sensor[0x02].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x03].sensorname  = "T_OutdoorSensor4V1";
+  pcwsrstation.sensor[0x03].rrdfile     = "T_OutdoorSensor4V1.rrd";
+  pcwsrstation.sensor[0x03].address     = 0x03;
+  pcwsrstation.sensor[0x03].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x04].sensorname  = "T_OutdoorSensor5V1";
+  pcwsrstation.sensor[0x04].rrdfile     = "T_OutdoorSensor5V1.rrd";
+  pcwsrstation.sensor[0x04].address     = 0x04;
+  pcwsrstation.sensor[0x04].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x05].sensorname  = "T_OutdoorSensor6V1";
+  pcwsrstation.sensor[0x05].rrdfile     = "T_OutdoorSensor6V1.rrd";
+  pcwsrstation.sensor[0x05].address     = 0x05;
+  pcwsrstation.sensor[0x05].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x06].sensorname  = "T_OutdoorSensor7V1";
+  pcwsrstation.sensor[0x06].rrdfile     = "T_OutdoorSensor7V1.rrd";
+  pcwsrstation.sensor[0x06].address     = 0x06;
+  pcwsrstation.sensor[0x06].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x07].sensorname  = "T_OutdoorSensor8V1";
+  pcwsrstation.sensor[0x07].rrdfile     = "T_OutdoorSensor8V1.rrd";
+  pcwsrstation.sensor[0x07].address     = 0x07;
+  pcwsrstation.sensor[0x07].param[0].paramname = "Temperature";
+ 
+  /* T outdoor sensor V1.2 */
+  pcwsrstation.sensor[0x08].sensorname  = "T_OutdoorSensor1V2";
+  pcwsrstation.sensor[0x08].rrdfile     = "T_OutdoorSensor1.rrd";
+  pcwsrstation.sensor[0x08].address     = 0x08;
+  pcwsrstation.sensor[0x08].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x09].sensorname  = "T_OutdoorSensor2V2";
+  pcwsrstation.sensor[0x09].rrdfile     = "T_OutdoorSensor2V2.rrd";
+  pcwsrstation.sensor[0x09].address     = 0x09;
+  pcwsrstation.sensor[0x09].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0a].sensorname  = "T_OutdoorSensor3V2";
+  pcwsrstation.sensor[0x0a].rrdfile     = "T_OutdoorSensor3V2.rrd";
+  pcwsrstation.sensor[0x0a].address     = 0x0a;
+  pcwsrstation.sensor[0x0a].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0b].sensorname  = "T_OutdoorSensor4V2";
+  pcwsrstation.sensor[0x0b].rrdfile     = "T_OutdoorSensor4V2.rrd";
+  pcwsrstation.sensor[0x0b].address     = 0x0b;
+  pcwsrstation.sensor[0x0b].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0c].sensorname  = "T_OutdoorSensor5V2";
+  pcwsrstation.sensor[0x0c].rrdfile     = "T_OutdoorSensor5V2.rrd";
+  pcwsrstation.sensor[0x0c].address     = 0x0c;
+  pcwsrstation.sensor[0x0c].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0d].sensorname  = "T_OutdoorSensor6V2";
+  pcwsrstation.sensor[0x0d].rrdfile     = "T_OutdoorSensor6V2.rrd";
+  pcwsrstation.sensor[0x0d].address     = 0x0d;
+  pcwsrstation.sensor[0x0d].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0e].sensorname  = "T_OutdoorSensor7V2";
+  pcwsrstation.sensor[0x0e].rrdfile     = "T_OutdoorSensor7V2.rrd";
+  pcwsrstation.sensor[0x0e].address     = 0x0e;
+  pcwsrstation.sensor[0x0e].param[0].paramname = "Temperature";
+
+  pcwsrstation.sensor[0x0f].sensorname  = "T_OutdoorSensor8V2";
+  pcwsrstation.sensor[0x0f].rrdfile     = "T_OutdoorSensor8V2.rrd";
+  pcwsrstation.sensor[0x0f].address     = 0x0f;
+  pcwsrstation.sensor[0x0f].param[0].paramname = "Temperature";
+
+  /* T/H outdoor sensor V1.1 */
+  pcwsrstation.sensor[0x10].sensorname  = "TH_OutdoorSensor1V1";
+  pcwsrstation.sensor[0x10].rrdfile     = "TH_OutdoorSensor1V1.rrd";
+  pcwsrstation.sensor[0x10].address     = 0x10;
+  pcwsrstation.sensor[0x10].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x10].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x11].sensorname  = "TH_OutdoorSensor2V1";
+  pcwsrstation.sensor[0x11].rrdfile     = "TH_OutdoorSensor2V1.rrd";
+  pcwsrstation.sensor[0x11].address     = 0x11;
+  pcwsrstation.sensor[0x11].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x11].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x12].sensorname  = "TH_OutdoorSensor3V1";
+  pcwsrstation.sensor[0x12].rrdfile     = "TH_OutdoorSensor3V1.rrd";
+  pcwsrstation.sensor[0x12].address     = 0x12;
+  pcwsrstation.sensor[0x12].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x12].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x13].sensorname  = "TH_OutdoorSensor4V1";
+  pcwsrstation.sensor[0x13].rrdfile     = "TH_OutdoorSensor4V1.rrd";
+  pcwsrstation.sensor[0x13].address     = 0x13;
+  pcwsrstation.sensor[0x13].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x13].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x14].sensorname  = "TH_OutdoorSensor5V1";
+  pcwsrstation.sensor[0x14].rrdfile     = "TH_OutdoorSensor5V1.rrd";
+  pcwsrstation.sensor[0x14].address     = 0x14;
+  pcwsrstation.sensor[0x14].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x14].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x15].sensorname  = "TH_OutdoorSensor6V1";
+  pcwsrstation.sensor[0x15].rrdfile     = "TH_OutdoorSensor6V1.rrd";
+  pcwsrstation.sensor[0x15].address     = 0x15;
+  pcwsrstation.sensor[0x15].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x15].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x16].sensorname  = "TH_OutdoorSensor7V1";
+  pcwsrstation.sensor[0x16].rrdfile     = "TH_OutdoorSensor7V1.rrd";
+  pcwsrstation.sensor[0x16].address     = 0x16;
+  pcwsrstation.sensor[0x16].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x16].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x17].sensorname  = "TH_OutdoorSensor8V1";
+  pcwsrstation.sensor[0x17].rrdfile     = "TH_OutdoorSensor8V1.rrd";
+  pcwsrstation.sensor[0x17].address     = 0x17;
+  pcwsrstation.sensor[0x17].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x17].param[1].paramname = "Humidity";
+
+  /* T/H outdoor sensor V1.2 */ 
+  pcwsrstation.sensor[0x18].sensorname  = "TH_OutdoorSensor1V2";
+  pcwsrstation.sensor[0x18].rrdfile     = "TH_OutdoorSensor1.rrd";
+  pcwsrstation.sensor[0x18].address     = 0x18;
+  pcwsrstation.sensor[0x18].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x18].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x19].sensorname  = "TH_OutdoorSensor2V2";
+  pcwsrstation.sensor[0x19].rrdfile     = "TH_OutdoorSensor2V2.rrd";
+  pcwsrstation.sensor[0x19].address     = 0x19;
+  pcwsrstation.sensor[0x19].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x19].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1a].sensorname  = "TH_OutdoorSensor3V2";
+  pcwsrstation.sensor[0x1a].rrdfile     = "TH_OutdoorSensor3V2.rrd";
+  pcwsrstation.sensor[0x1a].address     = 0x1a;
+  pcwsrstation.sensor[0x1a].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1a].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1b].sensorname  = "TH_OutdoorSensor4V2";
+  pcwsrstation.sensor[0x1b].rrdfile     = "TH_OutdoorSensor4V2.rrd";
+  pcwsrstation.sensor[0x1b].address     = 0x1b;
+  pcwsrstation.sensor[0x1b].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1b].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1c].sensorname  = "TH_OutdoorSensor5V2";
+  pcwsrstation.sensor[0x1c].rrdfile     = "TH_OutdoorSensor5V2.rrd";
+  pcwsrstation.sensor[0x1c].address     = 0x1c;
+  pcwsrstation.sensor[0x1c].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1c].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1d].sensorname  = "TH_OutdoorSensor6V2";
+  pcwsrstation.sensor[0x1d].rrdfile     = "TH_OutdoorSensor6V2.rrd";
+  pcwsrstation.sensor[0x1d].address     = 0x1d;
+  pcwsrstation.sensor[0x1d].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1d].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1e].sensorname  = "TH_OutdoorSensor7V2";
+  pcwsrstation.sensor[0x1e].rrdfile     = "TH_OutdoorSensor7V2.rrd";
+  pcwsrstation.sensor[0x1e].address     = 0x1e;
+  pcwsrstation.sensor[0x1e].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1e].param[1].paramname = "Humidity";
+
+  pcwsrstation.sensor[0x1f].sensorname  = "TH_OutdoorSensor8V2";
+  pcwsrstation.sensor[0x1f].rrdfile     = "TH_OutdoorSensor8V2.rrd";
+  pcwsrstation.sensor[0x1f].address     = 0x1f;
+  pcwsrstation.sensor[0x1f].param[0].paramname = "Temperature";
+  pcwsrstation.sensor[0x1f].param[1].paramname = "Humidity";
+ 
+  pcwsrstation.config.dbfile         = "pcwsr.db";
+  pcwsrstation.config.device         = "/dev/ttyd1";
  
   return(0);
 }

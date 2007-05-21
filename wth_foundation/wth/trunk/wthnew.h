@@ -128,6 +128,7 @@ typedef struct sensor {
   char *sensorname;
   char *rrdfile;
   int address;
+  char *version;
   float updatefreq;
   time_t lastseen;
 } sensor_t;

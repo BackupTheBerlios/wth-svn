@@ -52,6 +52,7 @@ main ( int argc, char **argv )
     ws2000_handler();
   }
 
+
   if ( waitpid(pid_pcwsr_handler, NULL, 0) < 0 ) { /* parent is waiting! */
     perror("Waitpid error: pcwsr_handler()!");
     exit(1);
