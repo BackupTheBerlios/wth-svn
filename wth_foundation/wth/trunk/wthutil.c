@@ -84,7 +84,10 @@ pdata(struct wthio *wth, struct cmd *pcmd) {
       t[0] = '\0';
 #endif
       localtime_r(&wth->sens[0].mess[0].time, &tm_buff);
-      s = mkmsg("%04d-%02d-%02d %02d:%02d:%02d", tm_buff.tm_year+1900,tm_buff.tm_mon+1,tm_buff.tm_mday,tm_buff.tm_hour,tm_buff.tm_min,tm_buff.tm_sec);
+      s = mkmsg("%04d-%02d-%02d %02d:%02d:%02d", tm_buff.tm_year+1900,
+        tm_buff.tm_mon+1,tm_buff.tm_mday,tm_buff.tm_hour,tm_buff.tm_min,
+        tm_buff.tm_sec
+        );
       size = size + strlen(s) + 1;
       strncat(t, s, strlen(s));
 
