@@ -111,6 +111,7 @@ enum {
   ECMD    = -8,
 };
 
+
 /* data structures */
 typedef struct dataset {
   time_t dataset_time;
@@ -176,12 +177,41 @@ typedef struct conf {
   char *outfmt;
 } conf_t;
 
-typedef void Sigfunc ( int); 
+typedef void Sigfunc ( int);
 
+typedef struct key {
+  char *word;
+  int id;
+  char *descr;
+} ws2000key_t;
+
+int werrno;
 int initdata();
-int pcwsr_handler();
-int ws2000_handler();
 char *echoconfig();
+int echodata( unsigned char *data, int mdat);
+unsigned char getbits( unsigned char x, int p, int n);
+char *mkmsg( const char *, ...);
+
+/* pcwsr functions */
+int pcwsr_handler();
+
+/* ws2000 functions */
+int ws2000_handler();
+int demasq( unsigned char *data, int *mdat);
+int chkframe( unsigned char *data, int *mdat);
+int datex( unsigned char *data, int ndat);
+int getcd(unsigned char *data, int *mdat);
+int getrd(unsigned char *data, int *mdat);
+int getnrd(unsigned char *data, int *mdat);
+int getsrd(unsigned char *data, int *mdat);
+
+char *wstat(unsigned char *data, int mdat);
+time_t dcftime(unsigned char *data, int ndat);
+int settime();
+char *wcmd();
+int readdata( int fd, unsigned char *data, int *ndat);
+ws2000key_t *c( int n);
+int wstrlen( unsigned char *s);
 
 ws2000_t ws2000station;
 pcwsr_t  pcwsrstation;

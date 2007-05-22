@@ -36,9 +36,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = i386-unknown-freebsd6.1
-host_triplet = i386-unknown-freebsd6.1
-target_triplet = i386-unknown-freebsd6.1
+build_triplet = i386-unknown-freebsd6.2
+host_triplet = i386-unknown-freebsd6.2
+target_triplet = i386-unknown-freebsd6.2
 bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthnewd$(EXEEXT)
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -77,7 +77,7 @@ am_wthd_OBJECTS = wthd.$(OBJEXT)
 wthd_OBJECTS = $(am_wthd_OBJECTS)
 wthd_DEPENDENCIES = libwth.a
 am_wthnewd_OBJECTS = wthnewd.$(OBJEXT) utilnew.$(OBJEXT) \
-	pcwsr.$(OBJEXT) ws2000.$(OBJEXT)
+	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT)
 wthnewd_OBJECTS = $(am_wthnewd_OBJECTS)
 wthnewd_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -105,14 +105,14 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run aclocal-1.9
+ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run aclocal-1.9
 AMDEP_FALSE = #
 AMDEP_TRUE = 
-AMTAR = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run tar
-AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoconf
-AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoheader
-AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run automake-1.9
-AWK = gawk
+AMTAR = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run tar
+AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoconf
+AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoheader
+AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run automake-1.9
+AWK = nawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2 -DFREEBSD -Wall
@@ -124,7 +124,7 @@ DEPDIR = .deps
 ECHO_C = 
 ECHO_N = -n
 ECHO_T = 
-EGREP = /usr/bin/grep -E
+EGREP = grep -E
 EXEEXT = 
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
@@ -134,7 +134,7 @@ LDFLAGS =
 LIBOBJS = 
 LIBS = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run makeinfo
+MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run makeinfo
 OBJEXT = o
 PACKAGE = wth
 PACKAGE_BUGREPORT = 
@@ -149,8 +149,8 @@ SHELL = /bin/bash
 STRIP = 
 VERSION = 0.4.5
 ac_ct_CC = gcc
-ac_ct_RANLIB = @ac_ct_RANLIB@
-ac_ct_STRIP = @ac_ct_STRIP@
+ac_ct_RANLIB = ranlib
+ac_ct_STRIP = 
 am__fastdepCC_FALSE = #
 am__fastdepCC_TRUE = 
 am__include = include
@@ -159,25 +159,25 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = i386-unknown-freebsd6.1
+build = i386-unknown-freebsd6.2
 build_alias = 
 build_cpu = i386
-build_os = freebsd6.1
+build_os = freebsd6.2
 build_vendor = unknown
 datadir = ${prefix}/share
 exec_prefix = ${prefix}
-host = i386-unknown-freebsd6.1
+host = i386-unknown-freebsd6.2
 host_alias = 
 host_cpu = i386
-host_os = freebsd6.1
+host_os = freebsd6.2
 host_vendor = unknown
 includedir = ${prefix}/include
-infodir = ${prefix}/share/info
-install_sh = /proj/wetter/software/serial/wth/trunk/install-sh
+infodir = ${prefix}/info
+install_sh = /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
-mandir = ${prefix}/share/man
+mandir = ${prefix}/man
 mkdir_p = $(mkinstalldirs)
 oldincludedir = /usr/include
 prefix = /usr/local
@@ -185,10 +185,10 @@ program_transform_name = s,x,x,
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
-target = i386-unknown-freebsd6.1
+target = i386-unknown-freebsd6.2
 target_alias = 
 target_cpu = i386
-target_os = freebsd6.1
+target_os = freebsd6.2
 target_vendor = unknown
 noinst_LIBRARIES = libwth.a libwthxml.a
 libwth_a_SOURCES = libwth.c serial.c net.c wthutil.c wth.h wthnet.h wthprv.h 
@@ -199,7 +199,7 @@ wthc_LDADD = libwth.a
 wthd_SOURCES = wthd.c wth.h 
 #wthd_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
 wthd_LDADD = libwth.a
-wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c
+wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
 
 #wthxc_SOURCES = wthxc.c wth.h 
 #wthxc_LDADD = $(top_builddir)/libwthxml.a \
@@ -334,6 +334,7 @@ distclean-compile:
 include ./$(DEPDIR)/libwth.Po
 include ./$(DEPDIR)/libwthxml.Po
 include ./$(DEPDIR)/net.Po
+include ./$(DEPDIR)/netnew.Po
 include ./$(DEPDIR)/pcwsr.Po
 include ./$(DEPDIR)/serial.Po
 include ./$(DEPDIR)/utilnew.Po

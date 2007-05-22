@@ -14,7 +14,7 @@ wthd_SOURCES = wthd.c wth.h
 #wthd_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
 wthd_LDADD = libwth.a
 
-wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c
+wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
 
 #wthxc_SOURCES = wthxc.c wth.h 
 #wthxc_LDADD = $(top_builddir)/libwthxml.a \

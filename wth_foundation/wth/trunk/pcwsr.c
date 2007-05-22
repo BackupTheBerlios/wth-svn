@@ -52,8 +52,8 @@ initpcwsr (struct termios *newtio, struct termios *oldtio, char *sdevice ) {
   tcgetattr(pfd,newtio);
 
   /* set communication link parameters */
-  cfsetispeed(newtio, BAUDRATE);  
-  cfsetospeed(newtio, BAUDRATE);
+  cfsetispeed(newtio, B19200);  
+  cfsetospeed(newtio, B19200);
 
   
   newtio->c_cflag |= PARENB;
@@ -120,7 +120,7 @@ char
 */
 int 
 pcwsr_handler( ) {
-    int c, i, fd, err;              /* filedescriptor serial port */
+    int i, fd, err;              /* filedescriptor serial port */
     int hi, lo, dummy;
     int mask = 0x7f;
     int shift = 0x7;
@@ -152,17 +152,19 @@ pcwsr_handler( ) {
       while ( len < 8)
       {
         unsigned char ch=0;
-      	if (err=read(fd, &ch, 1)!=1)
+      	if ( ( err=read(fd, &ch, 1)) !=1)
 		continue;	// Loop until a byte is read.
-	if (len==0  &&  ch!=STX)
+	if ( len==0  &&  ch!=STX)
 		continue;	// Loop until first byte is STX
 	data[len++] = ch;
       };
       
       time(&mtime);
       ctm = gmtime(&mtime);
-      strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); // Wed Oct 08 2003 20:59:32
-      strftime(pipelineclk, sizeof(pipelineclk), "'%Y-%m-%d %H:%M:%S'", ctm); 	// 1999-01-08 04:05:06
+      strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
+      /* Wed Oct 08 2003 20:59:32 */
+      strftime(pipelineclk, sizeof(pipelineclk), "'%Y-%m-%d %H:%M:%S'", ctm);
+      /* 1999-01-08 04:05:06 */
 
       if (raw) {
 	printf("%s : %d bytes read |", clk, err);
