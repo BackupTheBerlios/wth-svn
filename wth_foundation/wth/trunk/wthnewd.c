@@ -1,15 +1,13 @@
 /*
 
-wthnewd.c
+  wthnewd.c
 
-server to read WS2000 weatherstation and pcwsr weathersensor receiver
+  server to read WS2000 weatherstation and pcwsr weathersensor receiver
 
-The principle is to fork off a child which handles the serial data read,
-right now data are echoed to standard out
+  The principle is to fork off a child which handles the serial data read,
+  right now data are echoed to standard out
 
-$Id$
-
-Copyright (C) Jun 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
+  Copyright (C) Jun 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
 
 */
 #include "wthnew.h"
@@ -40,7 +38,15 @@ main ( int argc, char **argv )
     pcwsr_handler();
   }
 
-  /* fork off WS2000 child */
+  /* fork off WS2000 handler */
+  /* actually two handlers are needed for the WS2000 PC interface :
+    1st handler: retieves data and status of PC interface at regular times
+    2nd handler: interactively reads commands
+                 send them to the PC interface
+                 reads the interface answer
+                 send back the result
+    at present time only a stub to execute command 0 has been implemented
+  */
   pid_ws2000_handler = fork();
   if ( pid_ws2000_handler == 0 ) { /* child code */ 
     printf("WS2000 child code starts\n");

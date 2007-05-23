@@ -135,13 +135,15 @@ typedef struct sensor {
 } sensor_t;
 
 typedef struct ws2000stat {
-  time_t interval;
-  char *version;
-  int DCFstat;
-  int DCFsync;
-  int HFstat;
-  int Battstat;
-  int numsens;
+  time_t interval;  /* internal measurement interval of WS2000 PC interface */
+  char *version;    /* internal version number */
+  int DCFstat;      /* status of DCF receiver */
+  int DCFsync;      /* sync bit of DCF receiver */
+  time_t DCFtime;   /* DCF time */
+  int HFstat;       /* HF status bit */
+  int Battstat;     /* battery status */
+  int numsens;      /* internal number of sensors */
+  int ndats;        /* number of datasets retrieved */
 } ws2000stat_t;
 
 typedef struct wsconf {

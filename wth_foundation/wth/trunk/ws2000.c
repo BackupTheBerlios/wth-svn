@@ -49,6 +49,319 @@ ws2000_handler( ) {
 
 
 
+/* wcmd
+  
+   execution of WS2000 weatherstation commands
+
+*/
+char *
+wcmd ( ) {
+  int ndat = 0;                   /* length of array containing the 
+                                     data frame */
+  int err;                        /* return value of functions, 
+                                     useful for errorhandling */
+  int retval = 0;                 
+  long snum = 0;                   /* current dataset number */
+  int command;
+  int argcm;
+  unsigned char data[MAXBUFF];    /* data array to store the raw dataframe 
+                                     and the message datagram */
+  char *clk;                      /* display time in reasonable format */
+  char *rbuf;                     /* return buffer */
+  
+
+  syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",wsconf.command);  
+  ws2000station.status.ndats = 0;
+  command = wsconf.command; 
+  argcm   = wsconf.argcmd; 
+
+  /* first get status of weatherstation 
+     needed to fill sens.status
+  */
+  wsconf.command = 5;
+  if ( ( err = getcd( data, &ndat)) == -1) {
+    rbuf = mkmsg("wcmd: error data reception\n");
+    return (rbuf);
+  }
+  wsconf.command = command;
+  syslog(LOG_DEBUG, "wcmd : check status OK\n");
+
+  /* status weatherstation */
+  if ( ( rbuf = wstat(data, ndat)) == NULL) {
+    rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+    return (rbuf);
+  }
+  
+  /* command 0 : poll DCF time */
+  if (command == 0) {
+    tzset();
+	
+    /* write command and retrieve data */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    /* calculate seconds since EPOCH if DCF synchronized */
+    ws2000station.status.DCFtime  = dcftime(data, ndat);
+    if ( ws2000station.status.DCFtime == -1) {
+      rbuf = mkmsg("DCF not synchronized\n");
+    }
+    else {
+      clk = ctime(&ws2000station.status.DCFtime);
+      rbuf = mkmsg("%s", clk);
+    }
+  }
+
+  /* command 1 : Request Dataset */
+  else if (command == 1)  {
+    /* first get DCF time if possible */
+    wsconf.command = 0;
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+    wsconf.command = command;
+
+    /* calculate seconds since EPOCH if DCF synchronized */
+    ws2000station.status.DCFtime  = dcftime(data, ndat);
+
+    /* write command and retrieve data */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    /* weather station response : no data available: <DLE> */
+    if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+      rbuf = mkmsg("no data available (<DLE> received)\n");
+    }
+    /* fill data structure sens */
+    else {
+      /* get one dataset */
+      err = datex(data, ndat);
+      syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
+      ws2000station.status.ndats = ws2000station.status.ndats + 1;
+      snum++;
+    }
+
+    /* echo sensor data */
+    /*
+    if ( ws2000station.status.ndats > 0 )
+      rbuf = pdata();
+    */
+  } 
+
+
+  /* command 2 : Select next dataset */
+  else if (command == 2) {
+    /* write the command word to the weather station */ 
+    /* extract message datagram */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+
+    /* if DLE no data available */
+    if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+      rbuf = mkmsg("no data available(<DLE> received)\n");
+      retval = 16; 
+    } else if ( ( ndat == 1 ) && ( data[0] == ACK ) )  {
+      /* if ACK next dataset is available */
+      rbuf = mkmsg("next dataset available (<ACK> received)\n");
+      retval = 6;
+    }
+    /* exit if unknown response */
+    else {
+      rbuf = mkmsg("error next dataset : \"unknown response\"\n");
+      retval = -1;
+    }
+  }
+
+
+  /* command 3 : Activate 8 temperature sensors */
+  else if (command == 3) {
+
+    /* write the command word to the weather station */ 
+    /* extract message datagram */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    /* weather station response : <ACK> */
+    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
+      rbuf = mkmsg("set 9 temperature sensors (<ACK> received)\n");
+    }
+
+    /* update status */
+    wsconf.command = 5;
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+    if ( ( wstat(data, ndat)) == NULL) {
+      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+      return (rbuf);
+    }	  
+  } 
+
+
+  /* command 4 : Activate 16 temperature sensors */
+  else if (command == 4) {
+
+    /* write the command word to the weather station */ 
+    /* extract message datagram */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    /* weather station response : <ACK> */
+    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
+      rbuf = mkmsg("set 16 temperature sensors(<ACK> received)\n");
+    }
+
+    /* update status */
+    wsconf.command = 5;
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+    if ( ( wstat(data, ndat)) == NULL) {
+      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+      return (rbuf);
+    }	  
+  } 
+
+
+  /* command 5 : Request status of weatherstation */
+  else if ( command == 5 ) {
+    ; /* status known, drive thru */
+  } 
+
+
+  /* command 6 : Set logging intervall of weatherstation */
+  else if (command == 6) {
+    /* write the command word to the weather station */ 
+    /* extract message datagram */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    /* weather station response : <ACK> */
+    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
+      rbuf = mkmsg("set logging interval to %d [min] (<ACK> received)\n",
+		   wsconf.argcmd);
+    }
+
+    /* update status */
+    wsconf.command = 5;
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+
+    if ( ( wstat( data, ndat)) == NULL) {
+      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
+      return (rbuf);
+    }
+  } 
+
+
+  /* command 12 : 
+     Recursively, request dataset and select next dataset, 
+     recursive combination of command 1 and 2 
+  */
+  else if ( ( command == 12) || ( command == 7) )  {      
+    /* first get DCF time if possible */
+    wsconf.command = 0;
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      rbuf = mkmsg("wcmd: error data reception\n");
+      return (rbuf);
+    }
+    wsconf.command = command;
+
+    /* calculate seconds since EPOCH if DCF synchronized */
+    //rw->DCF.time  = dcftime(data, ndat);
+	  
+    while (retval != 16) {
+      /* write command and retrieve data */
+      wsconf.command = 1;
+      if ( ( err = getcd( data, &ndat)) == -1) {
+	rbuf = mkmsg("wcmd: error data reception\n");
+	return (rbuf);
+      }
+
+      /* extract dataset from raw dataframe */
+      /* weather station response : no data available: <DLE> */
+      if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+	rbuf = mkmsg("no data available (<DLE> received)\n");
+	retval = 16;
+      }
+      /* do extraction */
+      else {
+	if ( ( err = datex(data, ndat)) == -1) {
+	  rbuf = mkmsg("wcmd: error extracting data frame");
+	  return (rbuf);
+	}
+	//rw->wstat.ndats = rw->wstat.ndats + 1;
+      }
+ 
+      /* write the command word to select next dataset and 
+	 retrieve response*/ 
+      wsconf.command = 2;
+      if ( ( err = getcd( data, &ndat)) == -1) {
+	rbuf = mkmsg("wcmd: error data reception\n");
+	return (rbuf);
+      }
+
+      /* stop if DLE no data available, */
+      if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
+	/* rbuf = mkmsg(
+	   "<DLE> received :\"no data available\"!"); */
+	retval = 16; 
+      }
+      /* if ACK next dataset is available */
+      else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
+	syslog(LOG_DEBUG, \
+	       "wcmd: next dataset available (<ACK> received)!\n");
+	retval = 6;
+      }
+      /* return if unknown response */
+      /* no data is returned, maybe too strict? */
+      else {
+	rbuf = mkmsg(
+		     "wcmd: error request next dataset : unknown response\n");
+	return (rbuf);
+      }
+      syslog(LOG_DEBUG, "wcmd: retval : %d\n", retval);
+    }
+
+    /* echo sensor data */
+    /*
+    if ( rw->wstat.ndats > 0 ) {
+      rbuf = pdata(rw, pcmd);
+      //printf("w/o statement: return (rbuf)"); 
+      return ( rbuf);
+    }
+    */
+  }//command 12 || command 7
+
+  else {
+    rbuf = mkmsg("unknown command\n");
+  }
+  syslog(LOG_DEBUG, "wcmd: exit OK\n");
+  return(rbuf);
+}
+/*
+  wcmd() ends here
+
+*/
+
+
 /* demasq
   
    dataframe correction: STX, ETX and ENQ are masqued in the
@@ -121,6 +434,9 @@ int getrd ( unsigned char *data, int *mdat) {
     else if ( wsconf.netflg == 1 ) /* read network interface */ {
 	  if ( ( err = getnrd( data, mdat)) == -1)
 		return(-1);
+    } else {
+      syslog(LOG_DEBUG, "getrd : netflag undefined : %d\n", wsconf.netflg);
+      return(-1);
     }
     return(0);
 }
@@ -138,7 +454,7 @@ getcd ( unsigned char *data, int *mdat) {
     /* read answer of weather station from serial port */
     if ( ( err = getrd( data, mdat)) == -1)
 	  return(-1);
-    
+
     /* echo raw dataframe */
     err = echodata( data, *mdat);
     
@@ -507,17 +823,14 @@ settime ( ) {
   struct timezone tz;
   struct timeval tv;
 
-  return(-1);
-  /* 
   if ( gettimeofday( &tv, &tz) == -1 )
     return(-1);
 
-  tv.tv_sec  = rw->DCF.time;
+  tv.tv_sec  = ws2000station.status.DCFtime;
   tv.tv_usec = 0;
 
   if ( settimeofday( &tv, &tz) == -1 )
     return(-1);
-  */
 
   return(0);
 }
@@ -558,9 +871,8 @@ datex(unsigned char *data, int ndat) {
      if DCF synchronized use time delivered by weatherstation
      if not, use localtime
   */
-  /*
-  if ( rw->DCF.time != -1 ) {
-    mtim = rw->DCF.time;
+  if ( ws2000station.status.DCFtime != -1 ) {
+    mtim = ws2000station.status.DCFtime;
   }
   else { 
     syslog(LOG_INFO,
@@ -570,7 +882,6 @@ datex(unsigned char *data, int ndat) {
 	   "datex : present time: %lu (seconds since EPOCH)\n", 
            (long int)mtim);
   }
-  */
   
   /* dataset time is echoed in EPOCH seconds, dataset age in minutes
      up to present time
@@ -578,14 +889,14 @@ datex(unsigned char *data, int ndat) {
   mtim = ( mtim/60 - age) * 60;
   clk  = ctime(&mtim);
 
-  /*
-  syslog(LOG_DEBUG, "datex : rw->wstat.ndats : %lu; age[min] : %lu\n",
-	 rw->wstat.ndats, age);
+
+  syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
+	 ws2000station.status.ndats);
   syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
 	 (long int)mtim);
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
-  syslog(LOG_DEBUG, "datex : units : %s\n", pcmd->units);
-  */
+  syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
+
 
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 0; i < 8; i++) {
@@ -747,318 +1058,6 @@ datex(unsigned char *data, int ndat) {
 	
   return(0);
 };
-
-
-
-/* wcmd
-
-function fills the datastructure rw
-
-*/
-char *
-wcmd ( ) {
-  int ndat = 0;                   /* length of array containing the 
-                                     data frame */
-  int err;                        /* return value of functions, 
-                                     useful for errorhandling */
-  int retval = 0;                 
-  long snum = 0;                   /* current dataset number */
-  int command;
-  int argcm;
-  unsigned char data[MAXBUFF];    /* data array to store the raw dataframe 
-                                     and the message datagram */
-  char *clk;                      /* display time in reasonable format */
-  char *rbuf;                     /* return buffer */
-  
-
-  syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",wsconf.command);  
-  //rw->wstat.ndats = 0;
-  command = wsconf.command; 
-  argcm   = wsconf.argcmd; 
-
-  /* first get status of weatherstation 
-     needed to fill sens.status
-  */
-  wsconf.command = 5;
-  if ( ( err = getcd( data, &ndat)) == -1) {
-    rbuf = mkmsg("wcmd: error data reception\n");
-    return (rbuf);
-  }
-  wsconf.command = command;
-  syslog(LOG_DEBUG, "wcmd : check status OK\n");
-
-  /* status weatherstation */
-  if ( ( rbuf = wstat(data, ndat)) == NULL) {
-    rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-    return (rbuf);
-  }
-  
-  /* command 0 : poll DCF time */
-  if (command == 0) {
-    tzset();
-	
-    /* write command and retrieve data */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    /* calculate seconds since EPOCH if DCF synchronized */
-    /*
-    rw->DCF.time  = dcftime(data, ndat);
-    if (rw->DCF.time == -1) {
-      rbuf = mkmsg("DCF not synchronized\n");
-    }
-    else {
-      clk = ctime(&rw->DCF.time);
-      rbuf = mkmsg("%s", clk);
-    }
-    */
-  }
-
-  /* command 1 : Request Dataset */
-  else if (command == 1)  {
-    /* first get DCF time if possible */
-    wsconf.command = 0;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-    wsconf.command = command;
-
-    /* calculate seconds since EPOCH if DCF synchronized */
-    //rw->DCF.time  = dcftime(data, ndat);
-
-    /* write command and retrieve data */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    /* weather station response : no data available: <DLE> */
-    if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-      rbuf = mkmsg("no data available (<DLE> received)\n");
-    }
-    /* fill data structure sens */
-    else {
-      /* get one dataset */
-      err = datex(data, ndat);
-      syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
-      //rw->wstat.ndats = rw->wstat.ndats + 1;
-      snum++;
-    }
-
-    /* echo sensor data */
-    /*
-    if ( rw->wstat.ndats > 0 )
-      rbuf = pdata();
-    */
-  } 
-
-
-  /* command 2 : Select next dataset */
-  else if (command == 2) {
-    /* write the command word to the weather station */ 
-    /* extract message datagram */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-
-    /* if DLE no data available */
-    if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-      rbuf = mkmsg("no data available(<DLE> received)\n");
-      retval = 16; 
-    } else if ( ( ndat == 1 ) && ( data[0] == ACK ) )  {
-      /* if ACK next dataset is available */
-      rbuf = mkmsg("next dataset available (<ACK> received)\n");
-      retval = 6;
-    }
-    /* exit if unknown response */
-    else {
-      rbuf = mkmsg("error next dataset : \"unknown response\"\n");
-      retval = -1;
-    }
-  }
-
-
-  /* command 3 : Activate 8 temperature sensors */
-  else if (command == 3) {
-
-    /* write the command word to the weather station */ 
-    /* extract message datagram */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    /* weather station response : <ACK> */
-    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set 9 temperature sensors (<ACK> received)\n");
-    }
-
-    /* update status */
-    wsconf.command = 5;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-    if ( ( wstat(data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
-    }	  
-  } 
-
-
-  /* command 4 : Activate 16 temperature sensors */
-  else if (command == 4) {
-
-    /* write the command word to the weather station */ 
-    /* extract message datagram */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    /* weather station response : <ACK> */
-    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set 16 temperature sensors(<ACK> received)\n");
-    }
-
-    /* update status */
-    wsconf.command = 5;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-    if ( ( wstat(data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
-    }	  
-  } 
-
-
-  /* command 5 : Request status of weatherstation */
-  else if ( command == 5 ) {
-    ; /* status known, drive thru */
-  } 
-
-
-  /* command 6 : Set logging intervall of weatherstation */
-  else if (command == 6) {
-    /* write the command word to the weather station */ 
-    /* extract message datagram */
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    /* weather station response : <ACK> */
-    if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set logging interval to %d [min] (<ACK> received)\n",
-		   wsconf.argcmd);
-    }
-
-    /* update status */
-    wsconf.command = 5;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    if ( ( wstat( data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
-    }
-  } 
-
-
-  /* command 12 : 
-     Recursively, request dataset and select next dataset, 
-     recursive combination of command 1 and 2 
-  */
-  else if ( ( command == 12) || ( command == 7) )  {      
-    /* first get DCF time if possible */
-    wsconf.command = 0;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-    wsconf.command = command;
-
-    /* calculate seconds since EPOCH if DCF synchronized */
-    //rw->DCF.time  = dcftime(data, ndat);
-	  
-    while (retval != 16) {
-      /* write command and retrieve data */
-      wsconf.command = 1;
-      if ( ( err = getcd( data, &ndat)) == -1) {
-	rbuf = mkmsg("wcmd: error data reception\n");
-	return (rbuf);
-      }
-
-      /* extract dataset from raw dataframe */
-      /* weather station response : no data available: <DLE> */
-      if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	rbuf = mkmsg("no data available (<DLE> received)\n");
-	retval = 16;
-      }
-      /* do extraction */
-      else {
-	if ( ( err = datex(data, ndat)) == -1) {
-	  rbuf = mkmsg("wcmd: error extracting data frame");
-	  return (rbuf);
-	}
-	//rw->wstat.ndats = rw->wstat.ndats + 1;
-      }
- 
-      /* write the command word to select next dataset and 
-	 retrieve response*/ 
-      wsconf.command = 2;
-      if ( ( err = getcd( data, &ndat)) == -1) {
-	rbuf = mkmsg("wcmd: error data reception\n");
-	return (rbuf);
-      }
-
-      /* stop if DLE no data available, */
-      if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	/* rbuf = mkmsg(
-	   "<DLE> received :\"no data available\"!"); */
-	retval = 16; 
-      }
-      /* if ACK next dataset is available */
-      else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-	syslog(LOG_DEBUG, \
-	       "wcmd: next dataset available (<ACK> received)!\n");
-	retval = 6;
-      }
-      /* return if unknown response */
-      /* no data is returned, maybe too strict? */
-      else {
-	rbuf = mkmsg(
-		     "wcmd: error request next dataset : unknown response\n");
-	return (rbuf);
-      }
-      syslog(LOG_DEBUG, "wcmd: retval : %d\n", retval);
-    }
-
-    /* echo sensor data */
-    /*
-    if ( rw->wstat.ndats > 0 ) {
-      rbuf = pdata(rw, pcmd);
-      //printf("w/o statement: return (rbuf)"); 
-      return ( rbuf);
-    }
-    */
-  }//command 12 || command 7
-
-  else {
-    rbuf = mkmsg("unknown command\n");
-  }
-  syslog(LOG_DEBUG, "wcmd: exit OK\n");
-  return(rbuf);
-}//wcmd()
 
 
 
@@ -1430,11 +1429,4 @@ int getsrd ( unsigned char *data, int *mdat) {
     syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }
-
-
-
-
-
-
-
 

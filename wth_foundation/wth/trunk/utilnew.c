@@ -40,7 +40,7 @@ int initdata( ) {
   wsconf.logfacility = LOG_LOCAL7;
   wsconf.verbose     = 1;
   wsconf.debug       = 1;
-  wsconf.netflg      = -1;
+  wsconf.netflg      = 0;
   wsconf.hostname    = "localhost";
   wsconf.port        = "5001";
   wsconf.tnport      = "5002";
