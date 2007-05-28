@@ -5,7 +5,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2001-2004,2007 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2001-2004,2007 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,7 +28,9 @@
 
   opens serial port for communication with PC weathersensor receiver
   serial port settings:
-     19200, 8, odd parity,  2stop
+  PCWSR (PC Weatherstation receiver by ELV)
+     19200 BAUD, 8, Odd Parity, 2 Stopp
+
 
 */
 static int 
@@ -114,12 +116,11 @@ char
 
 
 /*
-   pcwsr_handler
-
-   get raw data from serial interface and print to standard out
+   pcwsr_loghandler
+   logging pcwsr data to rrd and Sqlite DB
 */
 int 
-pcwsr_handler( ) {
+pcwsr_loghandler( ) {
     int i, fd, err;              /* filedescriptor serial port */
     int hi, lo, dummy;
     int mask = 0x7f;

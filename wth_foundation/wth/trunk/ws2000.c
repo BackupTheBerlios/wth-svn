@@ -5,7 +5,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2001-2004,2007 Volker Jahns <Volker.Jahns@thalreit.de>
+   Copyright (C) 2001-2004,2007 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,25 +23,85 @@
 
 */
 #include "wthnew.h"
+#define MAXWAIT 10
 
+
+char *lockfile = "/tmp/LCK...wth";
+
+/*
+  ws2000_loghandler
+  logging WS2000 data to rrd and sqlite DB
+
+*/
+int
+ws2000_loghandler( ) {
+  int lfd, ret;
+  char *rbuf;
+  int waitmax  = 0;
+
+  for ( ;; ) {
+
+    waitmax = 0;
+    printf("ws2000_loghandler awakening\n");
+    while ( ( ret = chklockf( lockfile)) != 0 ) {
+      printf("ws2000_loghandler: serial port is locked: waiting\n");
+      if ( waitmax >= MAXWAIT ) {
+	printf("ws2000_loghandler: maximum wait cycles reached for serial port: return\n");
+        waitmax = 0;
+        break;
+      }
+      sleep(6);
+      waitmax++;
+    }
+
+    lfd = setlck( lockfile);
+
+    /* sending command to weather station */  
+    rbuf =  wcmd(); 
+    printf("ws2000_loghandler: %s", rbuf);
+
+    unlck( lockfile, lfd);
+    sleep(10);
+
+  }
+  return(0);
+}
 
 
 /*
-  ws2000_handler
+  ws2000_loghandler
+  logging WS2000 data to rrd and sqlite DB
 
-  get raw data from serial interface and print to standard out
 */
+
 int
-ws2000_handler( ) {
+ws2000_cmdhandler( ) {
+  int ret, lfd;
   char *rbuf;
+  int waitmax;
 
   for ( ;; ) {
-    sleep(10);
+    
+    waitmax = 0;
+    printf("ws2000_cmdhandler awakening\n");
+    while ( ( ret = chklockf( lockfile)) != 0 ) {
+      printf("ws2000cmd_handler: serial port is locked: waiting\n");
+      if ( waitmax >= MAXWAIT ) {
+	printf("ws2000cmd_handler: maximum wait cycles reached for serial port: return\n");
+        waitmax = 0;
+        break;
+      } 
+      sleep(2);
+      waitmax++;
+    }
+
+    lfd = setlck( lockfile);
     /* sending command to weather station */  
     rbuf =  wcmd(); 
-    printf("%s", rbuf);
+    printf("ws2000_cmdhandler: %s", rbuf);
+    unlck( lockfile, lfd);
 
-    printf("ws2000_handler awakening\n");
+    sleep(2);
   }
   return(0);
 }

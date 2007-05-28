@@ -642,3 +642,131 @@ signal(int signo, Sigfunc *func)
 	return(oact.sa_handler);
 }
 /* end signal */
+
+
+/*
+  chklockf
+
+  returns 0, if 
+    lockfile of port does not exist 
+    lockfile is not locked by another process
+
+  returns -1, if
+    open lockfile fails
+    fcntl lockfile fails
+
+  returns 1, if
+    lockfile is locked by another process     
+*/
+int
+chklockf( const char *lockfile) {
+  int ret, cfd;
+  struct stat st;
+  struct flock chklck;
+
+  if ( ( ret = stat( lockfile, &st) ) == -1 ) {
+    printf("can't stat lockfile: %s\n", strerror(errno));
+    return(0);
+  }
+
+  /* lockfile procedure to protect serial port */
+  //memset( &chklck, 0, sizeof( struct flock));
+
+  chklck.l_type   = F_WRLCK;
+  chklck.l_whence = SEEK_SET;
+  chklck.l_start  = 0;
+  chklck.l_len    = 0;
+  chklck.l_pid    = getpid();
+
+  /* open lockfile */
+  printf("cfd: opening lockfile: ");
+  cfd = open( lockfile, O_RDWR | O_CREAT, 0660);
+  if ( cfd < 0 ) {
+    printf(" %s\n", strerror(errno));
+    return(-1);
+  } 
+  /* check if lockfile is locked by another process */
+  if  ( ( ret = fcntl( cfd, F_GETLK, &chklck)) < 0 ) {
+    printf("fcntl return code: %d: %s\n", ret, strerror(errno));
+    return (-1);
+  } else {     
+    if ( chklck.l_type == F_UNLCK) {
+      printf("l_type: F_UNLCK\n");
+      return(0);
+    } else if ( chklck.l_type == F_WRLCK) {
+      printf("l_type: F_WRLCK: by process: %d\n", chklck.l_pid);
+      printf("checking if locking process still running:");
+      if ( ( ret = kill( chklck.l_pid, 0)) == 0) {
+        printf(" yes\n"); 
+        return(1);
+      } else {
+        printf(" no\n");
+        return(0);
+      } 
+    } else if ( chklck.l_type == F_RDLCK) {
+      printf("l_type: F_RDLCK: by process: %d\n", chklck.l_pid);
+      return(1);
+    } else {
+      printf("l_type: UNKNOWN\n");
+      return(-1);
+    }
+  }
+
+  return(0);
+}
+
+
+/*
+  setlck
+  open lockfile and set lock
+*/
+int 
+setlck( const char *lockfile) {
+  int fd, ret;
+  struct flock wthlck;
+
+  /* lockfile procedure to protect serial port */
+  //memset( &wthlck, 0, sizeof( struct flock));
+
+  wthlck.l_type   = F_WRLCK;
+  wthlck.l_whence = SEEK_SET;
+  wthlck.l_start  = 0;
+  wthlck.l_len    = 0;
+  wthlck.l_pid    = getpid();
+
+
+  /* open lockfile */
+  //printf("fd: opening lockfile: ");
+  fd = open( lockfile, O_RDWR | O_CREAT, 0660);
+  if ( fd < 0 ) {
+    printf(" %s\n", strerror(errno));
+    return(fd);
+  } 
+  wthlck.l_type   = F_WRLCK;
+  wthlck.l_pid    = getpid();
+  if ( ( ret = fcntl( fd, F_SETLKW, &wthlck)) < 0 ) {
+    printf("can't lock lockfile\n");
+  };
+
+  return(fd);
+
+}
+
+
+/*
+
+  unlck
+  unlock and remove lockfile 
+*/
+int
+unlck( const char *lockfile, int fd) {
+  int ret;
+  struct flock wthlck;
+
+  wthlck.l_type   = F_UNLCK;
+  ret = fcntl( fd, F_SETLKW, &wthlck);
+  printf("fd: lockfile unlocked\n");
+  /* close lockfile  */
+  ret = close( fd);
+  return(ret);
+}

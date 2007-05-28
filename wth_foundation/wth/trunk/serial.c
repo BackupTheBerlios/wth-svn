@@ -2,10 +2,10 @@
 
    serial line communication routine for WS2000 weatherstation
 
-   $Id: serial.c,v 1.2 2005/03/11 06:35:48 jahns Exp jahns $
-   $Revision: 1.2 $
+   $Id$
+   $Revision$
 
-   Copyright (C) 2000-2001,2005 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2000-2001,2005,2007 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

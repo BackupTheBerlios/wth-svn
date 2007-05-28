@@ -194,11 +194,16 @@ int echodata( unsigned char *data, int mdat);
 unsigned char getbits( unsigned char x, int p, int n);
 char *mkmsg( const char *, ...);
 
+int chklockf( const char *lockfile);
+int setlck( const char *lockfile);
+int unlck( const char *lockfile, int fd);
+
 /* pcwsr functions */
-int pcwsr_handler();
+int pcwsr_loghandler();
 
 /* ws2000 functions */
-int ws2000_handler();
+int ws2000_loghandler();
+int ws2000_cmdhandler();
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);
 int datex( unsigned char *data, int ndat);
