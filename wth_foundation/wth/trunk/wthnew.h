@@ -64,6 +64,7 @@
 #define MAXPARAM    8
 #define MAXDATA     2048
 #define PCWSRLEN    8
+#define MAXMSGLEN   128
 
 /* Serial port devices */
 #if defined(LINUX)
@@ -75,12 +76,13 @@
 #endif
 
 /* from unp.h */
-#define LISTENQ      1024    /* 2nd argument to listen() */
+#define LISTENQ     1024    /* 2nd argument to listen() */
 
 /* Following shortens all the type casts of pointer arguments */
 #define	SA	     struct sockaddr
 #define max(a,b)     ((a) > (b) ? (a) : (b))
 
+#define WS2000LOCK "/tmp/LCK...wth";
 
 enum {
   SOH = 0x01,
@@ -136,7 +138,7 @@ typedef struct sensor {
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval of WS2000 PC interface */
-  char *version;    /* internal version number */
+  int version;      /* internal version number */
   int DCFstat;      /* status of DCF receiver */
   int DCFsync;      /* sync bit of DCF receiver */
   time_t DCFtime;   /* DCF time */
@@ -193,6 +195,7 @@ char *echoconfig();
 int echodata( unsigned char *data, int mdat);
 unsigned char getbits( unsigned char x, int p, int n);
 char *mkmsg( const char *, ...);
+char *mkmsg2( const char *, ...);
 
 int chklockf( const char *lockfile);
 int setlck( const char *lockfile);

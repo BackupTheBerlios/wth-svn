@@ -45,7 +45,7 @@ int initdata( ) {
   wsconf.port        = "5001";
   wsconf.tnport      = "5002";
   wsconf.xmlport     = "8001";
-  wsconf.wwwport    = "8880";
+  wsconf.wwwport     = "8880";
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
   
@@ -391,7 +391,19 @@ mkmsg(const char *fmt, ...) {
    }
 }
 
+char *
+mkmsg2( const char *fmt, ...) {
+  int size;
+  va_list ap;
+  static char buff[MAXMSGLEN+1];
+  
+  size = MAXMSGLEN;
+  va_start(ap, fmt);
+  vsnprintf(buff, size, fmt, ap);
+  va_end(ap);
 
+  return(buff);
+}
 
 /* usage : print handling instructions of wthc */
 int
@@ -658,6 +670,8 @@ signal(int signo, Sigfunc *func)
   returns 1, if
     lockfile is locked by another process     
 */
+
+/*
 int
 chklockf( const char *lockfile) {
   int ret, cfd;
@@ -668,24 +682,25 @@ chklockf( const char *lockfile) {
     printf("can't stat lockfile: %s\n", strerror(errno));
     return(0);
   }
-
+*/
   /* lockfile procedure to protect serial port */
   //memset( &chklck, 0, sizeof( struct flock));
-
+/*
   chklck.l_type   = F_WRLCK;
   chklck.l_whence = SEEK_SET;
   chklck.l_start  = 0;
   chklck.l_len    = 0;
   chklck.l_pid    = getpid();
-
-  /* open lockfile */
   printf("cfd: opening lockfile: ");
   cfd = open( lockfile, O_RDWR | O_CREAT, 0660);
   if ( cfd < 0 ) {
     printf(" %s\n", strerror(errno));
     return(-1);
   } 
+*/
+
   /* check if lockfile is locked by another process */
+/*
   if  ( ( ret = fcntl( cfd, F_GETLK, &chklck)) < 0 ) {
     printf("fcntl return code: %d: %s\n", ret, strerror(errno));
     return (-1);
@@ -714,29 +729,32 @@ chklockf( const char *lockfile) {
 
   return(0);
 }
-
+*/
 
 /*
   setlck
   open lockfile and set lock
 */
+/*
 int 
 setlck( const char *lockfile) {
   int fd, ret;
   struct flock wthlck;
-
+*/
   /* lockfile procedure to protect serial port */
   //memset( &wthlck, 0, sizeof( struct flock));
 
+/*
   wthlck.l_type   = F_WRLCK;
   wthlck.l_whence = SEEK_SET;
   wthlck.l_start  = 0;
   wthlck.l_len    = 0;
   wthlck.l_pid    = getpid();
-
+*/
 
   /* open lockfile */
   //printf("fd: opening lockfile: ");
+/*
   fd = open( lockfile, O_RDWR | O_CREAT, 0660);
   if ( fd < 0 ) {
     printf(" %s\n", strerror(errno));
@@ -751,13 +769,14 @@ setlck( const char *lockfile) {
   return(fd);
 
 }
-
+*/
 
 /*
 
   unlck
   unlock and remove lockfile 
 */
+/*
 int
 unlck( const char *lockfile, int fd) {
   int ret;
@@ -766,7 +785,7 @@ unlck( const char *lockfile, int fd) {
   wthlck.l_type   = F_UNLCK;
   ret = fcntl( fd, F_SETLKW, &wthlck);
   printf("fd: lockfile unlocked\n");
-  /* close lockfile  */
   ret = close( fd);
   return(ret);
 }
+*/

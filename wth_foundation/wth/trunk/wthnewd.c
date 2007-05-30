@@ -21,15 +21,18 @@ main ( int argc, char **argv )
         pid_ws2000_loghandler,
         pid_ws2000_cmdhandler;
 
+  char *ws2000lck = WS2000LOCK;
+
   initdata();
   openlog("wthnewd", LOG_PID , wsconf.logfacility);
   syslog(LOG_INFO, "wthnewd: %s\n", VERSION);
+  unlink( ws2000lck);
   tzset(); /* setting timezone */
 
   /* fork off PCWSR child */
   pid_pcwsr_loghandler = fork();
   if ( pid_pcwsr_loghandler == 0 ) { /* child code */ 
-    printf("pcwsr child code starts\n");
+    printf("pcwsr_loghandler: child code starts\n");
     /*
       if ( ( rbuf = (char *)echoconfig(wsconf)) == NULL) {
       perror("Error echo config parameters: exit!");
@@ -54,7 +57,7 @@ main ( int argc, char **argv )
    */
   pid_ws2000_loghandler = fork();
   if ( pid_ws2000_loghandler == 0 ) { /* child code */ 
-    printf("WS2000 ologging handler : child code starts\n");
+    printf("WS2000_loghandler : child code starts\n");
     if ( ( rbuf = (char *)echoconfig(wsconf)) == NULL) {
       perror("Error echo config parameters");
     }
@@ -68,7 +71,7 @@ main ( int argc, char **argv )
   */
   pid_ws2000_cmdhandler = fork();
   if ( pid_ws2000_cmdhandler == 0 ) { /* child code */ 
-    printf("WS2000 command handler : child code starts\n");
+    printf("WS2000_cmdhandler : child code starts\n");
     ws2000_cmdhandler();
   }
 
@@ -77,7 +80,6 @@ main ( int argc, char **argv )
     perror("Waitpid error: pcwsr_loghandler()!");
     exit(1);
   }
-
   if ( waitpid(pid_ws2000_loghandler, NULL, 0) < 0 ) { /* parent is waiting! */
     perror("Waitpid error: ws2000_loghandler()!");
     exit(1);
@@ -86,6 +88,9 @@ main ( int argc, char **argv )
     perror("Waitpid error: ws2000_cmdhandler()!");
     exit(1);
   }
+
+
+
 
   exit(0);
 }

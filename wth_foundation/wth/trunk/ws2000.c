@@ -24,9 +24,7 @@
 */
 #include "wthnew.h"
 #define MAXWAIT 10
-
-
-char *lockfile = "/tmp/LCK...wth";
+char *lockfile = WS2000LOCK;
 
 /*
   ws2000_loghandler
@@ -35,34 +33,32 @@ char *lockfile = "/tmp/LCK...wth";
 */
 int
 ws2000_loghandler( ) {
-  int lfd, ret;
-  char *rbuf;
+  int lfd;
+  //char *rbuf;
   int waitmax  = 0;
 
   for ( ;; ) {
-
-    waitmax = 0;
     printf("ws2000_loghandler awakening\n");
-    while ( ( ret = chklockf( lockfile)) != 0 ) {
-      printf("ws2000_loghandler: serial port is locked: waiting\n");
-      if ( waitmax >= MAXWAIT ) {
-	printf("ws2000_loghandler: maximum wait cycles reached for serial port: return\n");
+    while ( waitmax < MAXWAIT ) {
+      printf("ws2000_loghandler: waitmax: %d\n", waitmax);
+      lfd = open( lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
+      if ( lfd == -1 ) {
+        printf("ws2000_loghandler: %s\n", strerror(errno));
+        printf("ws2000_loghandler: lockfile already locked\n");
+	sleep(5);
+      } else {
+	/* sending command to weather station */
+        wsconf.command = 5;
+        printf("ws2000_loghandler: sending command: %d\n", wsconf.command); 
+	printf("ws2000_loghandler: wcmd: %s\n",(char *)wcmd()); 
+        close( lfd);
+        unlink( lockfile);
         waitmax = 0;
         break;
       }
-      sleep(6);
-      waitmax++;
+      waitmax++; 
     }
-
-    lfd = setlck( lockfile);
-
-    /* sending command to weather station */  
-    rbuf =  wcmd(); 
-    printf("ws2000_loghandler: %s", rbuf);
-
-    unlck( lockfile, lfd);
     sleep(10);
-
   }
   return(0);
 }
@@ -76,32 +72,35 @@ ws2000_loghandler( ) {
 
 int
 ws2000_cmdhandler( ) {
-  int ret, lfd;
-  char *rbuf;
-  int waitmax;
+  int cfd;
+  //char *rbuf;
+  int waitmax = 0;
+  int loopno  = 0;
 
   for ( ;; ) {
-    
-    waitmax = 0;
-    printf("ws2000_cmdhandler awakening\n");
-    while ( ( ret = chklockf( lockfile)) != 0 ) {
-      printf("ws2000cmd_handler: serial port is locked: waiting\n");
-      if ( waitmax >= MAXWAIT ) {
-	printf("ws2000cmd_handler: maximum wait cycles reached for serial port: return\n");
+    printf("ws2000_cmdhandler awakening: %d\n", loopno);
+    while ( waitmax < MAXWAIT ) {
+      printf("ws2000_cmdhandler: waitmax: %d\n", waitmax);
+      cfd = open(lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
+      if ( cfd == -1 ) {
+        printf("ws2000_cmdhandler: %s\n", strerror(errno));
+        printf("ws2000_cmdhandler: lockfile already locked\n");
+	sleep(5);
+      } else {
+	/* sending command to weather station */
+        wsconf.command = 0;
+        printf("ws2000_cmdhandler: sending command: %d\n", wsconf.command);
+	printf("ws2000_cmdhandler: wcmd: %s\n",(char *)wcmd()); 
+	//printf("ws2000_cmdhandler: %s", rbuf);
+        close(cfd);
+        unlink(lockfile);
         waitmax = 0;
         break;
-      } 
-      sleep(2);
-      waitmax++;
+      }
+      waitmax++; 
     }
-
-    lfd = setlck( lockfile);
-    /* sending command to weather station */  
-    rbuf =  wcmd(); 
-    printf("ws2000_cmdhandler: %s", rbuf);
-    unlck( lockfile, lfd);
-
-    sleep(2);
+    loopno++;
+    sleep(3);
   }
   return(0);
 }
@@ -124,8 +123,8 @@ wcmd ( ) {
   long snum = 0;                   /* current dataset number */
   int command;
   int argcm;
-  unsigned char data[MAXBUFF];    /* data array to store the raw dataframe 
-                                     and the message datagram */
+  static unsigned char data[MAXBUFF]; /* data array to store the raw dataframe 
+                                         and the message datagram */
   char *clk;                      /* display time in reasonable format */
   char *rbuf;                     /* return buffer */
   
@@ -140,16 +139,14 @@ wcmd ( ) {
   */
   wsconf.command = 5;
   if ( ( err = getcd( data, &ndat)) == -1) {
-    rbuf = mkmsg("wcmd: error data reception\n");
-    return (rbuf);
+    return( (char *)mkmsg2( "wcmd: error data reception\n"));
   }
   wsconf.command = command;
   syslog(LOG_DEBUG, "wcmd : check status OK\n");
 
   /* status weatherstation */
   if ( ( rbuf = wstat(data, ndat)) == NULL) {
-    rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-    return (rbuf);
+    return( ( char *)mkmsg2("wcmd: error in subroutine wstat\n"));
   }
   
   /* command 0 : poll DCF time */
@@ -158,18 +155,17 @@ wcmd ( ) {
 	
     /* write command and retrieve data */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
     /* calculate seconds since EPOCH if DCF synchronized */
     ws2000station.status.DCFtime  = dcftime(data, ndat);
     if ( ws2000station.status.DCFtime == -1) {
-      rbuf = mkmsg("DCF not synchronized\n");
+      return( ( char*)mkmsg2("DCF not synchronized\n"));
     }
     else {
       clk = ctime(&ws2000station.status.DCFtime);
-      rbuf = mkmsg("%s", clk);
+      return( ( char *)mkmsg2("%s", clk));
     }
   }
 
@@ -178,8 +174,7 @@ wcmd ( ) {
     /* first get DCF time if possible */
     wsconf.command = 0;
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( (char *)mkmsg2("wcmd: error data reception\n"));
     }
     wsconf.command = command;
 
@@ -188,13 +183,12 @@ wcmd ( ) {
 
     /* write command and retrieve data */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
     /* weather station response : no data available: <DLE> */
     if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-      rbuf = mkmsg("no data available (<DLE> received)\n");
+      return( ( char*)mkmsg2("no data available (<DLE> received)\n"));
     }
     /* fill data structure sens */
     else {
@@ -204,7 +198,7 @@ wcmd ( ) {
       ws2000station.status.ndats = ws2000station.status.ndats + 1;
       snum++;
     }
-
+    return( ( char *)mkmsg2("wcmd: data available\n"));
     /* echo sensor data */
     /*
     if ( ws2000station.status.ndats > 0 )
@@ -218,24 +212,20 @@ wcmd ( ) {
     /* write the command word to the weather station */ 
     /* extract message datagram */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
 
     /* if DLE no data available */
     if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-      rbuf = mkmsg("no data available(<DLE> received)\n");
-      retval = 16; 
+      return( ( char *)mkmsg2("no data available(<DLE> received)\n"));
     } else if ( ( ndat == 1 ) && ( data[0] == ACK ) )  {
       /* if ACK next dataset is available */
-      rbuf = mkmsg("next dataset available (<ACK> received)\n");
-      retval = 6;
+      return( ( char *)mkmsg2("next dataset available (<ACK> received)\n"));
     }
     /* exit if unknown response */
     else {
-      rbuf = mkmsg("error next dataset : \"unknown response\"\n");
-      retval = -1;
+      return( ( char *)mkmsg2("error next dataset : \"unknown response\"\n"));
     }
   }
 
@@ -246,24 +236,21 @@ wcmd ( ) {
     /* write the command word to the weather station */ 
     /* extract message datagram */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
     /* weather station response : <ACK> */
     if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set 9 temperature sensors (<ACK> received)\n");
+      return( ( char *)mkmsg2("set 9 temperature sensors (<ACK> received)\n"));
     }
 
     /* update status */
     wsconf.command = 5;
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
     if ( ( wstat(data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error in subroutine wstat\n"));
     }	  
   } 
 
@@ -274,31 +261,37 @@ wcmd ( ) {
     /* write the command word to the weather station */ 
     /* extract message datagram */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
     /* weather station response : <ACK> */
     if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set 16 temperature sensors(<ACK> received)\n");
+      return( ( char *)mkmsg2("set 16 temperature sensors(<ACK> received)\n"));
     }
 
     /* update status */
     wsconf.command = 5;
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
     if ( ( wstat(data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error in subroutine wstat\n"));
     }	  
   } 
 
 
   /* command 5 : Request status of weatherstation */
   else if ( command == 5 ) {
-    ; /* status known, drive thru */
+    if ( ( err = getcd( data, &ndat)) == -1) {
+      return( (char *)mkmsg2( "wcmd: error data reception\n"));
+    }
+    
+    /* status weatherstation */
+    if ( ( rbuf = wstat(data, ndat)) == NULL) {
+      return( ( char *)mkmsg2("wcmd: error in subroutine wstat\n"));
+    } else {
+      return( ( char *)rbuf);
+    }
   } 
 
 
@@ -307,26 +300,12 @@ wcmd ( ) {
     /* write the command word to the weather station */ 
     /* extract message datagram */
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
 
     /* weather station response : <ACK> */
     if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      rbuf = mkmsg("set logging interval to %d [min] (<ACK> received)\n",
-		   wsconf.argcmd);
-    }
-
-    /* update status */
-    wsconf.command = 5;
-    if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
-    }
-
-    if ( ( wstat( data, ndat)) == NULL) {
-      rbuf = mkmsg("wcmd: error in subroutine wstat\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("set logging interval to %d [min] (<ACK> received)\n", wsconf.argcmd));
     }
   } 
 
@@ -339,20 +318,19 @@ wcmd ( ) {
     /* first get DCF time if possible */
     wsconf.command = 0;
     if ( ( err = getcd( data, &ndat)) == -1) {
-      rbuf = mkmsg("wcmd: error data reception\n");
-      return (rbuf);
+      return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
     wsconf.command = command;
 
     /* calculate seconds since EPOCH if DCF synchronized */
+    ws2000station.status.DCFtime  = dcftime(data, ndat);
     //rw->DCF.time  = dcftime(data, ndat);
 	  
     while (retval != 16) {
       /* write command and retrieve data */
       wsconf.command = 1;
       if ( ( err = getcd( data, &ndat)) == -1) {
-	rbuf = mkmsg("wcmd: error data reception\n");
-	return (rbuf);
+	return( ( char *)mkmsg2("wcmd: error data reception\n"));
       }
 
       /* extract dataset from raw dataframe */
@@ -364,9 +342,9 @@ wcmd ( ) {
       /* do extraction */
       else {
 	if ( ( err = datex(data, ndat)) == -1) {
-	  rbuf = mkmsg("wcmd: error extracting data frame");
-	  return (rbuf);
+	  return( ( char *)mkmsg2("wcmd: error extracting data frame"));
 	}
+	ws2000station.status.ndats++;
 	//rw->wstat.ndats = rw->wstat.ndats + 1;
       }
  
@@ -374,8 +352,7 @@ wcmd ( ) {
 	 retrieve response*/ 
       wsconf.command = 2;
       if ( ( err = getcd( data, &ndat)) == -1) {
-	rbuf = mkmsg("wcmd: error data reception\n");
-	return (rbuf);
+	return( ( char *)mkmsg2("wcmd: error data reception\n"));
       }
 
       /* stop if DLE no data available, */
@@ -393,9 +370,8 @@ wcmd ( ) {
       /* return if unknown response */
       /* no data is returned, maybe too strict? */
       else {
-	rbuf = mkmsg(
-		     "wcmd: error request next dataset : unknown response\n");
-	return (rbuf);
+	return( ( char *)mkmsg2(
+		     "wcmd: error request next dataset : unknown response\n"));
       }
       syslog(LOG_DEBUG, "wcmd: retval : %d\n", retval);
     }
@@ -411,10 +387,10 @@ wcmd ( ) {
   }//command 12 || command 7
 
   else {
-    rbuf = mkmsg("unknown command\n");
+    return( ( char *)mkmsg2("unknown command\n"));
   }
-  syslog(LOG_DEBUG, "wcmd: exit OK\n");
-  return(rbuf);
+  /* catch all: should never be reached */
+  return( ( char *)mkmsg2("called wcmd w/o command: this should not happen\n"));
 }
 /*
   wcmd() ends here
@@ -640,12 +616,11 @@ chkframe( unsigned char *data, int *mdat) {
 char *
 wstat(unsigned char *data, int mdat ) {
     int i;
-    char frame[MAXBUFF] = ""; /* WS2000 can hold 32 kByte of data, 
-                                one dataset is 56 byte long, makes 572 max.
-                             */
+    char frame[MAXMSGLEN] = ""; 
     char sf[3] = "";
-    static char t[MAXBUFF];
-    //char *s;
+    static char t[MAXBUFF] = "no status available";
+
+    char *s;
 
     /* empty t */
     t[0] = '\0';
@@ -687,39 +662,32 @@ wstat(unsigned char *data, int mdat ) {
     syslog(LOG_DEBUG, "wstat : %s\n", frame);    
     strcpy(frame, "");
 
-    /*
     for ( i = 0; i < MAXSENSORS; i++ ) {
-	  sprintf(sf, "%2x:",rw->sens[i].status);
+	  sprintf(sf, "%2x:",ws2000station.sensor[i].status);
       strcat(frame, sf);
     }
     syslog(LOG_DEBUG, "wstat : %s\n", frame);   
-    */
 
 	
     /* interval time */
-    /*
-    rw->wstat.intvaltime = data[18];
-    */	
+    ws2000station.status.interval = data [18];
     /* DCF status and synchronicity */
-    /*
-    rw->DCF.stat = getbits(data[19],0,1);
-    rw->DCF.sync = getbits(data[19],3,1);
-    */
+    ws2000station.status.DCFstat = getbits( data[19],0,1);
+    ws2000station.status.DCFsync = getbits( data[19],3,1); 
+
     /* number of sensors */
-    /*
     if ( getbits(data[19],2,1) == 0 ) { 
-        rw->wstat.nsens = 23;
-    }
+      ws2000station.status.numsens = 23; 
+   }
     else if ( getbits(data[19],2,1) == 1 ) {
-        rw->wstat.nsens = 42;
+       ws2000station.status.numsens = 42; 
+      //rw->wstat.nsens = 42;
     }
-    */
 
     /* version number */
-    /* rw->wstat.version = data[20]; */
+    ws2000station.status.version = data[20];
 
     /* syslog messages */
-    /*
     syslog(LOG_DEBUG, "wstat : Intervall time [min] : %d\n", data[18]);
     syslog(LOG_DEBUG, "wstat : DCF Status   Bit 0 : %d\n",
 		   getbits(data[19],0,1));
@@ -735,54 +703,56 @@ wstat(unsigned char *data, int mdat ) {
     syslog(LOG_DEBUG, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
     syslog(LOG_DEBUG, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
 
-    syslog(LOG_DEBUG, "wstat: DCF.stat : %d\n", rw->DCF.stat);
-    syslog(LOG_DEBUG, "wstat: DCF.sync : %d\n", rw->DCF.sync);
-    syslog(LOG_DEBUG, "wstat: number sensors : %d\n", rw->wstat.nsens);
-    syslog(LOG_DEBUG, "wstat: version : %x\n", rw->wstat.version);
-    */
+    syslog(LOG_DEBUG, "wstat: DCF.stat : %d\n", ws2000station.status.DCFstat);
+    syslog(LOG_DEBUG, "wstat: DCF.sync : %d\n", ws2000station.status.DCFsync);
+    syslog(LOG_DEBUG, "wstat: number sensors : %d\n",
+      ws2000station.status.numsens);
+    syslog(LOG_DEBUG, "wstat: version : %x\n", ws2000station.status.version);
 
     /* fill return buffer */
-    /*
-    s = mkmsg(
+    s = mkmsg2(
 	      "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
-	      rw->wstat.version, rw->wstat.intvaltime);
+	      ws2000station.status.version, 
+              ws2000station.status.interval);
     strncat( t, s, strlen(s));   
 
-    if ( rw->DCF.stat == 1 ) {
-      s = mkmsg("DCF status\t:\t%d (DCF receiver present)\n", 
-		rw->DCF.stat);
+    if ( ws2000station.status.DCFstat == 1 ) {
+      s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n", 
+		ws2000station.status.DCFstat);
     }
     else {
-      s = mkmsg("DCF status\t:\t%d (no DCF receiver found)\n", 
-		rw->DCF.stat);
+      s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n", 
+		ws2000station.status.DCFstat);
     }
 
     strncat(t, s, strlen(s));
 	
-    if ( rw->DCF.sync == 1 ) {
-      s = mkmsg("DCF sync.\t:\t%d (DCF synchronized)\n", rw->DCF.sync);
+    if ( ws2000station.status.DCFsync == 1 ) {
+      s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n", 
+        ws2000station.status.DCFsync);
     }
     else {
-      s = mkmsg("DCF sync.\t:\t%d (DCF NOT synchronized)\n", rw->DCF.sync);
+      s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
+        ws2000station.status.DCFsync);
     }
     strcat(t,s);
       
-    s = mkmsg("Sensor status\t:\t( %d sensors)\n", rw->wstat.nsens);
+    s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
+      ws2000station.status.numsens);
     strcat(t,s);
       
-    for ( i = 0; i < rw->wstat.nsens; i++ ) {
-      s = mkmsg("%2d|", i);
+    for ( i = 0; i < ws2000station.status.numsens; i++ ) {
+      s = mkmsg2("%2d|", i);
       strcat(t,s);  
     }
     strcat(t,"\n");
       
-    for ( i = 0; i < rw->wstat.nsens; i++ ) {
-	s= mkmsg("%2x|", rw->sens[i].status);
+    for ( i = 0; i < ws2000station.status.numsens; i++ ) {
+	s= mkmsg2("%2x|", ws2000station.sensor[i].status);
 	strcat(t,s);
       
     }  
     strcat(t,"\n");
-    */
     return (t);
 }
 
@@ -913,7 +883,7 @@ datex(unsigned char *data, int ndat) {
   long age;
   time_t mtim;
   char *clk;
-  float temp;
+  //float temp;
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
 
@@ -1338,7 +1308,7 @@ readdata (int fd, unsigned char *data, int *ndat)
 {
   int i,n;
   int err;
-  unsigned char rbuf[MAXBUFF];
+  static unsigned char sbuf[MAXBUFF] = "no data available";
   int maxfd;
   int loop = 1;
   fd_set readfs;
@@ -1348,7 +1318,8 @@ readdata (int fd, unsigned char *data, int *ndat)
 	
   err = -1;
   maxfd = fd +1;
-  
+ 
+  syslog(LOG_INFO,"readdata: begin of exec"); 
   /* loop until input is available */
   while ( loop) {
 	
@@ -1377,10 +1348,10 @@ readdata (int fd, unsigned char *data, int *ndat)
           break;
 	default:
 	  /* loop until err = 0 */
-	  while ( ( rbuf[err-1] != 3) && ( err != 0)) {
-	    err = read(fd, rbuf, MAXBUFF);
+	  while ( ( sbuf[err-1] != 3) && ( err != 0)) {
+	    err = read(fd, sbuf, MAXBUFF);
 	    for ( i = 0; i < err; i++) {
-              data[*ndat + i] = rbuf[i];
+              data[*ndat + i] = sbuf[i];
 	    }
             *ndat += err;
 	    loop=0;
@@ -1440,7 +1411,7 @@ int getsrd ( unsigned char *data, int *mdat) {
     struct termios newtio,oldtio;   /* termios structures to set 
                                        comm parameters */
 
-    
+    /* initialize serial port */    
     if ( initws2000(&fd, &newtio, &oldtio) == -1 )
       return(-1);
 
@@ -1481,12 +1452,13 @@ int getsrd ( unsigned char *data, int *mdat) {
     }
     
     /* echo raw dataframe */
-    if ( echodata( data, *mdat) == -1)
+    if ( echodata( data, *mdat) == -1) {
+    closeserial(fd, &oldtio);
       return(-1);
+    }
     
     closeserial(fd, &oldtio);
     
     syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);
     return(0);
 }
-
