@@ -50,6 +50,7 @@ int initdata( ) {
   wsconf.outfmt      = "old";
   
   /* ws2000 weatherstations sensors */
+  /* 8 temperature /humidity sensors */
   ws2000station.sensor[0].sensorname = "Sensor1";
   ws2000station.sensor[0].rrdfile    = "Sensor1.rrd";
   ws2000station.sensor[0].param[0].paramname ="Temp1";
@@ -82,20 +83,24 @@ int initdata( ) {
   ws2000station.sensor[7].rrdfile    = "Sensor8.rrd";
   ws2000station.sensor[7].param[0].paramname ="Temp8";
   ws2000station.sensor[7].param[1].paramname ="Humi8";
+  /* rain : sensor # 8 */
   ws2000station.sensor[8].sensorname = "Rain";
   ws2000station.sensor[8].rrdfile    = "Rain.rrd";
   ws2000station.sensor[8].param[0].paramname ="RainVol";
   ws2000station.sensor[8].param[1].paramname ="RainNew";
+  /* wind : sensor # 9 */
   ws2000station.sensor[9].sensorname = "Wind";
   ws2000station.sensor[9].rrdfile    = "Wind.rrd";
   ws2000station.sensor[9].param[0].paramname ="WindSpeed";
   ws2000station.sensor[9].param[1].paramname ="WindDirection";
   ws2000station.sensor[9].param[2].paramname ="WindDeviation";
+  /* indoor: sensor # 10 */
   ws2000station.sensor[10].sensorname = "Indoor";
   ws2000station.sensor[10].rrdfile    = "Indoor.rrd";
   ws2000station.sensor[10].param[0].paramname ="PressureI";
   ws2000station.sensor[10].param[1].paramname ="TempI";
   ws2000station.sensor[10].param[2].paramname ="HumiI";
+  /* another 7 temperatur / humidity sensors */
   ws2000station.sensor[11].sensorname = "Sensor9";
   ws2000station.sensor[11].rrdfile    = "Sensor9.rrd";
   ws2000station.sensor[11].param[0].paramname ="Pressure9";

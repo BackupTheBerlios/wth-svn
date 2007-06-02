@@ -3,7 +3,6 @@
    ws2000 handler in conjunction with wthnewd
 
    $Id$
-   $Revision$
 
    Copyright (C) 2001-2004,2007 Volker Jahns <volker@thalreit.de>
 
@@ -107,7 +106,6 @@ ws2000_cmdhandler( ) {
 
 
 
-
 /* wcmd
   
    execution of WS2000 weatherstation commands
@@ -120,14 +118,12 @@ wcmd ( ) {
   int err;                        /* return value of functions, 
                                      useful for errorhandling */
   int retval = 0;                 
-  long snum = 0;                   /* current dataset number */
   int command;
   int argcm;
   static unsigned char data[MAXBUFF]; /* data array to store the raw dataframe 
                                          and the message datagram */
-  char *clk;                      /* display time in reasonable format */
-  char *rbuf;                     /* return buffer */
-  
+  char *clk;                          /* display time in reasonable format */
+  char *rbuf;                         /* return buffer */
 
   syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",wsconf.command);  
   ws2000station.status.ndats = 0;
@@ -196,7 +192,6 @@ wcmd ( ) {
       err = datex(data, ndat);
       syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
       ws2000station.status.ndats = ws2000station.status.ndats + 1;
-      snum++;
     }
     return( ( char *)mkmsg2("wcmd: data available\n"));
     /* echo sensor data */
@@ -626,35 +621,19 @@ wstat(unsigned char *data, int mdat ) {
     t[0] = '\0';
 
     /* status of first 8 temperature/humidity sensors */
-    /*
     for ( i = 0; i < 8; i++) {
-        rw->sens[2*i].status   = data[i];
-        rw->sens[2*i+1].status = data[i];
+        ws2000station.sensor[i].status   = data[i];
     }
-    */
+    ws2000station.sensor[8].status   = data[8];  // rain
+    ws2000station.sensor[9].status   = data[9];  // wind
+    ws2000station.sensor[10].status  = data[10]; // indoor
 
-    /* rain sensor */
-    /* rw->sens[16].status  = data[8]; */
-    /* wind sensor */
-    /*
-    rw->sens[17].status  = data[9];
-    rw->sens[18].status  = data[9];
-    rw->sens[19].status  = data[9];
-    */
-    /* indoor sensor : temp, hum, press */
-    /*
-    rw->sens[20].status  = data[10];
-    rw->sens[21].status  = data[10];
-    rw->sens[22].status  = data[10];
-    */    
+
     /* status of temperature/humidity sensor 9 to 15 */
-    /*
-    for ( i = 12; i < 18; i++) {
-	  rw->sens[2*i].status   = data[i];
-	  rw->sens[2*i+1].status = data[i];
+    for ( i = 11; i < 18; i++) {
+	  ws2000station.sensor[i].status   = data[i];
     }
-    */
-    for ( i = 0; i < MAXSENSORS; i++ ) {
+    for ( i = 0; i < 18; i++ ) {
       sprintf(sf, "%2d:",i);
       strcat(frame, sf);
     }
@@ -662,7 +641,7 @@ wstat(unsigned char *data, int mdat ) {
     syslog(LOG_DEBUG, "wstat : %s\n", frame);    
     strcpy(frame, "");
 
-    for ( i = 0; i < MAXSENSORS; i++ ) {
+    for ( i = 0; i < 18; i++ ) {
 	  sprintf(sf, "%2x:",ws2000station.sensor[i].status);
       strcat(frame, sf);
     }
@@ -675,12 +654,16 @@ wstat(unsigned char *data, int mdat ) {
     ws2000station.status.DCFstat = getbits( data[19],0,1);
     ws2000station.status.DCFsync = getbits( data[19],3,1); 
 
+    /* HF / Battery status */
+    ws2000station.status.HFstat    = getbits( data[19],1,1);
+    ws2000station.status.Battstat  = getbits( data[19],4,1);
+
     /* number of sensors */
     if ( getbits(data[19],2,1) == 0 ) { 
-      ws2000station.status.numsens = 23; 
+      ws2000station.status.numsens = 18 - 7  ; 
    }
     else if ( getbits(data[19],2,1) == 1 ) {
-       ws2000station.status.numsens = 42; 
+       ws2000station.status.numsens = 18; 
       //rw->wstat.nsens = 42;
     }
 
@@ -697,6 +680,8 @@ wstat(unsigned char *data, int mdat ) {
 		   getbits(data[19],2,1));
     syslog(LOG_DEBUG, "wstat : DCF sync     Bit 3 : %d\n",
 		   getbits(data[19],3,1));
+    syslog(LOG_DEBUG, "wstat : Battery      Bit 4 : %d\n",
+		   getbits(data[19],4,1));
     
     syslog(LOG_DEBUG, "wstat : bit 4  : %d\n", getbits(data[19],4,1));
     syslog(LOG_DEBUG, "wstat : bit 5  : %d\n", getbits(data[19],5,1));
@@ -736,22 +721,36 @@ wstat(unsigned char *data, int mdat ) {
         ws2000station.status.DCFsync);
     }
     strcat(t,s);
-      
+
+    if ( ws2000station.status.HFstat == 1 ) {
+      s = mkmsg2("HF status\t:\t%d (with HF)\n", 
+		ws2000station.status.HFstat);
+    }
+    else {
+      s = mkmsg2("HF status\t:\t%d (without HF)\n", 
+		ws2000station.status.HFstat);
+    }
+    strcat(t,s);
+
+    s = mkmsg2("Battery status\t:\t%d\n", 
+	       ws2000station.status.Battstat);
+    strcat(t,s);
+   
     s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
       ws2000station.status.numsens);
     strcat(t,s);
-      
+
     for ( i = 0; i < ws2000station.status.numsens; i++ ) {
       s = mkmsg2("%2d|", i);
       strcat(t,s);  
     }
     strcat(t,"\n");
-      
+    
+  
     for ( i = 0; i < ws2000station.status.numsens; i++ ) {
 	s= mkmsg2("%2x|", ws2000station.sensor[i].status);
 	strcat(t,s);
-      
-    }  
+    } 
     strcat(t,"\n");
     return (t);
 }
