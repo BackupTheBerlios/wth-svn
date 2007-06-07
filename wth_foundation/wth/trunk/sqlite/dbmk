@@ -17,11 +17,10 @@ $dbh->do("
   CREATE TABLE 
   sensordata
   (
-    dataset_no INT,
+    dataset_no INTEGER PRIMARY KEY AUTOINCREMENT not null,
     dataset_date DATE,
-    sensor_meas_no INT,
+    sensor_meas_no INTEGER,
     meas_value FLOAT,
-    PRIMARY KEY (dataset_no),
     FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
   )
 ");
