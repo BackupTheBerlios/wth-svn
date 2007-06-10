@@ -115,11 +115,10 @@ char *
 wcmd ( ) {
   int ndat = 0;                   /* length of array containing the 
                                      data frame */
-  int err;                        /* return value of functions, 
-                                     useful for errorhandling */
-  int retval = 0;                 
+  int err;                        /* return value of functions */
   int command;
   int argcm;
+  int dle_isset = FALSE;
   static unsigned char data[MAXBUFF]; /* data array to store the raw dataframe 
                                          and the message datagram */
   char *clk;                          /* display time in reasonable format */
@@ -315,14 +314,12 @@ wcmd ( ) {
     if ( ( err = getcd( data, &ndat)) == -1) {
       return( ( char *)mkmsg2("wcmd: error data reception\n"));
     }
-    wsconf.command = command;
 
     /* calculate seconds since EPOCH if DCF synchronized */
     ws2000station.status.DCFtime  = dcftime(data, ndat);
-    //rw->DCF.time  = dcftime(data, ndat);
 	  
-    while (retval != 16) {
-      /* write command and retrieve data */
+    while ( dle_isset != TRUE) {
+      /* 1st step: command #1: request dataset */
       wsconf.command = 1;
       if ( ( err = getcd( data, &ndat)) == -1) {
 	return( ( char *)mkmsg2("wcmd: error data reception\n"));
@@ -331,8 +328,9 @@ wcmd ( ) {
       /* extract dataset from raw dataframe */
       /* weather station response : no data available: <DLE> */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	rbuf = mkmsg("no data available (<DLE> received)\n");
-	retval = 16;
+	syslog(LOG_INFO,
+          "wcmd: command 12: no data available (<DLE> received)\n");
+	dle_isset = TRUE;
       }
       /* do extraction */
       else {
@@ -340,11 +338,9 @@ wcmd ( ) {
 	  return( ( char *)mkmsg2("wcmd: error extracting data frame"));
 	}
 	ws2000station.status.ndats++;
-	//rw->wstat.ndats = rw->wstat.ndats + 1;
       }
  
-      /* write the command word to select next dataset and 
-	 retrieve response*/ 
+      /* 2nd step: command #2: request next dataset */
       wsconf.command = 2;
       if ( ( err = getcd( data, &ndat)) == -1) {
 	return( ( char *)mkmsg2("wcmd: error data reception\n"));
@@ -352,15 +348,14 @@ wcmd ( ) {
 
       /* stop if DLE no data available, */
       if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
-	/* rbuf = mkmsg(
-	   "<DLE> received :\"no data available\"!"); */
-	retval = 16; 
+	syslog(LOG_INFO,
+          "wcmd: command 12: no data available ( (<DLE> received)\n");
+	dle_isset = TRUE; 
       }
       /* if ACK next dataset is available */
       else if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-	syslog(LOG_DEBUG, \
+	syslog(LOG_INFO, \
 	       "wcmd: next dataset available (<ACK> received)!\n");
-	retval = 6;
       }
       /* return if unknown response */
       /* no data is returned, maybe too strict? */
@@ -368,7 +363,6 @@ wcmd ( ) {
 	return( ( char *)mkmsg2(
 		     "wcmd: error request next dataset : unknown response\n"));
       }
-      syslog(LOG_DEBUG, "wcmd: retval : %d\n", retval);
     }
 
     /* echo sensor data */

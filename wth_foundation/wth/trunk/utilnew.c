@@ -51,6 +51,7 @@ int initdata( ) {
   
   /* ws2000 weatherstations sensors */
   /* 8 temperature /humidity sensors */
+  /*
   ws2000station.sensor[0].sensorname = "Sensor1";
   ws2000station.sensor[0].rrdfile    = "Sensor1.rrd";
   ws2000station.sensor[0].param[0].paramname ="Temp1";
@@ -83,24 +84,32 @@ int initdata( ) {
   ws2000station.sensor[7].rrdfile    = "Sensor8.rrd";
   ws2000station.sensor[7].param[0].paramname ="Temp8";
   ws2000station.sensor[7].param[1].paramname ="Humi8";
+  */
   /* rain : sensor # 8 */
+  /*
   ws2000station.sensor[8].sensorname = "Rain";
   ws2000station.sensor[8].rrdfile    = "Rain.rrd";
   ws2000station.sensor[8].param[0].paramname ="RainVol";
   ws2000station.sensor[8].param[1].paramname ="RainNew";
+  */
   /* wind : sensor # 9 */
+  /*
   ws2000station.sensor[9].sensorname = "Wind";
   ws2000station.sensor[9].rrdfile    = "Wind.rrd";
   ws2000station.sensor[9].param[0].paramname ="WindSpeed";
   ws2000station.sensor[9].param[1].paramname ="WindDirection";
   ws2000station.sensor[9].param[2].paramname ="WindDeviation";
+  */
   /* indoor: sensor # 10 */
+  /*
   ws2000station.sensor[10].sensorname = "Indoor";
   ws2000station.sensor[10].rrdfile    = "Indoor.rrd";
   ws2000station.sensor[10].param[0].paramname ="PressureI";
   ws2000station.sensor[10].param[1].paramname ="TempI";
   ws2000station.sensor[10].param[2].paramname ="HumiI";
+  */
   /* another 7 temperatur / humidity sensors */
+  /*
   ws2000station.sensor[11].sensorname = "Sensor9";
   ws2000station.sensor[11].rrdfile    = "Sensor9.rrd";
   ws2000station.sensor[11].param[0].paramname ="Pressure9";
@@ -131,12 +140,14 @@ int initdata( ) {
   ws2000station.sensor[16].param[0].paramname ="Pressure14";
   ws2000station.sensor[16].param[1].paramname ="Temp14";
   ws2000station.sensor[16].param[2].paramname ="Humi14";
+  */
   ws2000station.config.dbfile        = "ws2000.db";
-  ws2000station.config.device        = "/dev/ttyS1";
+  ws2000station.config.device        = "/dev/ttyd0";
   ws2000station.status.interval      = 300;  
 
   /* pcwsr sensors */
   /* T outdoor sensor V1.1 */
+  /*
   pcwsrstation.sensor[0x00].sensorname  = "T_OutdoorSensor1V1";
   pcwsrstation.sensor[0x00].rrdfile     = "T_OutdoorSensor1V1.rrd";
   pcwsrstation.sensor[0x00].address     = 0x00;
@@ -176,8 +187,9 @@ int initdata( ) {
   pcwsrstation.sensor[0x07].rrdfile     = "T_OutdoorSensor8V1.rrd";
   pcwsrstation.sensor[0x07].address     = 0x07;
   pcwsrstation.sensor[0x07].param[0].paramname = "Temperature";
- 
+  */
   /* T outdoor sensor V1.2 */
+  /*
   pcwsrstation.sensor[0x08].sensorname  = "T_OutdoorSensor1V2";
   pcwsrstation.sensor[0x08].rrdfile     = "T_OutdoorSensor1.rrd";
   pcwsrstation.sensor[0x08].address     = 0x08;
@@ -217,8 +229,9 @@ int initdata( ) {
   pcwsrstation.sensor[0x0f].rrdfile     = "T_OutdoorSensor8V2.rrd";
   pcwsrstation.sensor[0x0f].address     = 0x0f;
   pcwsrstation.sensor[0x0f].param[0].paramname = "Temperature";
-
+  */
   /* T/H outdoor sensor V1.1 */
+  /*
   pcwsrstation.sensor[0x10].sensorname  = "TH_OutdoorSensor1V1";
   pcwsrstation.sensor[0x10].rrdfile     = "TH_OutdoorSensor1V1.rrd";
   pcwsrstation.sensor[0x10].address     = 0x10;
@@ -266,8 +279,9 @@ int initdata( ) {
   pcwsrstation.sensor[0x17].address     = 0x17;
   pcwsrstation.sensor[0x17].param[0].paramname = "Temperature";
   pcwsrstation.sensor[0x17].param[1].paramname = "Humidity";
-
+  */
   /* T/H outdoor sensor V1.2 */ 
+  /*
   pcwsrstation.sensor[0x18].sensorname  = "TH_OutdoorSensor1V2";
   pcwsrstation.sensor[0x18].rrdfile     = "TH_OutdoorSensor1.rrd";
   pcwsrstation.sensor[0x18].address     = 0x18;
@@ -315,7 +329,8 @@ int initdata( ) {
   pcwsrstation.sensor[0x1f].address     = 0x1f;
   pcwsrstation.sensor[0x1f].param[0].paramname = "Temperature";
   pcwsrstation.sensor[0x1f].param[1].paramname = "Humidity";
- 
+  */
+
   pcwsrstation.config.dbfile         = "pcwsr.db";
   pcwsrstation.config.device         = "/dev/ttyS0";
  
@@ -331,7 +346,7 @@ int initdata( ) {
 int
 echodata(unsigned char *data, int mdat) {
     int i;
-    char frame[MAXBUFF] = "";
+    char frame[MAXMSGLEN] = "";
     char sf[3] = "";
 
     syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);
@@ -415,12 +430,12 @@ int
 usage (int exitcode, char *error, char *addl) {
   char *bufstr;
 
-  if (( bufstr = malloc(MAXBUFF)) == NULL ) 
+  if (( bufstr = malloc(MAXMSGLEN)) == NULL ) 
   {
     return(1);
   }
 
-  snprintf( bufstr, MAXBUFF, "Usage: wthc [Options]\n"
+  snprintf( bufstr, MAXMSGLEN, "Usage: wthc [Options]\n"
 	  "where options include:\n"
 	  "\t-c <command>\texecute command\n"
 	  "\t\t0\tPoll DCF Time\n"
@@ -431,7 +446,7 @@ usage (int exitcode, char *error, char *addl) {
 	  "\t\t5\tRequest status\n"
 	  "\t\t6\tSet interval time,\n" 
 	   "\t\t\t\trequires extra parameter specified by option -i\n");
-  snprintf( bufstr, MAXBUFF, "%s"
+  snprintf( bufstr, MAXMSGLEN, "%s"
 	  "\t\t12\tRequest all available data recursively\n"
 	  "\t-i <interval>\tspecifies interval time\n"
 	  "\t\tpermissible values for the interval lie\n"
@@ -602,7 +617,7 @@ char *
 echoconfig ( ) {
   int size;
   char *s;
-  static char t[MAXBUFF];
+  static char t[MAXMSGLEN];
 
   s = mkmsg("Configuration parameters\n");
   size = strlen(s) + 1;
