@@ -132,7 +132,7 @@ int initdata( ) {
   ws2000station.sensor[16].param[1].paramname ="Temp14";
   ws2000station.sensor[16].param[2].paramname ="Humi14";
   ws2000station.config.dbfile        = "ws2000.db";
-  ws2000station.config.device        = "/dev/ttyd0";
+  ws2000station.config.device        = "/dev/ttyS1";
   ws2000station.status.interval      = 300;  
 
   /* pcwsr sensors */
@@ -317,7 +317,7 @@ int initdata( ) {
   pcwsrstation.sensor[0x1f].param[1].paramname = "Humidity";
  
   pcwsrstation.config.dbfile         = "pcwsr.db";
-  pcwsrstation.config.device         = "/dev/ttyd1";
+  pcwsrstation.config.device         = "/dev/ttyS0";
  
   return(0);
 }

@@ -42,13 +42,14 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
-#include <sys/select.h>	/* for convenience */
+#include <sys/select.h>	/* for convenience */ 
 #include <sys/socket.h>	/* basic socket definitions */
 #include <sys/time.h>	/* timespec{} for pselect() */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
 #include <sys/un.h>	/* for Unix domain sockets */
 #include <sys/wait.h>
 #include <syslog.h>
+#include <sqlite3.h>
 #include <termios.h>
 #include <time.h>	/* timespec{} for pselect() */
 #include <unistd.h>
@@ -62,7 +63,7 @@
 #define MAXBUFF     131072
 #define MAXSENSORS  42
 #define MAXPARAM    8
-#define MAXDATA     2048
+#define MAXDATA     256
 #define PCWSRLEN    8
 #define MAXMSGLEN   128
 

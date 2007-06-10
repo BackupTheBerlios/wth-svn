@@ -57,7 +57,7 @@ ws2000_loghandler( ) {
       }
       waitmax++; 
     }
-    sleep(10);
+    sleep(3600);
   }
   return(0);
 }
@@ -99,7 +99,7 @@ ws2000_cmdhandler( ) {
       waitmax++; 
     }
     loopno++;
-    sleep(3);
+    sleep(600);
   }
   return(0);
 }

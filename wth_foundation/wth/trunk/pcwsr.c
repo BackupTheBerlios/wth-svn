@@ -39,8 +39,8 @@ initpcwsr (struct termios *newtio, struct termios *oldtio, char *sdevice ) {
 
   if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) 
            == -1 ) {
-    perror("Unable to open serial device");
-    exit(-1);
+    perror("initpcwsr: Unable to open serial device");
+    return -1;
   } 
   
   /* Make the file descriptor asynchronous (the manual page says only 
@@ -128,21 +128,22 @@ pcwsr_loghandler( ) {
     int styp, saddr, sver;       /* sensor typ, address and version */
     float t, wspd, wdev;
     int h, p, wdir, r, b, rad, mul, imul;
-    int debug=0, raw=0, pipeline=0;
+    int debug=1, raw=0;
 
-    struct termios newtio,oldtio; /* termios structures to set comm parameters */
-    unsigned char data[MAXBUFF];
-    char clk[MAXBUFF];
-    char buf[MAXBUFF];
-    char pipelinebuf[MAXBUFF];
-    char pipelineclk[MAXBUFF];
+    struct termios newtio,oldtio; 
+    unsigned char data[MAXMSGLEN];
+    char clk[MAXMSGLEN];
+    char buf[MAXMSGLEN];
     char *name;  /* sensor typ spec */
 
     time_t mtime;
     struct tm *ctm;
 
-    tzset();                                       /* setting timezone */
-    fd = initpcwsr(&newtio, &oldtio,"/dev/ttyd1"); /* serial initialization */ 
+    printf("pcwsr_loghandler: start of execution\n");
+    /* setting timezone */
+    tzset(); 
+    /* serial initialization */ 
+    fd = initpcwsr(&newtio, &oldtio, pcwsrstation.config.device); 
     
     for ( ;; ) {
       // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
@@ -163,27 +164,25 @@ pcwsr_loghandler( ) {
       time(&mtime);
       ctm = gmtime(&mtime);
       strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
-      /* Wed Oct 08 2003 20:59:32 */
-      strftime(pipelineclk, sizeof(pipelineclk), "'%Y-%m-%d %H:%M:%S'", ctm);
-      /* 1999-01-08 04:05:06 */
 
       if (raw) {
-	printf("%s : %d bytes read |", clk, err);
+	printf("pcwsr_loghandler: %s : %d bytes read |", clk, err);
 	for ( i = 0; i<8; i++) {
 	  printf("%x|", data[i]);
 	}
 	printf("\n");
       }
 
-      // When we get here, we should have 8 bytes starting with STX and ending with ETX.
+      /* When we get here, we should have 8 bytes 
+         starting with STX and ending with ETX. */
       if (data[0]!=STX)
       {
-      	printf("No STX seen - can't happen!  Skipping..\n");
+      	printf("pcwsr_loghandler: no STX seen - can't happen!  Skipping..\n");
 	continue;
       };
       if (data[7]!=ETX)
       {
-      	printf("No ETX seen - skipping to next STX..\n");
+      	printf("pcwsr_loghandler: no ETX seen - skipping to next STX..\n");
 	continue;
       };
 	      
@@ -194,7 +193,6 @@ pcwsr_loghandler( ) {
       saddr = dummy & 0xf;
       name = sname(styp);
       strcpy(buf,"");
-      strcpy(pipelinebuf,"");
      
       sver = 0x12;
       if ( ( styp < 0x5 ) && ( saddr < 0x8)) {
@@ -202,8 +200,10 @@ pcwsr_loghandler( ) {
       }
 
       if (debug) {
-	printf("dummy :%x, styp :%x, saddr:%x\n", dummy, styp, saddr); 
-	printf("sname: %s, styp  :%x, sver :%x\n", name, styp, sver);
+	printf("pcwsr_loghandler: dummy :%x, styp :%x, saddr:%x\n", 
+          dummy, styp, saddr); 
+	printf("pcwsr_loghandler: sname: %s, styp  :%x, sver :%x\n", 
+          name, styp, sver);
       }
 
       /* handle sensors */
@@ -228,15 +228,9 @@ pcwsr_loghandler( ) {
         
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (address 0x0%x) | T[C] %.1f",
+            "pcwsr: %s | %8s (address 0x0%x) | T[C] %.1f",
 	    clk, name, saddr, t);
         }
-	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',Outdoor_Temp,0x0f,T,12.3"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Outdoor_Temp,0x0%x,T,%.1f",
-	    pipelineclk, saddr, t);
-	}
       }
       /* outdoor (temperature, humidity) */
       else if ( styp == 0x1 ) {
@@ -265,15 +259,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d",
 	    clk, name, sver, saddr, t, h);
         }
-	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',Outdoor,0x0f,T,12.3,H,42"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Outdoor,0x0%x,T,%.1f,H,%d",
-	    pipelineclk, saddr, t, h);
-	}
       } 
       /* rain */
       else if ( styp == 0x2 ) {
@@ -290,16 +278,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | [Impulses * 0.37mm] %d",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | [Impulses * 0.37mm] %d",
 	    clk, name, sver, saddr, r);
         }
-	if (pipeline) {
-	  // The impulse counter wraps around to zero eventually.
-	  // Example: "'2003-10-08 21:09:30',Rain,0x0f,123"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Rain,0x0%x,%d",
-	    pipelineclk, saddr, r);
-	}
       }
       /* wind */
       else if ( styp == 0x3 ) {
@@ -334,15 +315,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | Speed[km/h] %.1f | Direction [] %d +/- %.1f",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | Speed[km/h] %.1f | Direction [] %d +/- %.1f",
 	    clk, name, sver, saddr, wspd, wdir, wdev);
         }
-	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',Wind,0x0f,V,12.3,D,270,+-,22.5"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Wind,0x0%x,V,%.1f,D,%d,+-,%.1f",
-	    pipelineclk, saddr, wspd, wdir, wdev);
-	}
       } 
       /* indoor (temperature, humidity, pressure) */
       else if ( styp == 0x4) {  
@@ -380,15 +355,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d | P[hPa] %d",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d | P[hPa] %d",
 	    clk, name, sver, saddr, t, h, p);
         }
-	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',Indoor,0x0f,T,21.5,H,44,P,1009"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Indoor,0x0%x,T,%.1f,H,%d,P,%d",
-	    pipelineclk, saddr, t,h,p);
-	}
       }
       /* brightness */
       else if ( styp == 0x5) {  
@@ -423,15 +392,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | [klx] %d",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | [klx] %d",
 	    clk, name, sver, saddr, b * imul);
         }
-    	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',Brightness,0x0f,123"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,Brightness,0x0%x,%d",
-	    pipelineclk, saddr, b * imul);
-	}
       }
       /* pyranometer */
       else if ( styp == 0x6) {  
@@ -464,15 +427,9 @@ pcwsr_loghandler( ) {
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
-            "%s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d",
+            "pcwsr: %s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d",
 	    clk, name, sver, saddr, rad * imul);
         }
-    	if (pipeline) {
-	  // Example: "'2003-10-08 21:09:30',RadPower,0x0f,123"
-          snprintf(pipelinebuf, sizeof(pipelinebuf),
-            "%s,RadPower,0x0%x,%d",
-	    pipelineclk, saddr, rad * imul);
-	}
       }
       /* sensor unknown ?! */
       else {
@@ -481,7 +438,6 @@ pcwsr_loghandler( ) {
 		clk, sver, saddr);
       }
       if (!raw     && (buf[0]        !='\0')) printf("%s\n", buf);
-      if (pipeline && (pipelinebuf[0]!='\0')) printf("%s\n", pipelinebuf);
     }
     /* leave serial line in good state */
     closepcwsr( fd, &oldtio); 
