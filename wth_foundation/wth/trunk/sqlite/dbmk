@@ -77,42 +77,42 @@ $dbh->do("
 # table parameternames will not change (WS2000 can't do more)
 #
 $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('2','Feuchte','% rel.hum.') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('3','Regen','mm') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('4','Windgeschwindigkeit','m/s') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('5','Schwankungsbreite','deg') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('6','Windrichtung','deg') ");
-$dbh->do(" INSERT INTO parameternames VALUES ('7','Luftdruck','hPa') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('2','Humidity','% rel.hum.') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('3','Rain','mm') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
+$dbh->do(" INSERT INTO parameternames VALUES ('7','Barometric Pressure','hPa') ");
 
 #
 # table sensornames will not change (WS2000 can't do more)
 #
-$dbh->do(" INSERT INTO sensornames VALUES ('1','Tempsensor 1') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('2','Tempsensor 2') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('3','Tempsensor 3') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('4','Tempsensor 4') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('5','Tempsensor 5') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('6','Tempsensor 6') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('7','Tempsensor 7') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('8','Tempsensor 8') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('9','Regensensor') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('1','Sensor1') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('2','Sensor2') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('3','Sensor3') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('4','Sensor4') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('5','Sensor5') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('6','Sensor6') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('7','Sensor7') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('8','Sensor8') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('9','Rainsensor') ");
 $dbh->do(" INSERT INTO sensornames VALUES ('10','Windsensor') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('11','Innensensor') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('12','Tempsensor 9') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('13','Tempsensor 10') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('14','Tempsensor 11') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('15','Tempsensor 12') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('16','Tempsensor 13') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('17','Tempsensor 14') ");
-$dbh->do(" INSERT INTO sensornames VALUES ('18','Tempsensor 15') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('11','Indoorsensor') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('12','Sensor9') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('13','Sensor10') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('14','Sensor11') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('15','Sensor12') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('16','Sensor13') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('17','Sensor14') ");
+$dbh->do(" INSERT INTO sensornames VALUES ('18','Sensor15') ");
 
 #
 # table sensorparameters 
 #
-# Tempsensor 1
+# Sensor1
 $dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') ");
-# Tempsensor 2
+# Sensor2
 $dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('5','3','1') ");
@@ -125,7 +125,7 @@ $dbh->do(" INSERT INTO sensorparameters VALUES ('11','6','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('12','6','2') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('13','7','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('14','7','2') ");
-# Tempsensor 8
+# Sensor8
 $dbh->do(" INSERT INTO sensorparameters VALUES ('15','8','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('16','8','2') ");
 # Regensensor
@@ -138,25 +138,25 @@ $dbh->do(" INSERT INTO sensorparameters VALUES ('20','10','6') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('21','11','7') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('22','11','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('23','11','2') ");
-# Tempsensor 9
+# Sensor9
 $dbh->do(" INSERT INTO sensorparameters VALUES ('24','12','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('25','12','2') ");
-# Tempsensor 10
+# Sensor10
 $dbh->do(" INSERT INTO sensorparameters VALUES ('26','13','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('27','13','2') ");
-# Tempsensor 11
+# Sensor11
 $dbh->do(" INSERT INTO sensorparameters VALUES ('28','14','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('29','14','2') ");
-# Tempsensor 12
+# Sensor12
 $dbh->do(" INSERT INTO sensorparameters VALUES ('30','15','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('31','15','2') ");
-# Tempsensor 13
+# Sensor13
 $dbh->do(" INSERT INTO sensorparameters VALUES ('32','16','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('33','16','2') ");
-# Tempsensor 14
+# Sensor14
 $dbh->do(" INSERT INTO sensorparameters VALUES ('34','17','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('35','17','2') ");
-# Tempsensor 15
+# Sensor15
 $dbh->do(" INSERT INTO sensorparameters VALUES ('36','18','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('37','18','2') ");
 
