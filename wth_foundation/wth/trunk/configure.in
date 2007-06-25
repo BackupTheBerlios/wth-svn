@@ -49,6 +49,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(fcntl.h strings.h sys/ioctl.h syslog.h unistd.h)
+AC_CHECK_HEADERS(sqlite3.h)
 
 if test "$enable_xmlrpc" = yes; then
   AC_CHECK_LIB(md5, MD5Init,, 
@@ -98,5 +99,4 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(mktime select socket strcspn strdup strerror strspn)
 
 AC_OUTPUT(Makefile)
-
 

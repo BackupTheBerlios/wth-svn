@@ -1,4 +1,5 @@
-/* wth.h
+/* 
+   wthnew.h
 
    global header file for serial weatherstation communication
    for use of 
@@ -54,6 +55,7 @@
 #include <time.h>	/* timespec{} for pselect() */
 #include <unistd.h>
 #include <math.h>
+#include <pthread.h>
 
 #define VERSION     "0.5.0"
 #define	MAXLINE     4096	
@@ -114,6 +116,7 @@ enum {
   ECMD    = -8,
 };
 
+static const int success = 0;
 
 /* data structures */
 typedef struct dataset {
@@ -203,11 +206,13 @@ int setlck( const char *lockfile);
 int unlck( const char *lockfile, int fd);
 
 /* pcwsr functions */
-int pcwsr_loghandler();
+void *pcwsr_loghandler();
 
 /* ws2000 functions */
-int ws2000_loghandler();
-int ws2000_cmdhandler();
+void *ws2000_loghandler();
+void * ws2000_cmdhandler();
+void * cmdhandler();
+
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);
 int datex( unsigned char *data, int ndat);

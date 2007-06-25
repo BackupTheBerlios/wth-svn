@@ -39,7 +39,8 @@ POST_UNINSTALL = :
 build_triplet = i386-unknown-freebsd6.1
 host_triplet = i386-unknown-freebsd6.1
 target_triplet = i386-unknown-freebsd6.1
-bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthnewd$(EXEEXT)
+bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthnewd$(EXEEXT) \
+	wthnewpd$(EXEEXT)
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -80,6 +81,10 @@ am_wthnewd_OBJECTS = wthnewd.$(OBJEXT) utilnew.$(OBJEXT) \
 	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT)
 wthnewd_OBJECTS = $(am_wthnewd_OBJECTS)
 wthnewd_LDADD = $(LDADD)
+am_wthnewpd_OBJECTS = wthnewpd.$(OBJEXT) utilnew.$(OBJEXT) \
+	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT)
+wthnewpd_OBJECTS = $(am_wthnewpd_OBJECTS)
+wthnewpd_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -88,9 +93,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
-	$(wthd_SOURCES) $(wthnewd_SOURCES)
+	$(wthd_SOURCES) $(wthnewd_SOURCES) $(wthnewpd_SOURCES)
 DIST_SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
-	$(wthd_SOURCES) $(wthnewd_SOURCES)
+	$(wthd_SOURCES) $(wthnewd_SOURCES) $(wthnewpd_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -200,6 +205,8 @@ wthd_SOURCES = wthd.c wth.h
 #wthd_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
 wthd_LDADD = libwth.a
 wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
+wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c pcwsr.c ws2000.c netnew.c
+wthnewpd_LDADD = -lpthread
 
 #wthxc_SOURCES = wthxc.c wth.h 
 #wthxc_LDADD = $(top_builddir)/libwthxml.a \
@@ -324,6 +331,9 @@ wthd$(EXEEXT): $(wthd_OBJECTS) $(wthd_DEPENDENCIES)
 wthnewd$(EXEEXT): $(wthnewd_OBJECTS) $(wthnewd_DEPENDENCIES) 
 	@rm -f wthnewd$(EXEEXT)
 	$(LINK) $(wthnewd_LDFLAGS) $(wthnewd_OBJECTS) $(wthnewd_LDADD) $(LIBS)
+wthnewpd$(EXEEXT): $(wthnewpd_OBJECTS) $(wthnewpd_DEPENDENCIES) 
+	@rm -f wthnewpd$(EXEEXT)
+	$(LINK) $(wthnewpd_LDFLAGS) $(wthnewpd_OBJECTS) $(wthnewpd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -342,6 +352,7 @@ include ./$(DEPDIR)/ws2000.Po
 include ./$(DEPDIR)/wthc.Po
 include ./$(DEPDIR)/wthd.Po
 include ./$(DEPDIR)/wthnewd.Po
+include ./$(DEPDIR)/wthnewpd.Po
 include ./$(DEPDIR)/wthutil.Po
 
 .c.o:

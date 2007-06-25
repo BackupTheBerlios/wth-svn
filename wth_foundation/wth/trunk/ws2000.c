@@ -30,7 +30,7 @@ char *lockfile = WS2000LOCK;
   logging WS2000 data to rrd and sqlite DB
 
 */
-int
+void *
 ws2000_loghandler( ) {
   int lfd;
   //char *rbuf;
@@ -57,20 +57,20 @@ ws2000_loghandler( ) {
       }
       waitmax++; 
     }
-    sleep(3600);
+    sleep(15);
   }
   return(0);
 }
 
 
-/*
-  ws2000_loghandler
-  logging WS2000 data to rrd and sqlite DB
 
+/*
+  cmdhandler
+  interactive commands
 */
 
-int
-ws2000_cmdhandler( ) {
+void *
+cmdhandler( ) {
   int cfd;
   //char *rbuf;
   int waitmax = 0;
@@ -101,7 +101,7 @@ ws2000_cmdhandler( ) {
     loopno++;
     sleep(600);
   }
-  return(0);
+  return((void *) &success);
 }
 
 

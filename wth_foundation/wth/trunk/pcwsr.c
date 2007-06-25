@@ -119,15 +119,15 @@ char
    pcwsr_loghandler
    logging pcwsr data to rrd and Sqlite DB
 */
-int 
-pcwsr_loghandler( ) {
+void *
+pcwsr_loghandler( void *arg) {
     int i, fd, err;              /* filedescriptor serial port */
     int hi, lo, dummy;
     int mask = 0x7f;
     int shift = 0x7;
     int styp, saddr, sver;       /* sensor typ, address and version */
     float t, wspd, wdev;
-    int h, p, wdir, r, b, rad, mul, imul;
+    int hum, pres, wdir, r, b, rad, mul, imul;
     int debug=1, raw=0;
 
     struct termios newtio,oldtio; 
@@ -246,7 +246,7 @@ pcwsr_loghandler( ) {
 	t  = dummy / 40.0 ;
 
 	/* humidity */
-	h = data[4] & mask;
+	hum = data[4] & mask;
 
 	if (debug) {
 	  printf("Temperature\n");
@@ -254,13 +254,13 @@ pcwsr_loghandler( ) {
 	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
 	  printf("Humidity\n");
 	  printf("W3: %x\n", data[4]);
-	  printf("Hum: %d\n\n", h);
+	  printf("Hum: %d\n\n", hum);
 	}
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
             "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d",
-	    clk, name, sver, saddr, t, h);
+	    clk, name, sver, saddr, t, hum);
         }
       } 
       /* rain */
@@ -333,13 +333,13 @@ pcwsr_loghandler( ) {
 	t  = dummy / 40.0 ;
 
 	/* humidity */
-	h = data[4] & mask;
+	hum = data[4] & mask;
 
 	/* pressure */
 	dummy  = data[5] & mask;
 	hi = dummy << shift;
 	lo = data[6] & mask;
-	p  = hi + lo;
+	pres  = hi + lo;
 
         if (debug) {
 	  printf("Temperature\n");
@@ -347,16 +347,16 @@ pcwsr_loghandler( ) {
 	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
 	  printf("Humidity\n");
 	  printf("W3: %x\n", data[4]);
-	  printf("Hum: %d\n\n", h);
+	  printf("Hum: %d\n\n", hum);
 	  printf("Pressure\n");
 	  printf("W4: %x, W5: %x\n", data[5], data[6]);
-	  printf("dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, p);
+	  printf("dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, pres);
 	}
 
         if (!raw) {
           snprintf(buf, sizeof(buf),
             "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d | P[hPa] %d",
-	    clk, name, sver, saddr, t, h, p);
+	    clk, name, sver, saddr, t, hum, pres);
         }
       }
       /* brightness */
@@ -422,7 +422,7 @@ pcwsr_loghandler( ) {
 	  printf("hi : %x, lo: %x, Radiation Power: %d\n\n", hi, lo, rad);
 	  printf("Multiplicator\n");
 	  printf("W3: %x\n", data[4]);
-	  printf("mul: %d\n\n", h);
+	  printf("mul: %d\n\n", hum);
 	}
 
         if (!raw) {
@@ -441,5 +441,5 @@ pcwsr_loghandler( ) {
     }
     /* leave serial line in good state */
     closepcwsr( fd, &oldtio); 
-    return(0);
+    return( ( void *) &success);
 }

@@ -3,7 +3,7 @@ libwth_a_SOURCES = libwth.c serial.c net.c wthutil.c wth.h wthnet.h wthprv.h
 
 #libwthxml_a_SOURCES = libwth.c xml/dataxml.c serial.c net.c xml/xml.c wth.h wthnet.h wthprv.h 
 
-bin_PROGRAMS = wthc wthd wthnewd
+bin_PROGRAMS = wthc wthd wthnewd wthnewpd
 #bin_PROGRAMS = wthc wthd wthxc wthxmld 
 
 wthc_SOURCES = wthc.c wth.h
@@ -15,6 +15,9 @@ wthd_SOURCES = wthd.c wth.h
 wthd_LDADD = libwth.a
 
 wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
+
+wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c pcwsr.c ws2000.c netnew.c
+wthnewpd_LDADD = -lpthread
 
 #wthxc_SOURCES = wthxc.c wth.h 
 #wthxc_LDADD = $(top_builddir)/libwthxml.a \
