@@ -6,10 +6,13 @@
 
 use strict;
 use DBI;
+my $DBFILE="ws2000.db";
 
 my $res;
 
-my $dbh = DBI->connect("dbi:SQLite:dbname=ws2000.db","","")
+unlink($DBFILE);
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
   or die ("Can't get DB handle: $DBI::Errstr");
 
 
@@ -29,11 +32,10 @@ $dbh->do("
   CREATE TABLE
   sensorstatus
   (
-    statusset_no INT,
+    statusset_no INTEGER PRIMARY KEY,
     statuset_date DATE,
     sensor_no INT,
     sensor_status INT,
-    PRIMARY KEY (statusset_no),
     FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
   )
 ");
@@ -43,9 +45,8 @@ $dbh->do("
   create table
   sensornames
   (
-    sensor_no INT,
-    sensorname VARCHAR(255),
-    PRIMARY KEY (sensor_no)
+    sensor_no INTEGER PRIMARY KEY,
+    sensorname VARCHAR(255)
   )
 ");
 
@@ -53,10 +54,9 @@ $dbh->do("
   create table
   parameternames
   (
-    parameter_no INT,
+    parameter_no INTEGER PRIMARY KEY,
     parameter_name VARCHAR(64),
-    parameter_unit VARCHAR(64),
-    PRIMARY KEY (parameter_no)
+    parameter_unit VARCHAR(64)
   )
 ");
 
@@ -64,10 +64,9 @@ $dbh->do("
   create table
   sensorparameters
   (
-    sensor_meas_no INT,
+    sensor_meas_no INTEGER PRIMARY KEY,
     sensor_no INT,
     parameter_no INT,
-    PRIMARY KEY (sensor_meas_no),
     FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
     FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
   )
@@ -160,22 +159,6 @@ $dbh->do(" INSERT INTO sensorparameters VALUES ('35','17','2') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('36','18','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('37','18','2') ");
 
+printf "Create ws2000.db: done\n";
+exit(0);
 
-#
-#
-#
-$res = $dbh->selectall_arrayref("
-  SELECT sn.sensorname, pn.parameter_name, pn.parameter_unit 
-    FROM sensorparameters AS sp 
-      JOIN sensornames AS sn 
-        ON sp.sensor_no = sn.sensor_no 
-      JOIN parameternames AS pn 
-        ON sp.parameter_no = pn.parameter_no");
-
-
-foreach ( @$res) {
-    foreach my $i ( 0..$#$_) {
-	print "$_->[$i] "
-    }
-    print "\n";
-}

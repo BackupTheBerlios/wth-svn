@@ -35,8 +35,14 @@ main ( int argc, char **argv) {
 
   printf("query: \"%s\"\n", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
-  printf("err: %d : sqlite_errmsg: %s\n", err, sqlite3_errmsg(ws2000db));
- 
+  if ( err) { 
+    fprintf( stderr,
+      "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+      sqlite3_errmsg( ws2000db));
+  }
   /* cleanup and close */
   sqlite3_close( ws2000db);
   printf("WS2000 sqlite done\n");
@@ -45,5 +51,5 @@ main ( int argc, char **argv) {
 
 /*
   compile command:
-  gcc -I/usr/local/include -L/usr/local/lib -o wdb wdb.c -Wall -lsqlite
+  gcc -I/usr/local/include -L/usr/local/lib -o wdb wdb.c -Wall -lsqlite3
 */
