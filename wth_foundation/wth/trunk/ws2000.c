@@ -47,7 +47,7 @@ ws2000_loghandler( ) {
 	sleep(5);
       } else {
 	/* sending command to weather station */
-        wsconf.command = 5;
+        wsconf.command = 1;
         printf("ws2000_loghandler: sending command: %d\n", wsconf.command); 
 	printf("ws2000_loghandler: wcmd: %s\n",(char *)wcmd()); 
         close( lfd);
@@ -873,10 +873,14 @@ datex(unsigned char *data, int ndat) {
   int mbit;
   int nbit;
   int Hi, Lo;
+  time_t dataset_date;
   long age;
-  time_t mtim;
   char *clk;
-  //float temp;
+  char *errmsg = 0;
+  float meas_value;
+  sqlite3 *ws2000db;
+
+
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
 
@@ -895,189 +899,158 @@ datex(unsigned char *data, int ndat) {
      if not, use localtime
   */
   if ( ws2000station.status.DCFtime != -1 ) {
-    mtim = ws2000station.status.DCFtime;
+    dataset_date = ws2000station.status.DCFtime;
   }
   else { 
     syslog(LOG_INFO,
 	   "datex : DCF not synchronized, using localtime for dataset\n");
-    err = time(&mtim);
+    err = time(&dataset_date);
     syslog(LOG_DEBUG, 
 	   "datex : present time: %lu (seconds since EPOCH)\n", 
-           (long int)mtim);
+           (long int)dataset_date);
   }
   
   /* dataset time is echoed in EPOCH seconds, dataset age in minutes
      up to present time
   */
-  mtim = ( mtim/60 - age) * 60;
-  clk  = ctime(&mtim);
+  dataset_date = ( dataset_date/60 - age) * 60;
+  clk  = ctime(&dataset_date);
 
 
   syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
 	 ws2000station.status.ndats);
   syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
-	 (long int)mtim);
+	 (long int)dataset_date);
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
   syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
+
+  
+  /* open sqlite db file */
+  err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+  printf("err: %d : sqlite_errmsg: %s\n", err, sqlite3_errmsg(ws2000db));
+  if ( err) {
+    fprintf( stderr, "Failed to open database %s. Error: %s\n", 
+	     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    free( errmsg);
+    return -1;
+  } else {
+    printf("sqlite3_open: no error: OK\n");
+  }
 
 
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 0; i < 8; i++) {
+    if ( ws2000station.sensor[i].status != 0 ) {
     j = i % 2;
     /* even i */
     if ( (i % 2) == 0 ) {
       mbit=3; nbit=7;
       j = (5*i - j)/2 + 4;
 
-      /* temperature */
-      //if ( rw->sens[2*i].status != 0 ) {
-      //	rw->sens[2*i].mess[rw->wstat.ndats].age = age;
+      /* temperature */ 
+      meas_value =  
+        10 * getbits(data[j+1], mbit-1, 3) + 
+        getbits(data[j], nbit, 4) +
+        0.1* getbits(data[j], mbit, 4);
+      if ( getbits(data[j+1], mbit, 1) == 1 ) {  
+        meas_value = -meas_value; 
+      }
 
-      //rw->sens[2*i].mess[rw->wstat.ndats].time = mtim;
-      //rw->sens[2*i].mess[rw->wstat.ndats].value =  
-      //  10 * getbits(data[j+1], mbit-1, 3) + 
-      //  getbits(data[j], nbit, 4) +
-      //  0.1* getbits(data[j], mbit, 4);
+      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
+      printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
+        i, (long int)dataset_date, meas_value);
+      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 
-      //if( strncmp( wsconf.units, "US", 2) == 0 ) {
-      //  temp = rw->sens[2*i].mess[rw->wstat.ndats].value;
-      //  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
-      //}
-
-      //rw->sens[2*i].mess[rw->wstat.ndats].sign   = 
-      //  getbits(data[j+1], mbit, 1);
-      //}
       /* humidity 
 	 the value is calculated from an 8bit Byte which is formed
 	 by two Nibbles    
       */
-      //if ( rw->sens[2*i+1].status != 0 ) {
-      //Lo = getbits(data[j+1], nbit, 4);
-      //Hi = getbits(data[j+2], mbit-1, 3) << 4;
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].time  = mtim;
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].age = age;
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].value = Hi + Lo;
-	/* Bit 3 of Hi Nibble is new flag */
-	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
+      Lo = getbits(data[j+1], nbit, 4);
+      Hi = getbits(data[j+2], mbit-1, 3) << 4;
+      meas_value = Hi + Lo;
+      /* Bit 3 of Hi Nibble is new flag */
+      //rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
       //getbits(data[j+2], mbit, 1);
-      //}
-
     } /* odd i */ else if ( (i % 2) == 1) {
       mbit=7; nbit=3;
       j = (5*i - j)/2 + 4;
 
       /* temperature */
-      //if ( rw->sens[2*i].status != 0 ) {
-      //rw->sens[2*i].mess[rw->wstat.ndats].time = mtim;
-      //rw->sens[2*i].mess[rw->wstat.ndats].age = age;
-		
-      //rw->sens[2*i].mess[rw->wstat.ndats].value =
-      //  10  * getbits(data[j+1], mbit-1, 3) +
-      //  getbits(data[j+1], nbit, 4) +
-      //  0.1 * getbits(data[j], mbit, 4);
+      meas_value =
+        10  * getbits(data[j+1], mbit-1, 3) +
+        getbits(data[j+1], nbit, 4) +
+        0.1 * getbits(data[j], mbit, 4);
+      if (  getbits(data[j+1], mbit, 1) == 1) {
+        meas_value = - meas_value;
+      }
 
-      //if( strncmp( pcmd->units, "US", 2) == 0 ){
-      //  temp = rw->sens[2*i].mess[rw->wstat.ndats].value;
-      //  rw->sens[2*i].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
-      //}		
+      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
+      printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
+        i, (long int)dataset_date, meas_value);
+      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 
-      //rw->sens[2*i].mess[rw->wstat.ndats].sign = 
-      //  getbits(data[j+1], mbit, 1);
-      //}
       /* humidity 
 	 the value is calculated from an 8bit Byte which is formed
 	 by two Nibbles    
       */
-      //if ( rw->sens[2*i+1].status != 0 ) {
-      //Lo = getbits(data[j+2], nbit, 4);
-      //Hi = getbits(data[j+2], mbit-1, 3) << 4;
-
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].time = mtim;
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].age = age;
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].value = Hi + Lo;
+      Lo = getbits(data[j+2], nbit, 4);
+      Hi = getbits(data[j+2], mbit-1, 3) << 4;
+      meas_value = Hi + Lo;
 	/* Bit 3 of Hi Nibble is new flag */
 	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign = 
       //getbits(data[j+2], mbit, 1);
-      //}
+    }
     }
   }
 
   /* rain sensor */
   Hi = getbits(data[25], 6, 7) << 8 ;
   Lo = getbits(data[24], 7, 8);
-
-  //rw->sens[16].mess[rw->wstat.ndats].time = mtim;
-  //rw->sens[16].mess[rw->wstat.ndats].age = age;
-  //rw->sens[16].mess[rw->wstat.ndats].value     = Hi + Lo;
+  meas_value   = Hi + Lo;
+  // rain new flag
   //rw->sens[16].mess[rw->wstat.ndats].sign      = getbits(data[25], 7, 1);
         
 
   /* wind speed */
-  //rw->sens[17].mess[rw->wstat.ndats].time  = mtim;
-  //rw->sens[17].mess[rw->wstat.ndats].age   = age;
-  //rw->sens[17].mess[rw->wstat.ndats].sign  = 0;
-  //rw->sens[17].mess[rw->wstat.ndats].value = 
-  //  100 * getbits(data[27], 6, 3) +
-  //  10  * getbits(data[27], 3, 4) +
-  //  getbits(data[26], 6, 3) +
-  //  0.1 * getbits(data[26], 3, 4);
+  meas_value = 
+    100 * getbits(data[27], 6, 3) +
+    10  * getbits(data[27], 3, 4) +
+    getbits(data[26], 6, 3) +
+    0.1 * getbits(data[26], 3, 4);
 
-  //if( strncmp( pcmd->units, "US", 2) == 0 ) {
-  //  temp = rw->sens[17].mess[rw->wstat.ndats].value;
-  //  rw->sens[17].mess[rw->wstat.ndats].value = temp/1.609; // speed mph
-  //}
 
   /* wind direction */
-  //rw->sens[18].mess[rw->wstat.ndats].time = mtim;
-  //rw->sens[18].mess[rw->wstat.ndats].age = age;
-  //rw->sens[18].mess[rw->wstat.ndats].sign     = 0;
-  //rw->sens[18].mess[rw->wstat.ndats].value =
-  //  100 * getbits( data[29], 1, 2 ) +
-  //  10  * getbits(data[28], 7, 4 ) +
-  //  getbits(data[28], 3, 4 );
+  meas_value =
+    100 * getbits( data[29], 1, 2 ) +
+    10  * getbits(data[28], 7, 4 ) +
+    getbits(data[28], 3, 4 );
 
   /* mean deviation of wind direction */
-  //rw->sens[19].mess[rw->wstat.ndats].time  = mtim;
-  //rw->sens[19].mess[rw->wstat.ndats].age   = age;
-  //rw->sens[19].mess[rw->wstat.ndats].sign  = 0;
-  //rw->sens[19].mess[rw->wstat.ndats].value =
-  //  getbits( data[29], 4, 2 );
+  meas_value =
+    getbits( data[29], 4, 2 );
    
-  /* atmospheric pressure */
-  //rw->sens[20].mess[rw->wstat.ndats].time = mtim;
-  //rw->sens[20].mess[rw->wstat.ndats].age  = age;
-  //rw->sens[20].mess[rw->wstat.ndats].sign = 0;
-  //rw->sens[20].mess[rw->wstat.ndats].value = 
-  //  100 *  getbits(data[30], 7, 4) +
-  //  10  *  getbits(data[30], 3, 4) +
-  //  getbits(data[29], 7, 4) + 200;
+  /* barometric pressure */
+  meas_value = 
+    100 *  getbits(data[30], 7, 4) +
+    10  *  getbits(data[30], 3, 4) +
+    getbits(data[29], 7, 4) + 200;
 
-  //if( strncmp( pcmd->units, "US", 2) == 0 ) {
-  //  temp = rw->sens[20].mess[rw->wstat.ndats].value;
-  //  rw->sens[20].mess[rw->wstat.ndats].value = temp/33.86389; // pressure inHg
-  //}
 
   /* indoor temperature */
-  //rw->sens[21].mess[rw->wstat.ndats].time  = mtim;
-  //rw->sens[21].mess[rw->wstat.ndats].age   = age;
-  //rw->sens[21].mess[rw->wstat.ndats].sign  = 0;
-  //rw->sens[21].mess[rw->wstat.ndats].value = 
-  //  10  * getbits(data[32], 3, 4) + 
-  //  getbits(data[31], 7, 4) +
-  //  0.1 * getbits(data[31], 7, 4);
+  meas_value = 
+    10  * getbits(data[32], 3, 4) + 
+    getbits(data[31], 7, 4) +
+    0.1 * getbits(data[31], 7, 4);
 
-  //if( strncmp( pcmd->units, "US", 2) == 0 ) {
-  //  temp = rw->sens[21].mess[rw->wstat.ndats].value;
-  //  rw->sens[21].mess[rw->wstat.ndats].value = 9*temp/5+32; // temp F
-  //}
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
   Hi = getbits(data[33], 2, 3) << 4;
-  //rw->sens[22].mess[rw->wstat.ndats].time  = mtim;
-  //rw->sens[22].mess[rw->wstat.ndats].age   = age;
-  //rw->sens[22].mess[rw->wstat.ndats].sign  = 0;
-  //rw->sens[22].mess[rw->wstat.ndats].value = Hi + Lo;
+  meas_value = Hi + Lo;
+
+  /* cleanup and close */
+  sqlite3_close( ws2000db);
+  printf("WS2000 sqlite done\n");
 	
   return(0);
 };

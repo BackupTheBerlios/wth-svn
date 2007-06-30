@@ -194,6 +194,8 @@ typedef struct key {
 } ws2000key_t;
 
 int werrno;
+int daemon_proc;          /* set nonzero by daemon_init() */
+
 int initdata();
 char *echoconfig();
 int echodata( unsigned char *data, int mdat);

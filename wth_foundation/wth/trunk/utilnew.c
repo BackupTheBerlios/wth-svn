@@ -359,16 +359,24 @@ echoconfig ( ) {
   strncat(t,s, strlen(s));
   s = mkmsg("\twsconf.logfacility: %d\n",wsconf.logfacility);
   strncat(t,s, strlen(s));
-  s = mkmsg("\tws2000station.config.device: %s\n",ws2000station.config.device);
-  strncat(t,s, strlen(s));
   s = mkmsg("\twsconf.hostname: %s\n",wsconf.hostname);
   strncat(t,s, strlen(s));
   s = mkmsg("\twsconf.port: %s\n",wsconf.port);
   strncat(t,s, strlen(s));
   s = mkmsg("\twsconf.tnport: %s\n",wsconf.tnport);
   strncat(t,s, strlen(s)); 
-  s = mkmsg("\twsconf.xmlport: %s\n",wsconf.xmlport);
+  s = mkmsg("\twsconf.xmlport: %s\n--\n",wsconf.xmlport);
   strncat(t,s, strlen(s)); 
+  s = mkmsg("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
+  strncat(t,s, strlen(s));
+  s = mkmsg("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
+  strncat(t,s, strlen(s));
+  s = mkmsg("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
+  strncat(t,s, strlen(s));
+  s = mkmsg("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
+  strncat(t,s, strlen(s));
+
+
 
   return(t);
 }

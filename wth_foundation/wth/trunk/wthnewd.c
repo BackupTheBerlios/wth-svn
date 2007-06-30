@@ -28,6 +28,11 @@ main ( int argc, char **argv )
   syslog(LOG_INFO, "wthnewd: %s\n", VERSION);
   unlink( ws2000lck);
   tzset(); /* setting timezone */
+  /* echo configuration parameters */
+  if ( ( rbuf = (char *)echoconfig(wsconf)) == NULL) {
+    perror("Error echo config parameters");
+  }
+  printf("%s\n", rbuf);
 
   /* fork off PCWSR child */
   pid_pcwsr_loghandler = fork();
@@ -58,10 +63,6 @@ main ( int argc, char **argv )
   pid_ws2000_loghandler = fork();
   if ( pid_ws2000_loghandler == 0 ) { /* child code */ 
     printf("WS2000_loghandler : child code starts\n");
-    if ( ( rbuf = (char *)echoconfig(wsconf)) == NULL) {
-      perror("Error echo config parameters");
-    }
-    printf("%s\n", rbuf);
 
     ws2000_loghandler();
   }
