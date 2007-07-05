@@ -22,7 +22,9 @@
 
 */
 #include "wthnew.h"
-#define MAXWAIT 10
+#define MAXWAIT  10
+#define DATAWAIT 300
+
 char *lockfile = WS2000LOCK;
 
 /*
@@ -33,7 +35,6 @@ char *lockfile = WS2000LOCK;
 void *
 ws2000_loghandler( ) {
   int lfd;
-  //char *rbuf;
   int waitmax  = 0;
 
   for ( ;; ) {
@@ -47,7 +48,7 @@ ws2000_loghandler( ) {
 	sleep(5);
       } else {
 	/* sending command to weather station */
-        wsconf.command = 1;
+        wsconf.command = 12;
         printf("ws2000_loghandler: sending command: %d\n", wsconf.command); 
 	printf("ws2000_loghandler: wcmd: %s\n",(char *)wcmd()); 
         close( lfd);
@@ -57,7 +58,7 @@ ws2000_loghandler( ) {
       }
       waitmax++; 
     }
-    sleep(15);
+    sleep(DATAWAIT);
   }
   return(0);
 }
@@ -308,7 +309,7 @@ wcmd ( ) {
      Recursively, request dataset and select next dataset, 
      recursive combination of command 1 and 2 
   */
-  else if ( ( command == 12) || ( command == 7) )  {      
+  else if ( ( command == 12))  {      
     /* first get DCF time if possible */
     wsconf.command = 0;
     if ( ( err = getcd( data, &ndat)) == -1) {
@@ -364,16 +365,8 @@ wcmd ( ) {
 		     "wcmd: error request next dataset : unknown response\n"));
       }
     }
-
-    /* echo sensor data */
-    /*
-    if ( rw->wstat.ndats > 0 ) {
-      rbuf = pdata(rw, pcmd);
-      //printf("w/o statement: return (rbuf)"); 
-      return ( rbuf);
-    }
-    */
-  }//command 12 || command 7
+    return( ( char *)mkmsg2("wcmd: command 12: no data available ( ( <DLE> received)\n"));
+  }//command 12
 
   else {
     return( ( char *)mkmsg2("unknown command\n"));
@@ -615,16 +608,16 @@ wstat(unsigned char *data, int mdat ) {
     t[0] = '\0';
 
     /* status of first 8 temperature/humidity sensors */
-    for ( i = 0; i < 8; i++) {
+    for ( i = 1; i <= 8; i++) {
         ws2000station.sensor[i].status   = data[i];
     }
-    ws2000station.sensor[8].status   = data[8];  // rain
-    ws2000station.sensor[9].status   = data[9];  // wind
-    ws2000station.sensor[10].status  = data[10]; // indoor
+    ws2000station.sensor[9].status   = data[8];  // rain
+    ws2000station.sensor[10].status  = data[9];  // wind
+    ws2000station.sensor[11].status  = data[10]; // indoor
 
 
     /* status of temperature/humidity sensor 9 to 15 */
-    for ( i = 11; i < 18; i++) {
+    for ( i = 12; i <= 18; i++) {
 	  ws2000station.sensor[i].status   = data[i];
     }
     for ( i = 0; i < 18; i++ ) {
@@ -635,7 +628,7 @@ wstat(unsigned char *data, int mdat ) {
     syslog(LOG_DEBUG, "wstat : %s\n", frame);    
     strcpy(frame, "");
 
-    for ( i = 0; i < 18; i++ ) {
+    for ( i = 1; i <= 18; i++ ) {
 	  sprintf(sf, "%2x:",ws2000station.sensor[i].status);
       strcat(frame, sf);
     }
@@ -655,7 +648,7 @@ wstat(unsigned char *data, int mdat ) {
     /* number of sensors */
     if ( getbits(data[19],2,1) == 0 ) { 
       ws2000station.status.numsens = 18 - 7  ; 
-   }
+    }
     else if ( getbits(data[19],2,1) == 1 ) {
        ws2000station.status.numsens = 18; 
       //rw->wstat.nsens = 42;
@@ -677,8 +670,8 @@ wstat(unsigned char *data, int mdat ) {
     syslog(LOG_DEBUG, "wstat : Battery      Bit 4 : %d\n",
 		   getbits(data[19],4,1));
     
-    syslog(LOG_DEBUG, "wstat : bit 4  : %d\n", getbits(data[19],4,1));
-    syslog(LOG_DEBUG, "wstat : bit 5  : %d\n", getbits(data[19],5,1));
+    syslog(LOG_DEBUG, "wstat : bit 4 : %d\n", getbits(data[19],4,1));
+    syslog(LOG_DEBUG, "wstat : bit 5 : %d\n", getbits(data[19],5,1));
     syslog(LOG_DEBUG, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
     syslog(LOG_DEBUG, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
 
@@ -873,10 +866,12 @@ datex(unsigned char *data, int ndat) {
   int mbit;
   int nbit;
   int Hi, Lo;
+  int querylen = MAXQUERYLEN;
   time_t dataset_date;
   long age;
   char *clk;
   char *errmsg = 0;
+  char query[MAXQUERYLEN];
   float meas_value;
   sqlite3 *ws2000db;
 
@@ -939,13 +934,13 @@ datex(unsigned char *data, int ndat) {
 
 
   /* get data of the first 8 temperature/humidity sensors */
-  for ( i = 0; i < 8; i++) {
+  for ( i = 1; i <= 8; i++) {
     if ( ws2000station.sensor[i].status != 0 ) {
-    j = i % 2;
+    j = (i-1) % 2;
     /* even i */
-    if ( (i % 2) == 0 ) {
+    if ( ((i-1) % 2) == 0 ) {
       mbit=3; nbit=7;
-      j = (5*i - j)/2 + 4;
+      j = (5*(i-1) - j)/2 + 4;
 
       /* temperature */ 
       meas_value =  
@@ -955,7 +950,6 @@ datex(unsigned char *data, int ndat) {
       if ( getbits(data[j+1], mbit, 1) == 1 ) {  
         meas_value = -meas_value; 
       }
-
       printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
       printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
         i, (long int)dataset_date, meas_value);
@@ -968,12 +962,18 @@ datex(unsigned char *data, int ndat) {
       Lo = getbits(data[j+1], nbit, 4);
       Hi = getbits(data[j+2], mbit-1, 3) << 4;
       meas_value = Hi + Lo;
+      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
+      printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
+        i, (long int)dataset_date, meas_value);
+      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
+
+
       /* Bit 3 of Hi Nibble is new flag */
       //rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
       //getbits(data[j+2], mbit, 1);
-    } /* odd i */ else if ( (i % 2) == 1) {
+    } /* odd i */ else if ( ((i-1) % 2) == 1) {
       mbit=7; nbit=3;
-      j = (5*i - j)/2 + 4;
+      j = (5*(i-1) - j)/2 + 4;
 
       /* temperature */
       meas_value =
@@ -996,27 +996,42 @@ datex(unsigned char *data, int ndat) {
       Lo = getbits(data[j+2], nbit, 4);
       Hi = getbits(data[j+2], mbit-1, 3) << 4;
       meas_value = Hi + Lo;
+      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
+      printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
+        i, (long int)dataset_date, meas_value);
+      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 	/* Bit 3 of Hi Nibble is new flag */
 	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign = 
       //getbits(data[j+2], mbit, 1);
     }
+    } else {
+      printf("Sensor  #%d: Temperature/Humiditysensor not found\n", i);
     }
   }
 
-  /* rain sensor */
-  Hi = getbits(data[25], 6, 7) << 8 ;
-  Lo = getbits(data[24], 7, 8);
-  meas_value   = Hi + Lo;
-  // rain new flag
-  //rw->sens[16].mess[rw->wstat.ndats].sign      = getbits(data[25], 7, 1);
-        
+  /* Sensor #9: Rainsensor */
+  if ( ws2000station.sensor[9].status != 0) {
+    Hi = getbits(data[25], 6, 7) << 8 ;
+    Lo = getbits(data[24], 7, 8);
+    meas_value   = Hi + Lo;
+    printf("Rainsensor:\t\tdataset_date: %lu meas_value: %f\n", 
+      (long int)dataset_date, meas_value);
+    // rain new flag
+    //rw->sens[16].mess[rw->wstat.ndats].sign      = getbits(data[25], 7, 1);
+  } else {
+    printf("Sensor  #9: Rainsensor not found\n");
+  }
 
-  /* wind speed */
+  /* Sensor #10: Windsensor */
+  if ( ws2000station.sensor[10].status != 0) {
+  /*wind speed */
   meas_value = 
     100 * getbits(data[27], 6, 3) +
     10  * getbits(data[27], 3, 4) +
     getbits(data[26], 6, 3) +
     0.1 * getbits(data[26], 3, 4);
+  printf("Windsensor(Windspeed):\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
 
 
   /* wind direction */
@@ -1024,30 +1039,87 @@ datex(unsigned char *data, int ndat) {
     100 * getbits( data[29], 1, 2 ) +
     10  * getbits(data[28], 7, 4 ) +
     getbits(data[28], 3, 4 );
+  printf("Windsensor(Winddirection):\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
 
   /* mean deviation of wind direction */
   meas_value =
     getbits( data[29], 4, 2 );
-   
+  printf("Windsensor(Variation):\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
+  } else {
+    printf("Sensor #10: Windsensor not found\n");
+  } 
+
+  /* Sensor #11: Indoorsensor */
+  if ( ws2000station.sensor[11].status != 0) {
   /* barometric pressure */
   meas_value = 
     100 *  getbits(data[30], 7, 4) +
     10  *  getbits(data[30], 3, 4) +
     getbits(data[29], 7, 4) + 200;
-
+  printf("Indoorsensor(Pressure):\t\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           dataset_date, 21, meas_value); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+	     sqlite3_errmsg( ws2000db));
+  }
 
   /* indoor temperature */
   meas_value = 
     10  * getbits(data[32], 3, 4) + 
     getbits(data[31], 7, 4) +
     0.1 * getbits(data[31], 7, 4);
+  printf("Indoorsensor(Temperature):\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           dataset_date, 22, meas_value); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+	     sqlite3_errmsg( ws2000db));
+  }
 
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
   Hi = getbits(data[33], 2, 3) << 4;
   meas_value = Hi + Lo;
+  printf("Indoorsensor(Humidity):\t\tdataset_date: %lu meas_value: %f\n", 
+    (long int)dataset_date, meas_value);
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           dataset_date, 23, meas_value); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+	     sqlite3_errmsg( ws2000db));
+  }
 
+
+  } else {
+    printf("Sensor #11: Indoorsensor not found\n");
+  }
   /* cleanup and close */
   sqlite3_close( ws2000db);
   printf("WS2000 sqlite done\n");
