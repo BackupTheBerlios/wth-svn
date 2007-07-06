@@ -26,6 +26,7 @@
 #define DATAWAIT 300
 
 char *lockfile = WS2000LOCK;
+sqlite3 *ws2000db;
 
 /*
   ws2000_loghandler
@@ -851,7 +852,31 @@ settime ( ) {
   return(0);
 }
 
+/*
+  insertdb - insert measured values
 
+*/
+int
+insertdb( long dataset_date, int sensor_param, float meas_value) {
+  int err;
+  int querylen = MAXQUERYLEN;
+  char query[MAXQUERYLEN];
+
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
+           dataset_date, sensor_param, meas_value); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+	     sqlite3_errmsg( ws2000db));
+  }
+  return(0);
+}
 /* datex 
 
    data extraction
@@ -866,16 +891,11 @@ datex(unsigned char *data, int ndat) {
   int mbit;
   int nbit;
   int Hi, Lo;
-  int querylen = MAXQUERYLEN;
   time_t dataset_date;
   long age;
   char *clk;
   char *errmsg = 0;
-  char query[MAXQUERYLEN];
   float meas_value;
-  sqlite3 *ws2000db;
-
-
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
 
@@ -1060,19 +1080,7 @@ datex(unsigned char *data, int ndat) {
     getbits(data[29], 7, 4) + 200;
   printf("Indoorsensor(Pressure):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  snprintf(query, querylen, 
-           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
-           dataset_date, 21, meas_value); 
-  printf("query: \"%s\"\n", query);
-  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
-  if ( err) { 
-    fprintf( stderr,
-	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-	     err, sqlite3_errmsg(ws2000db));
-  } else {
-    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
-	     sqlite3_errmsg( ws2000db));
-  }
+  insertdb( dataset_date, 21, meas_value);
 
   /* indoor temperature */
   meas_value = 
@@ -1081,20 +1089,7 @@ datex(unsigned char *data, int ndat) {
     0.1 * getbits(data[31], 7, 4);
   printf("Indoorsensor(Temperature):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  snprintf(query, querylen, 
-           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
-           dataset_date, 22, meas_value); 
-  printf("query: \"%s\"\n", query);
-  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
-  if ( err) { 
-    fprintf( stderr,
-	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-	     err, sqlite3_errmsg(ws2000db));
-  } else {
-    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
-	     sqlite3_errmsg( ws2000db));
-  }
-
+  insertdb( dataset_date, 22, meas_value);
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
@@ -1102,20 +1097,7 @@ datex(unsigned char *data, int ndat) {
   meas_value = Hi + Lo;
   printf("Indoorsensor(Humidity):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  snprintf(query, querylen, 
-           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
-           dataset_date, 23, meas_value); 
-  printf("query: \"%s\"\n", query);
-  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
-  if ( err) { 
-    fprintf( stderr,
-	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-	     err, sqlite3_errmsg(ws2000db));
-  } else {
-    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
-	     sqlite3_errmsg( ws2000db));
-  }
-
+  insertdb( dataset_date, 23, meas_value);
 
   } else {
     printf("Sensor #11: Indoorsensor not found\n");

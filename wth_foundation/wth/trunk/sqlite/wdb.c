@@ -29,6 +29,40 @@ main ( int argc, char **argv) {
   }
  
   /* insert sensor data 
+     sample: Sensor1 Temperature 11.4
+  */
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           1181248994, 1, 11.4); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+      "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+      sqlite3_errmsg( ws2000db));
+  }
+
+  /* insert sensor data 
+     sample: Sensor1 Humidity 67 %
+  */
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           1181248994, 2, 67.0); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+      "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+      sqlite3_errmsg( ws2000db));
+  }
+
+  /* insert sensor data 
      sample: Sensor2 Temperature 11.7
   */
   snprintf(query, querylen, 
@@ -68,6 +102,40 @@ main ( int argc, char **argv) {
   snprintf(query, querylen, 
            "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
            1181248994, 18, 40.0); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+      "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+      sqlite3_errmsg( ws2000db));
+  }
+
+  /* insert sensor data 
+     sample: Winddirection Variation, 22.5 deg
+  */
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           1181248994, 19, 22.5); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+      "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  } else {
+    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
+      sqlite3_errmsg( ws2000db));
+  }
+
+  /* insert sensor data 
+     sample: Winddirection, 150 deg
+  */
+  snprintf(query, querylen, 
+           "INSERT INTO sensordata VALUES ( NULL, %d, %d, %f)",
+           1181248994, 20, 150.0); 
   printf("query: \"%s\"\n", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) { 

@@ -3,7 +3,6 @@
 #
 # SQLITE Database description for WS2000 and Lacrosse Weatherstation
 #
-
 use strict;
 use DBI;
 
@@ -49,5 +48,3 @@ foreach ( @$res) {
     }
     print "\n";
 }
-
-
