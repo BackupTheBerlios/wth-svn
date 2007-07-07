@@ -18,9 +18,7 @@ int
 main ( int argc, char **argv ) 
 {
   int ret;
-  pthread_t tid_pcwsr,
-    tid_ws2000,
-    tid_cmdhandle;
+  pthread_t ptid, wtid, ctid;
 
   char *ws2000lck = WS2000LOCK;
 
@@ -31,21 +29,21 @@ main ( int argc, char **argv )
   tzset(); /* setting timezone */
 
   /* PCWSR thread */
-  //printf("Creating PCWSR thread: ");
-  //ret = pthread_create( &tid_pcwsr, NULL, pcwsr_loghandler, NULL);
-  //printf ("ret : %d\n", ret);
+  printf("Creating PCWSR thread: ");
+  ret = pthread_create( &ptid, NULL, ploghandler, NULL);
+  printf ("ret : %d\n", ret);
 
   /* WS2000 thread */
   printf("Creating WS2000 thread: ");
-  ret = pthread_create( &tid_ws2000, NULL, ws2000_loghandler, NULL);
+  ret = pthread_create( &wtid, NULL, wloghandler, NULL);
   printf ("ret : %d\n", ret);
 
   /* handling interactive commands */
-  //pthread_create( &tid_cmdhandler, NULL, cmdhandler, NULL);
+  //pthread_create( &ctid, NULL, cmdhandler, NULL);
 
   //pthread_join( &tid_cmdhandler, NULL);
-  pthread_join( tid_ws2000, NULL);
-  //pthread_join( tid_pcwsr, NULL);
+  pthread_join( wtid, NULL);
+  pthread_join( ptid, NULL);
 
   exit(0);
 }

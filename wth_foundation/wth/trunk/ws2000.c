@@ -29,29 +29,29 @@ char *lockfile = WS2000LOCK;
 sqlite3 *ws2000db;
 
 /*
-  ws2000_loghandler
+  wloghandler
   logging WS2000 data to rrd and sqlite DB
 
 */
 void *
-ws2000_loghandler( ) {
+wloghandler( ) {
   int lfd;
   int waitmax  = 0;
 
   for ( ;; ) {
-    printf("ws2000_loghandler awakening\n");
+    printf("wloghandler awakening\n");
     while ( waitmax < MAXWAIT ) {
-      printf("ws2000_loghandler: waitmax: %d\n", waitmax);
+      printf("wloghandler: waitmax: %d\n", waitmax);
       lfd = open( lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
       if ( lfd == -1 ) {
-        printf("ws2000_loghandler: %s\n", strerror(errno));
-        printf("ws2000_loghandler: lockfile already locked\n");
+        printf("wloghandler: %s\n", strerror(errno));
+        printf("wloghandler: lockfile already locked\n");
 	sleep(5);
       } else {
 	/* sending command to weather station */
         wsconf.command = 12;
-        printf("ws2000_loghandler: sending command: %d\n", wsconf.command); 
-	printf("ws2000_loghandler: wcmd: %s\n",(char *)wcmd()); 
+        printf("wloghandler: sending command: %d\n", wsconf.command); 
+	printf("wloghandler: wcmd: %s\n",(char *)wcmd()); 
         close( lfd);
         unlink( lockfile);
         waitmax = 0;
@@ -128,18 +128,33 @@ wcmd ( ) {
 
   syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",wsconf.command);  
   ws2000station.status.ndats = 0;
+
+  /* first get DCF time if possible */
   command = wsconf.command; 
   argcm   = wsconf.argcmd; 
+  wsconf.command = 0;
+  if ( ( err = getcd( data, &ndat)) == -1) {
+    return( (char *)mkmsg2("wcmd: error data reception\n"));
+  }
+  wsconf.command = command;
 
-  /* first get status of weatherstation 
+  ws2000station.status.DCFtime  = dcftime(data, ndat);
+  if ( ws2000station.status.DCFtime == -1) {
+    syslog( LOG_DEBUG, "wcmd: DCF not synchronized\n");
+  }
+
+  /* get status of weatherstation 
      needed to fill sens.status
   */
+  command = wsconf.command; 
+  argcm   = wsconf.argcmd; 
   wsconf.command = 5;
   if ( ( err = getcd( data, &ndat)) == -1) {
     return( (char *)mkmsg2( "wcmd: error data reception\n"));
   }
   wsconf.command = command;
   syslog(LOG_DEBUG, "wcmd : check status OK\n");
+
 
   /* status weatherstation */
   if ( ( rbuf = wstat(data, ndat)) == NULL) {
@@ -373,12 +388,8 @@ wcmd ( ) {
     return( ( char *)mkmsg2("unknown command\n"));
   }
   /* catch all: should never be reached */
-  return( ( char *)mkmsg2("called wcmd w/o command: this should not happen\n"));
-}
-/*
-  wcmd() ends here
-
-*/
+  return( (char *)mkmsg2("called wcmd w/o command: this should not happen\n"));
+}/* wcmd ends here */
 
 
 /* demasq
@@ -590,157 +601,215 @@ chkframe( unsigned char *data, int *mdat) {
 
 
 
+/*
+  statindb - insert status values
+
+*/
+int
+statindb( long statusset_date, int sensor_no, int sensor_status) {
+  int err;
+  int querylen = MAXQUERYLEN;
+  char query[MAXQUERYLEN];
+
+  snprintf(query, querylen, 
+           "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
+           statusset_date, sensor_no, sensor_status); 
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "statindb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
+  } else {
+    return(-1);
+  }
+  return(0);
+}
+
 /* wstat 
 
-   return status of weather station
-   commandword is 5
+return status of weather station
+commandword is 5
 
 */
 char *
 wstat(unsigned char *data, int mdat ) {
-    int i;
-    char frame[MAXMSGLEN] = ""; 
-    char sf[3] = "";
-    static char t[MAXBUFF] = "no status available";
+  int i, err;
+  time_t statusset_date;
+  char frame[MAXMSGLEN] = ""; 
+  char sf[3] = "";
+  char *errmsg = 0;
+  static char t[MAXBUFF] = "no status available";
 
-    char *s;
+  char *s;
 
-    /* empty t */
-    t[0] = '\0';
+  /* empty t */
+  t[0] = '\0';
 
-    /* status of first 8 temperature/humidity sensors */
-    for ( i = 1; i <= 8; i++) {
-        ws2000station.sensor[i].status   = data[i];
+  /* time of statusset
+     if DCF synchronized use time delivered by weatherstation
+     if not, use localtime
+  */
+  if ( ws2000station.status.DCFtime != -1 ) {
+    statusset_date = ws2000station.status.DCFtime;
+  }
+  else { 
+    syslog(LOG_INFO,
+	   "wstat : DCF not synchronized, using localtime for statusset\n");
+    err = time(&statusset_date);
+    syslog(LOG_DEBUG, 
+	   "wstat : present time: %lu (seconds since EPOCH)\n", 
+           (long int)statusset_date);
+  }
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
+    s = mkmsg2("Failed to open database %s. Error: %s\n", 
+	     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    strncat( t, s, strlen(s));
+    return(t);
+  }
+  /* insert statusdata */
+  for ( i = 1; i <= 18; i++) {
+    if ( data[i-1] != 0 ) {
+      statindb( statusset_date, i, data[i-1]);
     }
-    ws2000station.sensor[9].status   = data[8];  // rain
-    ws2000station.sensor[10].status  = data[9];  // wind
-    ws2000station.sensor[11].status  = data[10]; // indoor
+  }
+  /* cleanup and close */
+  sqlite3_close( ws2000db);
+  
 
+  /* status of first 8 temperature/humidity sensors */
+  for ( i = 1; i <= 8; i++) {
+    ws2000station.sensor[i].status   = data[i-1];
+  }
+  ws2000station.sensor[9].status   = data[8];  // rain
+  ws2000station.sensor[10].status  = data[9];  // wind
+  ws2000station.sensor[11].status  = data[10]; // indoor
+  /* status of temperature/humidity sensor 9 to 15 */
+  for ( i = 12; i <= 18; i++) {
+    ws2000station.sensor[i].status   = data[i-1];
+  }
 
-    /* status of temperature/humidity sensor 9 to 15 */
-    for ( i = 12; i <= 18; i++) {
-	  ws2000station.sensor[i].status   = data[i];
-    }
-    for ( i = 0; i < 18; i++ ) {
-      sprintf(sf, "%2d:",i);
-      strcat(frame, sf);
-    }
+  for ( i = 0; i < 18; i++ ) {
+    sprintf(sf, "%2d:",i);
+    strcat(frame, sf);
+  }
 
-    syslog(LOG_DEBUG, "wstat : %s\n", frame);    
-    strcpy(frame, "");
+  syslog(LOG_DEBUG, "wstat : %s\n", frame);    
+  strcpy(frame, "");
 
-    for ( i = 1; i <= 18; i++ ) {
-	  sprintf(sf, "%2x:",ws2000station.sensor[i].status);
-      strcat(frame, sf);
-    }
-    syslog(LOG_DEBUG, "wstat : %s\n", frame);   
+  for ( i = 1; i <= 18; i++ ) {
+    sprintf(sf, "%2x:",ws2000station.sensor[i].status);
+    strcat(frame, sf);
+  }
+  syslog(LOG_DEBUG, "wstat : %s\n", frame);   
 
 	
-    /* interval time */
-    ws2000station.status.interval = data [18];
-    /* DCF status and synchronicity */
-    ws2000station.status.DCFstat = getbits( data[19],0,1);
-    ws2000station.status.DCFsync = getbits( data[19],3,1); 
+  /* interval time */
+  ws2000station.status.interval = data [18];
+  /* DCF status and synchronicity */
+  ws2000station.status.DCFstat = getbits( data[19],0,1);
+  ws2000station.status.DCFsync = getbits( data[19],3,1); 
 
-    /* HF / Battery status */
-    ws2000station.status.HFstat    = getbits( data[19],1,1);
-    ws2000station.status.Battstat  = getbits( data[19],4,1);
+  /* HF / Battery status */
+  ws2000station.status.HFstat    = getbits( data[19],1,1);
+  ws2000station.status.Battstat  = getbits( data[19],4,1);
 
-    /* number of sensors */
-    if ( getbits(data[19],2,1) == 0 ) { 
-      ws2000station.status.numsens = 18 - 7  ; 
-    }
-    else if ( getbits(data[19],2,1) == 1 ) {
-       ws2000station.status.numsens = 18; 
-      //rw->wstat.nsens = 42;
-    }
+  /* number of sensors */
+  if ( getbits(data[19],2,1) == 0 ) { 
+    ws2000station.status.numsens = 18 - 7  ; 
+  }
+  else if ( getbits(data[19],2,1) == 1 ) {
+    ws2000station.status.numsens = 18; 
+    //rw->wstat.nsens = 42;
+  }
 
-    /* version number */
-    ws2000station.status.version = data[20];
+  /* version number */
+  ws2000station.status.version = data[20];
 
-    /* syslog messages */
-    syslog(LOG_DEBUG, "wstat : Intervall time [min] : %d\n", data[18]);
-    syslog(LOG_DEBUG, "wstat : DCF Status   Bit 0 : %d\n",
-		   getbits(data[19],0,1));
-    syslog(LOG_DEBUG, "wstat : HF Status    Bit 1 : %d\n",
-		   getbits(data[19],1,1));
-    syslog(LOG_DEBUG, "wstat : 8/16 Sensor  Bit 2 : %d\n",
-		   getbits(data[19],2,1));
-    syslog(LOG_DEBUG, "wstat : DCF sync     Bit 3 : %d\n",
-		   getbits(data[19],3,1));
-    syslog(LOG_DEBUG, "wstat : Battery      Bit 4 : %d\n",
-		   getbits(data[19],4,1));
+  /* syslog messages */
+  syslog(LOG_DEBUG, "wstat : Intervall time [min] : %d\n", data[18]);
+  syslog(LOG_DEBUG, "wstat : DCF Status   Bit 0 : %d\n",
+	 getbits(data[19],0,1));
+  syslog(LOG_DEBUG, "wstat : HF Status    Bit 1 : %d\n",
+	 getbits(data[19],1,1));
+  syslog(LOG_DEBUG, "wstat : 8/16 Sensor  Bit 2 : %d\n",
+	 getbits(data[19],2,1));
+  syslog(LOG_DEBUG, "wstat : DCF sync     Bit 3 : %d\n",
+	 getbits(data[19],3,1));
+  syslog(LOG_DEBUG, "wstat : Battery      Bit 4 : %d\n",
+	 getbits(data[19],4,1));
     
-    syslog(LOG_DEBUG, "wstat : bit 4 : %d\n", getbits(data[19],4,1));
-    syslog(LOG_DEBUG, "wstat : bit 5 : %d\n", getbits(data[19],5,1));
-    syslog(LOG_DEBUG, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
-    syslog(LOG_DEBUG, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
+  syslog(LOG_DEBUG, "wstat : bit 4 : %d\n", getbits(data[19],4,1));
+  syslog(LOG_DEBUG, "wstat : bit 5 : %d\n", getbits(data[19],5,1));
+  syslog(LOG_DEBUG, "wstat : bit 6 : %d\n", getbits(data[19],6,1));
+  syslog(LOG_DEBUG, "wstat : bit 7 : %d\n", getbits(data[19],7,1));
 
-    syslog(LOG_DEBUG, "wstat: DCF.stat : %d\n", ws2000station.status.DCFstat);
-    syslog(LOG_DEBUG, "wstat: DCF.sync : %d\n", ws2000station.status.DCFsync);
-    syslog(LOG_DEBUG, "wstat: number sensors : %d\n",
-      ws2000station.status.numsens);
-    syslog(LOG_DEBUG, "wstat: version : %x\n", ws2000station.status.version);
+  syslog(LOG_DEBUG, "wstat: DCF.stat : %d\n", ws2000station.status.DCFstat);
+  syslog(LOG_DEBUG, "wstat: DCF.sync : %d\n", ws2000station.status.DCFsync);
+  syslog(LOG_DEBUG, "wstat: number sensors : %d\n",
+	 ws2000station.status.numsens);
+  syslog(LOG_DEBUG, "wstat: version : %x\n", ws2000station.status.version);
 
-    /* fill return buffer */
-    s = mkmsg2(
-	      "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
-	      ws2000station.status.version, 
-              ws2000station.status.interval);
-    strncat( t, s, strlen(s));   
+  /* fill return buffer */
+  s = mkmsg2(
+	     "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
+	     ws2000station.status.version, 
+	     ws2000station.status.interval);
+  strncat( t, s, strlen(s));   
 
-    if ( ws2000station.status.DCFstat == 1 ) {
-      s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n", 
-		ws2000station.status.DCFstat);
-    }
-    else {
-      s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n", 
-		ws2000station.status.DCFstat);
-    }
+  if ( ws2000station.status.DCFstat == 1 ) {
+    s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n", 
+	       ws2000station.status.DCFstat);
+  }
+  else {
+    s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n", 
+	       ws2000station.status.DCFstat);
+  }
 
-    strncat(t, s, strlen(s));
+  strncat(t, s, strlen(s));
 	
-    if ( ws2000station.status.DCFsync == 1 ) {
-      s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n", 
-        ws2000station.status.DCFsync);
-    }
-    else {
-      s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
-        ws2000station.status.DCFsync);
-    }
-    strcat(t,s);
+  if ( ws2000station.status.DCFsync == 1 ) {
+    s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n", 
+	       ws2000station.status.DCFsync);
+  }
+  else {
+    s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
+	       ws2000station.status.DCFsync);
+  }
+  strcat(t,s);
 
-    if ( ws2000station.status.HFstat == 1 ) {
-      s = mkmsg2("HF status\t:\t%d (with HF)\n", 
-		ws2000station.status.HFstat);
-    }
-    else {
-      s = mkmsg2("HF status\t:\t%d (without HF)\n", 
-		ws2000station.status.HFstat);
-    }
-    strcat(t,s);
+  if ( ws2000station.status.HFstat == 1 ) {
+    s = mkmsg2("HF status\t:\t%d (with HF)\n", 
+	       ws2000station.status.HFstat);
+  }
+  else {
+    s = mkmsg2("HF status\t:\t%d (without HF)\n", 
+	       ws2000station.status.HFstat);
+  }
+  strcat(t,s);
 
-    s = mkmsg2("Battery status\t:\t%d\n", 
-	       ws2000station.status.Battstat);
-    strcat(t,s);
+  s = mkmsg2("Battery status\t:\t%d\n", 
+	     ws2000station.status.Battstat);
+  strcat(t,s);
    
-    s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
-      ws2000station.status.numsens);
-    strcat(t,s);
+  s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
+	     ws2000station.status.numsens);
+  strcat(t,s);
 
-    for ( i = 0; i < ws2000station.status.numsens; i++ ) {
-      s = mkmsg2("%2d|", i);
-      strcat(t,s);  
-    }
-    strcat(t,"\n");
+  for ( i = 0; i < ws2000station.status.numsens; i++ ) {
+    s = mkmsg2("%2d|", i);
+    strcat(t,s);  
+  }
+  strcat(t,"\n");
     
   
-    for ( i = 0; i < ws2000station.status.numsens; i++ ) {
-	s= mkmsg2("%2x|", ws2000station.sensor[i].status);
-	strcat(t,s);
-    } 
-    strcat(t,"\n");
-    return (t);
+  for ( i = 0; i < ws2000station.status.numsens; i++ ) {
+    s= mkmsg2("%2x|", ws2000station.sensor[i].status);
+    strcat(t,s);
+  } 
+  strcat(t,"\n");
+  return (t);
 }
 
 
@@ -852,12 +921,13 @@ settime ( ) {
   return(0);
 }
 
+
 /*
-  insertdb - insert measured values
+  dataindb - insert measured values
 
 */
 int
-insertdb( long dataset_date, int sensor_param, float meas_value) {
+dataindb( long dataset_date, int sensor_param, float meas_value) {
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
@@ -877,6 +947,7 @@ insertdb( long dataset_date, int sensor_param, float meas_value) {
   }
   return(0);
 }
+
 /* datex 
 
    data extraction
@@ -1080,7 +1151,7 @@ datex(unsigned char *data, int ndat) {
     getbits(data[29], 7, 4) + 200;
   printf("Indoorsensor(Pressure):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  insertdb( dataset_date, 21, meas_value);
+  dataindb( dataset_date, 21, meas_value);
 
   /* indoor temperature */
   meas_value = 
@@ -1089,7 +1160,7 @@ datex(unsigned char *data, int ndat) {
     0.1 * getbits(data[31], 7, 4);
   printf("Indoorsensor(Temperature):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  insertdb( dataset_date, 22, meas_value);
+  dataindb( dataset_date, 22, meas_value);
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
@@ -1097,7 +1168,7 @@ datex(unsigned char *data, int ndat) {
   meas_value = Hi + Lo;
   printf("Indoorsensor(Humidity):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  insertdb( dataset_date, 23, meas_value);
+  dataindb( dataset_date, 23, meas_value);
 
   } else {
     printf("Sensor #11: Indoorsensor not found\n");

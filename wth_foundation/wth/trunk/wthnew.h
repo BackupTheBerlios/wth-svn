@@ -209,11 +209,12 @@ int setlck( const char *lockfile);
 int unlck( const char *lockfile, int fd);
 
 /* pcwsr functions */
-void *pcwsr_loghandler();
+void *ploghandler();
 
 /* ws2000 functions */
-void *ws2000_loghandler();
-void * ws2000_cmdhandler();
+void *wloghandler();
+
+
 void * cmdhandler();
 
 int demasq( unsigned char *data, int *mdat);

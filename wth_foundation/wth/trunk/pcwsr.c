@@ -120,7 +120,7 @@ char
    logging pcwsr data to rrd and Sqlite DB
 */
 void *
-pcwsr_loghandler( void *arg) {
+ploghandler( void *arg) {
     int i, fd, err;              /* filedescriptor serial port */
     int hi, lo, dummy;
     int mask = 0x7f;
@@ -139,7 +139,7 @@ pcwsr_loghandler( void *arg) {
     time_t mtime;
     struct tm *ctm;
 
-    printf("pcwsr_loghandler: start of execution\n");
+    printf("ploghandler: start of execution\n");
     /* setting timezone */
     tzset(); 
     /* serial initialization */ 
@@ -166,7 +166,7 @@ pcwsr_loghandler( void *arg) {
       strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
 
       if (raw) {
-	printf("pcwsr_loghandler: %s : %d bytes read |", clk, err);
+	printf("ploghandler: %s : %d bytes read |", clk, err);
 	for ( i = 0; i<8; i++) {
 	  printf("%x|", data[i]);
 	}
@@ -177,12 +177,12 @@ pcwsr_loghandler( void *arg) {
          starting with STX and ending with ETX. */
       if (data[0]!=STX)
       {
-      	printf("pcwsr_loghandler: no STX seen - can't happen!  Skipping..\n");
+      	printf("ploghandler: no STX seen - can't happen!  Skipping..\n");
 	continue;
       };
       if (data[7]!=ETX)
       {
-      	printf("pcwsr_loghandler: no ETX seen - skipping to next STX..\n");
+      	printf("ploghandler: no ETX seen - skipping to next STX..\n");
 	continue;
       };
 	      
@@ -200,9 +200,9 @@ pcwsr_loghandler( void *arg) {
       }
 
       if (debug) {
-	printf("pcwsr_loghandler: dummy :%x, styp :%x, saddr:%x\n", 
+	printf("ploghandler: dummy :%x, styp :%x, saddr:%x\n", 
           dummy, styp, saddr); 
-	printf("pcwsr_loghandler: sname: %s, styp  :%x, sver :%x\n", 
+	printf("ploghandler: sname: %s, styp  :%x, sver :%x\n", 
           name, styp, sver);
       }
 
