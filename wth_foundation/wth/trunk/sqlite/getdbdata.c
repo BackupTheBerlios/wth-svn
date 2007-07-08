@@ -46,7 +46,7 @@ getdbdata() {
                "ON sp.parameter_no = pn.parameter_no "
              "JOIN sensordata AS sd " 
                "ON sp.sensor_meas_no = sd.sensor_meas_no");
-  printf("query: \"%s\"\n", query);
+  /* printf("query: \"%s\"\n", query); */
 
   /* prepare compiled statement handle */
   err = sqlite3_prepare( ws2000db, query, querylen, &wsth, &sqltail);
@@ -58,10 +58,12 @@ getdbdata() {
 
   do {
     err = sqlite3_step( wsth);
-    if ( err != SQLITE_DONE ) {
+    if ( err == SQLITE_BUSY ) {
       fprintf( stderr,
         "Error: sqlite3_step failed: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(ws2000db));
+    } else if ( err == SQLITE_DONE) {
+      break;
     }
 
     dataset_date = sqlite3_column_int( wsth, 1);
@@ -70,9 +72,19 @@ getdbdata() {
       (long int)dataset_date, meas_value);  
 
   } while ( ( err != SQLITE_DONE) && ( err == SQLITE_ROW )) ;
-  
+ 
+  if ( ( err = sqlite3_finalize( wsth))) {
+    fprintf( stderr,
+      "Error: sqlite3_finalize failed: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  }
+ 
   /* cleanup and close */
-  sqlite3_close( ws2000db);
+  if ( ( err = sqlite3_close( ws2000db))) {
+    fprintf( stderr,
+      "Error: sqlite3_close failed: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(ws2000db));
+  }
   printf("getdbdata: WS2000 sqlite done\n");
   return(0);
 }
