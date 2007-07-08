@@ -68,7 +68,7 @@
 #define MAXDATA     256
 #define PCWSRLEN    8
 #define MAXMSGLEN   128
-#define MAXQUERYLEN 256
+#define MAXQUERYLEN 1024
 
 /* Serial port devices */
 #if defined(LINUX)

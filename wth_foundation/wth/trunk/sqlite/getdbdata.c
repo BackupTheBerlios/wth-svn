@@ -6,11 +6,13 @@
 
 */
 #include "../wthnew.h"
-#define MAXQUERYLEN 256
+#define MAXQUERYLEN 1024
 
 int
 getdbdata() {
   int err;
+  time_t dataset_date;
+  float meas_value;
   int querylen =  MAXQUERYLEN;
   char query[MAXQUERYLEN];
   char *errmsg = 0;
@@ -37,12 +39,12 @@ getdbdata() {
            " SELECT sd.dataset_no, sd.dataset_date, "
                     "sn.sensorname, pn.parameter_name," 
                     "sd.meas_value, pn.parameter_unit "
-             "FROM sensorparameters AS sp"
-             "JOIN sensornames AS sn"
-               "ON sp.sensor_no = sn.sensor_no"
-             "JOIN parameternames AS pn"
-               "ON sp.parameter_no = pn.parameter_no"
-             "JOIN sensordata AS sd"
+             "FROM sensorparameters AS sp "
+             "JOIN sensornames AS sn "
+               "ON sp.sensor_no = sn.sensor_no "
+             "JOIN parameternames AS pn "
+               "ON sp.parameter_no = pn.parameter_no "
+             "JOIN sensordata AS sd " 
                "ON sp.sensor_meas_no = sd.sensor_meas_no");
   printf("query: \"%s\"\n", query);
 
@@ -54,15 +56,21 @@ getdbdata() {
       err, sqlite3_errmsg(ws2000db));
   } 
 
-  err = sqlite3_step( wsth);
-  if ( err != SQLITE_DONE ) {
-    fprintf( stderr,
-      "Error: sqlite3_step failed: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(ws2000db));
-  }
+  do {
+    err = sqlite3_step( wsth);
+    if ( err != SQLITE_DONE ) {
+      fprintf( stderr,
+        "Error: sqlite3_step failed: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
+    }
 
+    dataset_date = sqlite3_column_int( wsth, 1);
+    meas_value   = sqlite3_column_double( wsth, 4);
+    printf("dataset_date: %lu;  meas_value: %f\n", 
+      (long int)dataset_date, meas_value);  
+
+  } while ( ( err != SQLITE_DONE) && ( err == SQLITE_ROW )) ;
   
- 
   /* cleanup and close */
   sqlite3_close( ws2000db);
   printf("getdbdata: WS2000 sqlite done\n");
@@ -72,6 +80,9 @@ getdbdata() {
 
 int
 main ( int argc, char **argv) {
+  int ret;
+
+  ret = getdbdata();
 
   return 0;
 }
