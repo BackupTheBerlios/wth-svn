@@ -23,26 +23,23 @@ dataindb( long dataset_date, int sensor_param, float meas_value) {
   snprintf(query, querylen,
            "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
            dataset_date, sensor_param, meas_value);
-  printf("query: \"%s\"\n", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) {
     fprintf( stderr,
              "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n",
              err, sqlite3_errmsg(ws2000db));
-  } else {
-    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
-             sqlite3_errmsg( ws2000db));
   }
   return(0);
 }
 
 int
 main ( int argc, char **argv) {
-  int err, rnd, maxrnd;
+  int err, rnd, maxrnd, i ;
   float frnd;
   time_t dataset_date;
   char *errmsg = 0;
   char *ws2000dbfile = "ws2000.db";
+  int numinsrt = 12 * 24 * 365;        // one year's data
 
   /* open sqlite db file */
   err = sqlite3_open( ws2000dbfile, &ws2000db);
@@ -64,27 +61,34 @@ main ( int argc, char **argv) {
   printf("rnd: %d | maxrnd: %d | frnd : %f\n", rnd, maxrnd, frnd);
   /* initialize time */
   time( &dataset_date);
-  
-  /* insert sensor sample: Sensor1 Temperature */
-  dataindb( dataset_date, 1, 10.0 + 5.0 * ( (float)rand() /(float)maxrnd)); 
 
-  /* insert sensor sample: Sensor1 Humidity  */
-  dataindb( dataset_date, 2, 50.0 + 50.0 * ( (float)rand() /(float)maxrnd)); 
 
-  /* insert sensor sample: Sensor2 Temperature 11.7 degC */
-  dataindb( dataset_date, 3, -20.0 + 10.0 * ( (float)rand() /(float)maxrnd));
-  /* insert sensor sample rainsensor 1625 ml */
-  dataindb( dataset_date, 17, 1625); 
+  dataset_date = dataset_date - 300 * numinsrt;
 
-  /* insert sensor sample: Wind sensor, windspeed 40 km/h */
-  dataindb( dataset_date, 18, 40.0); 
+  for ( i = 0; i <= numinsrt; i++) {
 
-  /* insert sensor sample: Winddirection Variation, 22.5 deg */
-  dataindb( dataset_date, 19, 22.5); 
+    /* insert sensor sample: Sensor1 Temperature */
+    dataindb( dataset_date, 1, 10.0 + 5.0 * ( (float)rand() /(float)maxrnd)); 
 
-  /* insert sensor sample: Winddirection, 150 deg */
-  dataindb( dataset_date, 20, 150.0); 
+    /* insert sensor sample: Sensor1 Humidity  */
+    dataindb( dataset_date, 2, 50.0 + 50.0 * ( (float)rand() /(float)maxrnd)); 
 
+    /* insert sensor sample: Sensor2 Temperature 11.7 degC */
+    dataindb( dataset_date, 3, -20.0 + 10.0 * ( (float)rand() /(float)maxrnd));
+
+    /* insert sensor sample rainsensor 1625 ml */
+    dataindb( dataset_date, 17, 1625 + 0.1* ( (float)rand() /(float)maxrnd) ); 
+
+    /* insert sensor sample: Wind sensor, windspeed 40 km/h */
+    dataindb( dataset_date, 18, 0.0 + 40 *( (float)rand() /(float)maxrnd)); 
+
+    /* insert sensor sample: Winddirection Variation, 22.5 deg */
+    dataindb( dataset_date, 19, 0 + 7.5 * (int)( 4.0 * (float)rand() /(float)maxrnd)); 
+
+    /* insert sensor sample: Winddirection, 150 deg */
+    dataindb( dataset_date, 20, 130.0 + 25.0 *((float)rand() /(float)maxrnd)); 
+    dataset_date = dataset_date + 300;
+  }
   /* finalize stmt handle */
 
   /* cleanup and close */

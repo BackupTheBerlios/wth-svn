@@ -15,7 +15,8 @@ unlink($DBFILE);
 my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
   or die ("Can't get DB handle: $DBI::Errstr");
 
-
+#
+# table sensordata holds measured values and corresponding time
 $dbh->do("
   CREATE TABLE 
   sensordata
@@ -27,6 +28,13 @@ $dbh->do("
     FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
   )
 ");
+
+#
+# index on dataset_date increases table lookup
+$dbh->do("
+  CREATE INDEX sdidx2 ON sensordata(dataset_date)
+");
+
 
 $dbh->do("
   CREATE TABLE
