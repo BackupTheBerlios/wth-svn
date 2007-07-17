@@ -3,7 +3,15 @@
 #
 # SQLITE Database description for WS2000 and Lacrosse Weatherstation
 #
-
+#
+# WS2000 weatherstations has
+#     - status
+#         - DCF
+#         - HF
+#     - sensors which
+#         - measure parameter values
+#         - have status
+#
 use strict;
 use DBI;
 my $DBFILE="ws2000.db";
@@ -17,8 +25,9 @@ my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
 
 #
 # table sensordata holds measured values and corresponding time
+#
 $dbh->do("
-  CREATE TABLE 
+  CREATE TABLE
   sensordata
   (
     dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -31,11 +40,14 @@ $dbh->do("
 
 #
 # index on dataset_date increases table lookup
+#
 $dbh->do("
   CREATE INDEX sdidx2 ON sensordata(dataset_date)
 ");
 
-
+#
+# sensor status
+#
 $dbh->do("
   CREATE TABLE
   sensorstatus
@@ -62,7 +74,9 @@ $dbh->do("
   )
 ");
 
-
+#
+# sensor names
+#
 $dbh->do("
   create table
   sensornames
@@ -72,6 +86,21 @@ $dbh->do("
   )
 ");
 
+#
+# last update time of a sensor parameter
+#
+$dbh->do("
+  create table
+  sensorupdate
+  (
+    sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    last_update DATE NOT NULL
+  )
+");
+
+#
+# name and unit of sensor parameter
+#
 $dbh->do("
   create table
   parameternames
@@ -82,6 +111,9 @@ $dbh->do("
   )
 ");
 
+#
+# relation between sensor and its parameters
+#
 $dbh->do("
   create table
   sensorparameters
@@ -94,6 +126,9 @@ $dbh->do("
   )
 ");
 
+#
+# presetting fixed values
+#
 #
 # table parameternames will not change (WS2000 can't do more)
 #
@@ -180,6 +215,60 @@ $dbh->do(" INSERT INTO sensorparameters VALUES ('35','17','2') ");
 # Sensor15
 $dbh->do(" INSERT INTO sensorparameters VALUES ('36','18','1') ");
 $dbh->do(" INSERT INTO sensorparameters VALUES ('37','18','2') ");
+
+#
+# table sensorupdate
+#
+# Sensor1
+$dbh->do(" INSERT INTO sensorupdate VALUES ('1','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('2','0') ");
+# Sensor2
+$dbh->do(" INSERT INTO sensorupdate VALUES ('3','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('4','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('5','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('6','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('7','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('8','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('9','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('10','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('11','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('12','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('13','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('14','0') ");
+# Sensor8
+$dbh->do(" INSERT INTO sensorupdate VALUES ('15','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('16','0') ");
+# Regensensor
+$dbh->do(" INSERT INTO sensorupdate VALUES ('17','0') ");
+# Windsensor
+$dbh->do(" INSERT INTO sensorupdate VALUES ('18','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('19','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('20','0') ");
+# Innensensor
+$dbh->do(" INSERT INTO sensorupdate VALUES ('21','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('22','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('23','0') ");
+# Sensor9
+$dbh->do(" INSERT INTO sensorupdate VALUES ('24','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('25','0') ");
+# Sensor10
+$dbh->do(" INSERT INTO sensorupdate VALUES ('26','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('27','0') ");
+# Sensor11
+$dbh->do(" INSERT INTO sensorupdate VALUES ('28','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('29','0') ");
+# Sensor12
+$dbh->do(" INSERT INTO sensorupdate VALUES ('30','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('31','0') ");
+# Sensor13
+$dbh->do(" INSERT INTO sensorupdate VALUES ('32','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('33','0') ");
+# Sensor14
+$dbh->do(" INSERT INTO sensorupdate VALUES ('34','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('35','0') ");
+# Sensor15
+$dbh->do(" INSERT INTO sensorupdate VALUES ('36','0') ");
+$dbh->do(" INSERT INTO sensorupdate VALUES ('37','0') ");
 
 printf "Create ws2000.db: done\n";
 exit(0);

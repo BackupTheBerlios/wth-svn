@@ -602,11 +602,11 @@ chkframe( unsigned char *data, int *mdat) {
 
 
 /*
-  statindb - insert status values
+  statdb - insert status values
 
 */
 int
-statindb( long statusset_date, int sensor_no, int sensor_status) {
+statdb( long statusset_date, int sensor_no, int sensor_status) {
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
@@ -637,7 +637,7 @@ wstat(unsigned char *data, int mdat ) {
   time_t statusset_date;
   char frame[MAXMSGLEN] = ""; 
   char sf[3] = "";
-  char *errmsg = 0;
+  //char *errmsg = 0;
   static char t[MAXBUFF] = "no status available";
 
   char *s;
@@ -671,7 +671,7 @@ wstat(unsigned char *data, int mdat ) {
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) {
     if ( data[i-1] != 0 ) {
-      statindb( statusset_date, i, data[i-1]);
+      statdb( statusset_date, i, data[i-1]);
     }
   }
   /* cleanup and close */
@@ -923,15 +923,16 @@ settime ( ) {
 
 
 /*
-  dataindb - insert measured values
+  datadb - insert measured values
 
 */
 int
-dataindb( long dataset_date, int sensor_param, float meas_value) {
+datadb( long dataset_date, int sensor_param, float meas_value) {
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
 
+  /* insert data values */
   snprintf(query, querylen, 
            "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
            dataset_date, sensor_param, meas_value); 
@@ -941,9 +942,18 @@ dataindb( long dataset_date, int sensor_param, float meas_value) {
     fprintf( stderr,
 	     "Error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
 	     err, sqlite3_errmsg(ws2000db));
-  } else {
-    fprintf( stderr, "Success: insert sensor data OK: sqlite_errmsg: %s\n",
-	     sqlite3_errmsg( ws2000db));
+  }
+
+  /* insert last data date */
+  snprintf(query, querylen, 
+           "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
+           dataset_date, sensor_param); 
+  printf("query: \"%s\"\n", query);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
+  if ( err) { 
+    fprintf( stderr,
+	     "Error: update sensor date: err: %d : sqlite_errmsg: %s\n", 
+	     err, sqlite3_errmsg(ws2000db));
   }
   return(0);
 }
@@ -1151,7 +1161,7 @@ datex(unsigned char *data, int ndat) {
     getbits(data[29], 7, 4) + 200;
   printf("Indoorsensor(Pressure):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  dataindb( dataset_date, 21, meas_value);
+  datadb( dataset_date, 21, meas_value);
 
   /* indoor temperature */
   meas_value = 
@@ -1160,7 +1170,7 @@ datex(unsigned char *data, int ndat) {
     0.1 * getbits(data[31], 7, 4);
   printf("Indoorsensor(Temperature):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  dataindb( dataset_date, 22, meas_value);
+  datadb( dataset_date, 22, meas_value);
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
@@ -1168,7 +1178,7 @@ datex(unsigned char *data, int ndat) {
   meas_value = Hi + Lo;
   printf("Indoorsensor(Humidity):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  dataindb( dataset_date, 23, meas_value);
+  datadb( dataset_date, 23, meas_value);
 
   } else {
     printf("Sensor #11: Indoorsensor not found\n");
