@@ -1115,6 +1115,7 @@ datex(unsigned char *data, int ndat) {
     Hi = getbits(data[25], 6, 7) << 8 ;
     Lo = getbits(data[24], 7, 8);
     meas_value   = Hi + Lo;
+    datadb( dataset_date, 17, meas_value);
     printf("Rainsensor:\t\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value);
     // rain new flag
@@ -1131,6 +1132,7 @@ datex(unsigned char *data, int ndat) {
     10  * getbits(data[27], 3, 4) +
     getbits(data[26], 6, 3) +
     0.1 * getbits(data[26], 3, 4);
+  datadb( dataset_date, 18, meas_value);
   printf("Windsensor(Windspeed):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
 
@@ -1140,12 +1142,14 @@ datex(unsigned char *data, int ndat) {
     100 * getbits( data[29], 1, 2 ) +
     10  * getbits(data[28], 7, 4 ) +
     getbits(data[28], 3, 4 );
+  datadb( dataset_date, 19, meas_value);
   printf("Windsensor(Winddirection):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
 
   /* mean deviation of wind direction */
   meas_value =
     getbits( data[29], 4, 2 );
+  datadb( dataset_date, 20, meas_value);
   printf("Windsensor(Variation):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
   } else {
