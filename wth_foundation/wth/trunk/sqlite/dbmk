@@ -369,6 +369,44 @@ elsif ( $options{p} ) {
     )
   ");
 
+  #
+  # presetting fixed values
+  #
+  #
+  # table parameternames will not change (PCWSR can't do more)
+  #
+  $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('2','Humidity','% rel.hum.') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Rain','mm') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('7','Barometric Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('8','Brightness','klx') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('9','Radiation Power','arb.unit') ");
+
+  #
+  # table sensornames will not change ( PCWSR can't do more)
+  #
+  # 0x00 - 0x07 outdoor V1.1 address 0 .. 7 
+  $dbh->do(" INSERT INTO sensornames VALUES ('1','Outdoor','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('2','Outdoor','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('3','Outdoor','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('4','Outdoor','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('5','Outdoor','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('6','Outdoor','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('7','Outdoor','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('8','Outdoor','0x07','V1.1') ");
+  # 0x08 - 0x0f outdoor V1.2 address 0 .. 7 
+  $dbh->do(" INSERT INTO sensornames VALUES ( '9','Outdoor','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('10','Outdoor','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('11','Outdoor','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('12','Outdoor','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('13','Outdoor','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('14','Outdoor','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('15','Outdoor','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('16','Outdoor','0x07','V1.2') ");
+
   printf "Create pcwsr.db: done\n";
   exit(0);
 }
