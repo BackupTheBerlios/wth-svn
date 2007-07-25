@@ -24,6 +24,7 @@ use Getopt::Std;
 
 my $DBFILE="nodata.db";
 my $res;
+my ($sens_meas_no, $sens_no, $query);
 my %options;
 
 getopts("pw", \%options);
@@ -502,6 +503,99 @@ elsif ( $options{p} ) {
   $dbh->do(" INSERT INTO sensornames VALUES ('94','Pyranometer','0x05','V1.2') ");
   $dbh->do(" INSERT INTO sensornames VALUES ('95','Pyranometer','0x06','V1.2') ");
   $dbh->do(" INSERT INTO sensornames VALUES ('96','Pyranometer','0x07','V1.2') ");
+
+  #
+  # table sensorparameters does not change
+  #
+  $sens_meas_no = 1;
+
+  # outdoor V1.1 and V1.2 type 0x00 .. 0x0f
+  for ( $sens_no = 1; $sens_no <= 16; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # outdoor V1.1 and V1.2 type 0x10 .. 0x1f
+  for ( $sens_no = 17; $sens_no <= 32; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','2') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # rain V1.1 and V1.2 type 0x20 .. 0x2f
+  for ( $sens_no = 33; $sens_no <= 48; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','3') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # wind V1.1 and V1.2 type 0x30 .. 0x3f
+  for ( $sens_no = 49; $sens_no <= 64; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','4') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','5') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','6') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # indoor V1.1 and V1.2 type 0x40 .. 0x4f
+  for ( $sens_no = 65; $sens_no <= 80; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','2') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','7') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # brightness V1.2 type 0x58 .. 0x5f
+  for ( $sens_no = 81; $sens_no <= 88; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','8') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # pyranometer V1.2 type 0x68 .. 0x6f
+  for ( $sens_no = 89; $sens_no <= 96; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','9') ";
+    print "query: $query\n";
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
 
   printf "Create pcwsr.db: done\n";
   exit(0);
