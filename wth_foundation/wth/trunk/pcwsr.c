@@ -125,6 +125,7 @@ ploghandler( void *arg) {
     int hi, lo, dummy;
     int mask = 0x7f;
     int shift = 0x7;
+    int sensor_no, sensor_meas_no;
     int styp, saddr, sver;       /* sensor typ, address and version */
     float t, wspd, wdev;
     int hum, pres, wdir, r, b, rad, mul, imul;
@@ -191,6 +192,7 @@ ploghandler( void *arg) {
       styp  = dummy & 0xf0;
       styp  = styp >> 4;
       saddr = dummy & 0xf;
+      sensor_no = dummy + 1;
       name = sname(styp);
       strcpy(buf,"");
      
@@ -200,10 +202,10 @@ ploghandler( void *arg) {
       }
 
       if (debug) {
-	printf("ploghandler: dummy :%x, styp :%x, saddr:%x\n", 
-          dummy, styp, saddr); 
-	printf("ploghandler: sname: %s, styp  :%x, sver :%x\n", 
-          name, styp, sver);
+	printf("ploghandler: sensor_no: %d, sname: %s, "
+               "styp  :%x, saddr: %x, sver :%x,"
+               "data[1] & mask: %d\n", 
+	       sensor_no, name, styp, saddr, sver, dummy);
       }
 
       /* handle sensors */
@@ -220,10 +222,12 @@ ploghandler( void *arg) {
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
 
+        sensor_meas_no = saddr + 1;
 	if (debug) {
 	  printf("Temperature\n");
 	  printf("W1: %x, W2: %x\n", data[2], data[3]);
 	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
 	}
         
         if (!raw) {
@@ -244,9 +248,16 @@ ploghandler( void *arg) {
 	if (dummy & 0x00004000)
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
-
+        sensor_meas_no = 17 + 2*saddr + 0; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 	/* humidity */
 	hum = data[4] & mask;
+        sensor_meas_no = 17 + 2*saddr + 1; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	if (debug) {
 	  printf("Temperature\n");
@@ -270,10 +281,12 @@ ploghandler( void *arg) {
 	lo = data[3] & mask;
 	r  = hi + lo ;
 
+        sensor_meas_no = 49 + saddr;
 	if (debug) {
 	  printf("Rain\n");
 	  printf("W1: %x, W2: %x\n", data[2], data[3]);
 	  printf("hi : %x, lo: %x, Rain: %d\n\n", hi, lo, r);
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
 	}
 
         if (!raw) {
@@ -289,17 +302,29 @@ ploghandler( void *arg) {
         hi = hi << shift;
 	lo = data[3] & mask;
 	wspd  = ( hi + lo ) / 10.0 ;
+        sensor_meas_no = 65 + 3*saddr + 0; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	/* wind deviation */
 	dummy = data[4] & mask;
         wdev  = (dummy * 45 );
         wdev  = 0.5 * wdev;
+        sensor_meas_no = 65 + 3*saddr + 1; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	/* wind direction */
 	hi = data[5] & mask ;
         hi = hi << shift;
 	lo = data[6] & mask;
 	wdir = hi + lo ;
+        sensor_meas_no = 65 + 3*saddr + 2; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	if (debug) {
 	  printf("Windspeed\n");
@@ -331,15 +356,27 @@ ploghandler( void *arg) {
 	if (dummy & 0x00004000)
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
+        sensor_meas_no = 113 + 3*saddr + 0; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	/* humidity */
 	hum = data[4] & mask;
+        sensor_meas_no = 113 + 3*saddr + 1; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
 	/* pressure */
 	dummy  = data[5] & mask;
 	hi = dummy << shift;
 	lo = data[6] & mask;
 	pres  = hi + lo;
+        sensor_meas_no = 113 + 3*saddr + 2; 
+        if (debug) {
+          printf("sensor_meas_no: %d\n", sensor_meas_no);
+        }
 
         if (debug) {
 	  printf("Temperature\n");
