@@ -236,3 +236,8 @@ int wstrlen( unsigned char *s);
 ws2000_t ws2000station;
 pcwsr_t  pcwsrstation;
 conf_t   wsconf;
+
+int datadb( long dataset_date, int sensor_param, float meas_value, 
+            sqlite3 *wthdb) ;
+int statdb( long statusset_date, int sensor_no, int sensor_status, 
+            sqlite3 *wthdb);

@@ -16,7 +16,8 @@ wthd_LDADD = libwth.a
 
 wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
 
-wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c pcwsr.c ws2000.c netnew.c
+wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c pcwsr.c ws2000.c netnew.c \
+  wthdb.c
 wthnewpd_LDADD = -L/usr/local/lib -lpthread -lsqlite3
 
 #wthxc_SOURCES = wthxc.c wth.h 
