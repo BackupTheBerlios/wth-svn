@@ -118,6 +118,7 @@ enum {
 };
 
 static const int success = 0;
+static const int failure = 1;
 
 /* data structures */
 typedef struct dataset {

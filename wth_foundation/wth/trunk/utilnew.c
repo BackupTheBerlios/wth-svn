@@ -50,7 +50,7 @@ int initdata( ) {
   wsconf.outfmt      = "old";
   
   ws2000station.config.dbfile        = "ws2000.db";
-  ws2000station.config.device        = "/dev/ttyd0";
+  //ws2000station.config.device        = "/dev/ttyd0";
   ws2000station.status.interval      = 300;  
 
   pcwsrstation.config.dbfile         = "pcwsr.db";

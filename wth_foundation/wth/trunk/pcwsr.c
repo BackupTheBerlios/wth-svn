@@ -23,6 +23,7 @@
 
 */
 #include "wthnew.h"
+sqlite3 *pcwsrdb;
 
 /*  initpcwsr
 
@@ -101,43 +102,29 @@ static int closepcwsr( int fd, struct termios *oldtio) {
 }
 
 
-char
-*sname(int snum)
-{
-  static char *name[] = {
-    "outdoor", "outdoor", 
-    "rain", "wind",
-    "indoor", "brightness", 
-    "radiation power", "undef"
-  };
-  return ( snum < 0 || snum >6 ) ? name[7] : name[snum];
-}
-
-
-
 /*
    pcwsr_loghandler
    logging pcwsr data to rrd and Sqlite DB
 */
 void *
 ploghandler( void *arg) {
-    int i, fd, err;              /* filedescriptor serial port */
+    int i, fd, err;
     int hi, lo, dummy;
     int mask = 0x7f;
     int shift = 0x7;
-    int sensor_no, sensor_meas_no;
-    int styp, saddr, sver;       /* sensor typ, address and version */
+    int len, nval;
+    int sensor_no, sensor_meas_no[3];
+    int styp, saddr, sver;
     float t, wspd, wdev;
     int hum, pres, wdir, r, b, rad, mul, imul;
-    int debug=1, raw=0;
-
+    float meas_value[3];
+   
     struct termios newtio,oldtio; 
     unsigned char data[MAXMSGLEN];
     char clk[MAXMSGLEN];
-    char buf[MAXMSGLEN];
-    char *name;  /* sensor typ spec */
-
-    time_t mtime;
+    char *msg;
+    static char buf[MAXMSGLEN];
+    time_t dataset_date;
     struct tm *ctm;
 
     printf("ploghandler: start of execution\n");
@@ -145,12 +132,20 @@ ploghandler( void *arg) {
     tzset(); 
     /* serial initialization */ 
     fd = initpcwsr(&newtio, &oldtio, pcwsrstation.config.device); 
+
+    if ( ( err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb))) {
+      msg = mkmsg("Failed to open database %s. Error: %s\n",
+         pcwsrstation.config.dbfile, sqlite3_errmsg( pcwsrdb));
+      closepcwsr( fd, &oldtio); 
+      return( ( void *) &failure);
+    }
     
     for ( ;; ) {
       // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
       // Need to be careful, as STX and ETX might occur inside the data.
       
-      int len=0;
+      len=0;
+      nval = 0;
       memset(data, 0, PCWSRLEN);
       while ( len < 8)
       {
@@ -162,17 +157,9 @@ ploghandler( void *arg) {
 	data[len++] = ch;
       };
       
-      time(&mtime);
-      ctm = gmtime(&mtime);
+      time(&dataset_date);
+      ctm = gmtime(&dataset_date);
       strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
-
-      if (raw) {
-	printf("ploghandler: %s : %d bytes read |", clk, err);
-	for ( i = 0; i<8; i++) {
-	  printf("%x|", data[i]);
-	}
-	printf("\n");
-      }
 
       /* When we get here, we should have 8 bytes 
          starting with STX and ending with ETX. */
@@ -193,19 +180,11 @@ ploghandler( void *arg) {
       styp  = styp >> 4;
       saddr = dummy & 0xf;
       sensor_no = dummy + 1;
-      name = sname(styp);
       strcpy(buf,"");
      
       sver = 0x12;
       if ( ( styp < 0x5 ) && ( saddr < 0x8)) {
 	  sver = 0x11;
-      }
-
-      if (debug) {
-	printf("ploghandler: sensor_no: %d, sname: %s, "
-               "styp  :%x, saddr: %x, sver :%x,"
-               "data[1] & mask: %d\n", 
-	       sensor_no, name, styp, saddr, sver, dummy);
       }
 
       /* handle sensors */
@@ -221,20 +200,8 @@ ploghandler( void *arg) {
 	if (dummy & 0x00004000)
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
-
-        sensor_meas_no = saddr + 1;
-	if (debug) {
-	  printf("Temperature\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-	}
-        
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (address 0x0%x) | T[C] %.1f",
-	    clk, name, saddr, t);
-        }
+        sensor_meas_no[0] = saddr + 1;
+        nval++;
       }
       /* outdoor (temperature, humidity) */
       else if ( styp == 0x1 ) {
@@ -248,31 +215,14 @@ ploghandler( void *arg) {
 	if (dummy & 0x00004000)
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
-        sensor_meas_no = 17 + 2*saddr + 0; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
+        sensor_meas_no[0] = 17 + 2*saddr + 0; 
+        meas_value[0]=t;
+        nval++;
 	/* humidity */
 	hum = data[4] & mask;
-        sensor_meas_no = 17 + 2*saddr + 1; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
-
-	if (debug) {
-	  printf("Temperature\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
-	  printf("Humidity\n");
-	  printf("W3: %x\n", data[4]);
-	  printf("Hum: %d\n\n", hum);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d",
-	    clk, name, sver, saddr, t, hum);
-        }
+        sensor_meas_no[1] = 17 + 2*saddr + 1;
+        meas_value[1] = hum;
+        nval++;
       } 
       /* rain */
       else if ( styp == 0x2 ) {
@@ -280,20 +230,9 @@ ploghandler( void *arg) {
         hi = hi << shift;
 	lo = data[3] & mask;
 	r  = hi + lo ;
-
-        sensor_meas_no = 49 + saddr;
-	if (debug) {
-	  printf("Rain\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Rain: %d\n\n", hi, lo, r);
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | [Impulses * 0.37mm] %d",
-	    clk, name, sver, saddr, r);
-        }
+        sensor_meas_no[0] = 49 + saddr;
+        meas_value[0] = r;
+        nval++;
       }
       /* wind */
       else if ( styp == 0x3 ) {
@@ -302,47 +241,26 @@ ploghandler( void *arg) {
         hi = hi << shift;
 	lo = data[3] & mask;
 	wspd  = ( hi + lo ) / 10.0 ;
-        sensor_meas_no = 65 + 3*saddr + 0; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
+        sensor_meas_no[0] = 65 + 3*saddr + 0; 
+        meas_value[0] = wspd;
+        nval++;
 
 	/* wind deviation */
 	dummy = data[4] & mask;
         wdev  = (dummy * 45 );
         wdev  = 0.5 * wdev;
-        sensor_meas_no = 65 + 3*saddr + 1; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
+        sensor_meas_no[1] = 65 + 3*saddr + 1; 
+        meas_value[1] = wdev;
+        nval++;
 
 	/* wind direction */
 	hi = data[5] & mask ;
         hi = hi << shift;
 	lo = data[6] & mask;
 	wdir = hi + lo ;
-        sensor_meas_no = 65 + 3*saddr + 2; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
-
-	if (debug) {
-	  printf("Windspeed\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Windspd: %.1f\n\n", hi, lo, wspd);
-	  printf("Wind Deviation\n");
-	  printf("W3: %x\n", data[4]);
-	  printf("Wind deviation: %f\n\n", wdev);
-	  printf("Wind Direction\n");
-	  printf("W4: %x, W5: %x\n", data[5], data[6]);
-	  printf("Wind direction: %d\n\n", wdir);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | Speed[km/h] %.1f | Direction [] %d +/- %.1f",
-	    clk, name, sver, saddr, wspd, wdir, wdev);
-        }
+        sensor_meas_no[2] = 65 + 3*saddr + 2;
+        meas_value[2] = wdev;
+        nval++;
       } 
       /* indoor (temperature, humidity, pressure) */
       else if ( styp == 0x4) {  
@@ -356,45 +274,24 @@ ploghandler( void *arg) {
 	if (dummy & 0x00004000)
 	  dummy |= 0xffffc000 ;
 	t  = dummy / 40.0 ;
-        sensor_meas_no = 113 + 3*saddr + 0; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
+        sensor_meas_no[0] = 113 + 3*saddr + 0; 
+        meas_value[0] = t;
+        nval++;
 
 	/* humidity */
 	hum = data[4] & mask;
-        sensor_meas_no = 113 + 3*saddr + 1; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
+        sensor_meas_no[1] = 113 + 3*saddr + 1; 
+        meas_value[1] = hum;
+        nval++;
 
 	/* pressure */
 	dummy  = data[5] & mask;
 	hi = dummy << shift;
 	lo = data[6] & mask;
 	pres  = hi + lo;
-        sensor_meas_no = 113 + 3*saddr + 2; 
-        if (debug) {
-          printf("sensor_meas_no: %d\n", sensor_meas_no);
-        }
-
-        if (debug) {
-	  printf("Temperature\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Temp: %.1f\n\n", hi, lo, t);
-	  printf("Humidity\n");
-	  printf("W3: %x\n", data[4]);
-	  printf("Hum: %d\n\n", hum);
-	  printf("Pressure\n");
-	  printf("W4: %x, W5: %x\n", data[5], data[6]);
-	  printf("dummy: %x, hi : %x, lo: %x, Press: %d\n", dummy, hi, lo, pres);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | T[C] %.1f | H[%% rel.hum] %d | P[hPa] %d",
-	    clk, name, sver, saddr, t, hum, pres);
-        }
+        sensor_meas_no[2] = 113 + 3*saddr + 2; 
+        meas_value[2] = pres;
+        nval++;
       }
       /* brightness */
       else if ( styp == 0x5) {  
@@ -417,21 +314,6 @@ ploghandler( void *arg) {
 	case 3: imul=1000; break;
 	default: ; 
 	};
-
-        if (debug) {
-	  printf("Brightness\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, brightness: %d\n\n", hi, lo, b);
-	  printf("Multiplicator\n");
-	  printf("W3: %x\n", data[4]);
-          printf("mul: %d\n", mul);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | [klx] %d",
-	    clk, name, sver, saddr, b * imul);
-        }
       }
       /* pyranometer */
       else if ( styp == 0x6) {  
@@ -452,30 +334,27 @@ ploghandler( void *arg) {
 	case 3: imul=1000; break;
 	default: ; 
 	};
-
-        if (debug) {
-	  printf("Pyranometer\n");
-	  printf("W1: %x, W2: %x\n", data[2], data[3]);
-	  printf("hi : %x, lo: %x, Radiation Power: %d\n\n", hi, lo, rad);
-	  printf("Multiplicator\n");
-	  printf("W3: %x\n", data[4]);
-	  printf("mul: %d\n\n", hum);
-	}
-
-        if (!raw) {
-          snprintf(buf, sizeof(buf),
-            "pcwsr: %s | %8s (version %x at address 0x0%x) | Radiation Power[arb.unit] %d",
-	    clk, name, sver, saddr, rad * imul);
-        }
       }
       /* sensor unknown ?! */
       else {
-
-	snprintf(buf, sizeof(buf), "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@thalreit.de",
+	snprintf(buf, sizeof(buf), 
+          "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@thalreit.de",
 		clk, sver, saddr);
       }
-      if (!raw     && (buf[0]        !='\0')) printf("%s\n", buf);
+      msg = mkmsg("ploghandler: %lu : styp : %d: saddr: %d: ", 
+        (long int)dataset_date, styp, saddr);
+      strncat( buf, msg, strlen(msg));
+      for ( i = 0; i < nval; i++) 
+      {
+        msg = mkmsg(": %d : %f", sensor_meas_no[i], meas_value[i]);
+        strncat( buf, msg, strlen( msg));
+        datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
+      }
+      printf(" buf: %s\n", buf);
     }
+
+    /*cleanup and close database */
+    sqlite3_close( pcwsrdb);
     /* leave serial line in good state */
     closepcwsr( fd, &oldtio); 
     return( ( void *) &success);

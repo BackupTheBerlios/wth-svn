@@ -37,12 +37,14 @@ main ( int argc, char **argv )
   }
 
   /* WS2000 thread */
+  /*
   if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
     printf("Creating WS2000 thread: ");
     printf("ws2000station.config.device: %s\n", ws2000station.config.device);
     ret = pthread_create( &wtid, NULL, wloghandler, NULL);
     printf ("ret : %d\n", ret);
   }
+  */
   /* handling interactive commands */
   //pthread_create( &ctid, NULL, cmdhandler, NULL);
 
@@ -51,11 +53,11 @@ main ( int argc, char **argv )
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
     pthread_join( ptid, NULL);
   }
-
+  /*
   if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
     pthread_join( wtid, NULL);
   }
-
+  */
   exit(0);
 }
 
