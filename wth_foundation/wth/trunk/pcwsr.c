@@ -316,7 +316,7 @@ ploghandler( void *arg) {
 	default: ; 
 	};
         meas_value[0] = b * imul;
-        sensor_meas_no[0] = saddr ;
+        sensor_meas_no[0] = 161 + saddr ;
         nval++;
        }
       /* pyranometer */
@@ -338,7 +338,7 @@ ploghandler( void *arg) {
 	case 3: imul=1000; break;
 	default: ; 
 	};
-        sensor_meas_no[0] = saddr;
+        sensor_meas_no[0] = 170 + saddr;
         meas_value[0] = rad * imul;
       }
       /* sensor unknown ?! */
