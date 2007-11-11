@@ -23,6 +23,7 @@ use DBI;
 use Getopt::Std;
 
 my $DBFILE="nodata.db";
+my $DEBUG = 0;
 my $res;
 my ($sens_meas_no, $sens_no, $query);
 my %options;
@@ -513,7 +514,7 @@ elsif ( $options{p} ) {
   for ( $sens_no = 1; $sens_no <= 16; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','1') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -522,12 +523,12 @@ elsif ( $options{p} ) {
   for ( $sens_no = 17; $sens_no <= 32; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','1') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','2') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -536,7 +537,7 @@ elsif ( $options{p} ) {
   for ( $sens_no = 33; $sens_no <= 48; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','3') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -545,17 +546,17 @@ elsif ( $options{p} ) {
   for ( $sens_no = 49; $sens_no <= 64; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','4') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','5') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','6') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -564,17 +565,17 @@ elsif ( $options{p} ) {
   for ( $sens_no = 65; $sens_no <= 80; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','1') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','2') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','7') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -583,7 +584,7 @@ elsif ( $options{p} ) {
   for ( $sens_no = 81; $sens_no <= 88; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','8') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
   }
@@ -592,9 +593,16 @@ elsif ( $options{p} ) {
   for ( $sens_no = 89; $sens_no <= 96; $sens_no ++) {
     $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
              . $sens_no . "','9') ";
-    print "query: $query\n";
+    print "query: $query\n" if ( $DEBUG == 1);
     $dbh->do($query);
     $sens_meas_no++;
+  }
+
+  printf "\tInserting initial values into sensorupdate\n";
+  for ( $sens_no = 1; $sens_no < $sens_meas_no; $sens_no++) {
+    $query= "INSERT INTO sensorupdate VALUES('" . $sens_no . "','0') ";
+    print "query: $query\n" if ( $DEBUG == 1 );
+    $dbh->do( $query);
   }
 
   printf "Create pcwsr.db: done\n";

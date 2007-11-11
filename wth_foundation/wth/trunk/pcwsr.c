@@ -134,19 +134,20 @@ ploghandler( void *arg) {
     fd = initpcwsr(&newtio, &oldtio, pcwsrstation.config.device); 
 
     if ( ( err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb))) {
-      msg = mkmsg("Failed to open database %s. Error: %s\n",
+      msg = mkmsg2("Failed to open database %s. Error: %s\n",
          pcwsrstation.config.dbfile, sqlite3_errmsg( pcwsrdb));
       closepcwsr( fd, &oldtio); 
       return( ( void *) &failure);
     }
     
+    /* main loop to read data and write db */
     for ( ;; ) {
-      // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
-      // Need to be careful, as STX and ETX might occur inside the data.
-      
+      buf[0] = '\0';
       len=0;
       nval = 0;
       memset(data, 0, PCWSRLEN);
+      // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
+      // Need to be careful, as STX and ETX might occur inside the data.
       while ( len < 8)
       {
         unsigned char ch=0;
@@ -314,7 +315,10 @@ ploghandler( void *arg) {
 	case 3: imul=1000; break;
 	default: ; 
 	};
-      }
+        meas_value[0] = b * imul;
+        sensor_meas_no[0] = saddr ;
+        nval++;
+       }
       /* pyranometer */
       else if ( styp == 0x6) {  
 	/* pyranometer */
@@ -334,6 +338,8 @@ ploghandler( void *arg) {
 	case 3: imul=1000; break;
 	default: ; 
 	};
+        sensor_meas_no[0] = saddr;
+        meas_value[0] = rad * imul;
       }
       /* sensor unknown ?! */
       else {
@@ -341,13 +347,13 @@ ploghandler( void *arg) {
           "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@thalreit.de",
 		clk, sver, saddr);
       }
-      msg = mkmsg("ploghandler: %lu : styp : %d: saddr: %d: ", 
+      msg = mkmsg2("ploghandler: %lu : styp : %d: saddr: %d: ", 
         (long int)dataset_date, styp, saddr);
       strncat( buf, msg, strlen(msg));
       for ( i = 0; i < nval; i++) 
       {
-        msg = mkmsg(": %d : %f", sensor_meas_no[i], meas_value[i]);
-        strncat( buf, msg, strlen( msg));
+        msg = mkmsg2(": %d : %f", sensor_meas_no[i], meas_value[i]);
+        strncat( buf, msg, strlen(msg));
         datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
       }
       printf(" buf: %s\n", buf);
