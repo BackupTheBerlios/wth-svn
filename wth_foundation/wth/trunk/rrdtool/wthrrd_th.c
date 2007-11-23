@@ -12,18 +12,18 @@
 
 int main ( int argc, char **argv) {
   struct rrd_context *wctx;
-  long *pdp_step;
-  int rargc;
   char *filename = "Humidity1.rrd";
   char *template = "Humidity1";
-
+  char **ustrg;
   wctx = rrd_get_context();
   printf("wthrrd_th: argc: %d\n", argc);
   printf("wthrrd_th: argv[0]: %s\n", argv[0]);
   printf("wthrrd_th: argv[1]: %s\n", argv[1]);
   printf("wthrrd_th: argv[2]: %s\n", argv[2]);
+  ustrg[2] = "973709225:51";
 
-  rrd_update_r( filename, template, argc-2, (const char **)(argv + 2));
+  //rrd_update_r( filename, template, argc-2, (const char **)(argv + 2));
+  rrd_update_r( filename, template, 1, (const char **)(ustrg + 2));
   //rrd_update(argc, argv);
   if ( rrd_test_error()) {
     printf("RRD Error: %s\n", rrd_get_error());
