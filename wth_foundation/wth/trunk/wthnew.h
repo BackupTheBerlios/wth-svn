@@ -67,7 +67,7 @@
 #define MAXPARAM    8
 #define MAXDATA     256
 #define PCWSRLEN    8
-#define MAXMSGLEN   128
+#define MAXMSGLEN   256
 #define MAXQUERYLEN 1024
 
 /* Serial port devices */
@@ -141,6 +141,12 @@ typedef struct sensor {
   float updatefreq;
   time_t lastseen;
 } sensor_t;
+
+typedef struct senspar {
+  int sensor_no;
+  char *sensor_name;
+  char *par_name;
+} senspar_t;
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval of WS2000 PC interface */
@@ -242,3 +248,5 @@ int datadb( long dataset_date, int sensor_param, float meas_value,
             sqlite3 *wthdb) ;
 int statdb( long statusset_date, int sensor_no, int sensor_status, 
             sqlite3 *wthdb);
+
+int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);

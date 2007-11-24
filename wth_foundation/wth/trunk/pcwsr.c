@@ -126,8 +126,9 @@ ploghandler( void *arg) {
     static char buf[MAXMSGLEN];
     time_t dataset_date;
     struct tm *ctm;
+    senspar_t spar;
 
-    printf("ploghandler: start of execution\n");
+    syslog( LOG_DEBUG, "ploghandler: start of execution\n");
     /* setting timezone */
     tzset(); 
     /* serial initialization */ 
@@ -157,7 +158,6 @@ ploghandler( void *arg) {
 		continue;	// Loop until first byte is STX
 	data[len++] = ch;
       };
-      
       time(&dataset_date);
       ctm = gmtime(&dataset_date);
       strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
@@ -180,7 +180,9 @@ ploghandler( void *arg) {
       styp  = dummy & 0xf0;
       styp  = styp >> 4;
       saddr = dummy & 0xf;
-      sensor_no = dummy + 1;
+      sensor_no = dummy;
+      syslog( LOG_DEBUG, "ploghandler: styp: %d : saddr: %d : sensor_no: %d \n", 
+        styp, saddr, sensor_no);
       strcpy(buf,"");
      
       sver = 0x12;
@@ -305,7 +307,8 @@ ploghandler( void *arg) {
 	/* multiplicator */
 	mul = data[4] & 0x3;
         // New info 2003/10: From English instructions... 
-        // Units are "lux", multiplier x1, x10, x100 or x1000. Resolution 3 digits. Accuracy +- 10%.
+        // Units are "lux", multiplier x1, x10, x100 or x1000. 
+        // Resolution 3 digits. Accuracy +- 10%.
 	imul = 1;
 	switch(mul)
 	{
@@ -344,19 +347,36 @@ ploghandler( void *arg) {
       /* sensor unknown ?! */
       else {
 	snprintf(buf, sizeof(buf), 
-          "%s | unknown sensor type ( possible version %x at address 0x0%x): Please report incident to: Volker.Jahns@thalreit.de",
-		clk, sver, saddr);
+	  "ploghandler: %s | unknown sensor type "
+          "( possible version %x at address 0x0%x): "
+	  "Please report incident to: Volker.Jahns@thalreit.de",
+	  clk, sver, saddr);
       }
       msg = mkmsg2("ploghandler: %lu : styp : %d: saddr: %d: ", 
         (long int)dataset_date, styp, saddr);
       strncat( buf, msg, strlen(msg));
       for ( i = 0; i < nval; i++) 
       {
-        msg = mkmsg2(": %d : %f", sensor_meas_no[i], meas_value[i]);
+        msg = mkmsg2(": sensor_meas_no: %d : meas_value: %f", 
+          sensor_meas_no[i], meas_value[i]);
         strncat( buf, msg, strlen(msg));
-        datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
+        datadb( dataset_date, sensor_meas_no[i], meas_value[i], 
+          pcwsrdb);
+        /* handling rrd */
+        if ( ( err = senspardb( sensor_meas_no[i], &spar, pcwsrdb)) != 0 ) {
+	  syslog(LOG_DEBUG,"ploghandler: senspardb returned error: %d\n", err);
+
+	}
+        if ( spar.sensor_no != sensor_no ) {
+	  syslog(LOG_WARNING, "ploghandler: sensor_no mismatch: sensor_no: %d : "
+                 "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
+          break;
+	}
+        syslog(LOG_DEBUG, "ploghandler: spar.sensor_no: %d: "
+          "spar.sensor_name: %s: spar.par_name: %s\n", 
+          spar.sensor_no, spar.sensor_name, spar.par_name);
       }
-      printf(" buf: %s\n", buf);
+      syslog(LOG_DEBUG, "ploghandler: buf: %s\n", buf);
     }
 
     /*cleanup and close database */

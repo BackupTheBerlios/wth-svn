@@ -153,7 +153,7 @@ if ( $options{w} ) {
   $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('7','Barometric Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
 
   #
   # table sensornames will not change (WS2000 can't do more)
@@ -383,9 +383,9 @@ elsif ( $options{p} ) {
   $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('7','Barometric Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('8','Brightness','klx') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('9','Radiation Power','arb.unit') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('9','RadiationPower','arb.unit') ");
 
   #
   # table sensornames will not change ( PCWSR can't do more)
