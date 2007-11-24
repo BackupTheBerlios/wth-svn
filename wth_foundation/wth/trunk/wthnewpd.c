@@ -8,7 +8,7 @@
   each thread handles the serial data read,
   right now data are echoed to standard out
 
-  Copyright (C) Jun 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
+  Copyright (C) 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
 
 */
 #include "wthnew.h"
@@ -30,10 +30,13 @@ main ( int argc, char **argv )
 
   /* PCWSR thread */
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
-    printf("Creating PCWSR thread:\n");
-    printf("\tpcwsrstation.config.device: %s\n", pcwsrstation.config.device);
-    ret = pthread_create( &ptid, NULL, ploghandler, NULL);
-    printf ("ret : %d\n", ret);
+    if ( ( ret = pthread_create( &ptid, NULL, ploghandler, NULL) == 0)) {
+	syslog (LOG_INFO, "creating PCWSR thread: success\n");
+    } else {
+	syslog (LOG_ALERT, "Error! Can't create PCWSR thread\n");
+    }
+    syslog( LOG_DEBUG, "pcwsrstation.config.device: %s\n", 
+      pcwsrstation.config.device);
   }
 
   /* WS2000 thread */
@@ -60,4 +63,3 @@ main ( int argc, char **argv )
   */
   exit(0);
 }
-

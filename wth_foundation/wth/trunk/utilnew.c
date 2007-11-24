@@ -37,7 +37,7 @@
 int initdata( ) {
   /* default parameters valid for all stations */
   wsconf.timeout     = 30;
-  wsconf.logfacility = LOG_LOCAL7;
+  wsconf.logfacility = LOG_LOCAL5;
   wsconf.verbose     = 1;
   wsconf.debug       = 1;
   wsconf.netflg      = 0;

@@ -347,19 +347,13 @@ ploghandler( void *arg) {
       /* sensor unknown ?! */
       else {
 	snprintf(buf, sizeof(buf), 
-	  "ploghandler: %s | unknown sensor type "
+	  "%s | unknown sensor type "
           "( possible version %x at address 0x0%x): "
 	  "Please report incident to: Volker.Jahns@thalreit.de",
 	  clk, sver, saddr);
       }
-      msg = mkmsg2("ploghandler: %lu : styp : %d: saddr: %d: ", 
-        (long int)dataset_date, styp, saddr);
-      strncat( buf, msg, strlen(msg));
       for ( i = 0; i < nval; i++) 
       {
-        msg = mkmsg2(": sensor_meas_no: %d : meas_value: %f", 
-          sensor_meas_no[i], meas_value[i]);
-        strncat( buf, msg, strlen(msg));
         datadb( dataset_date, sensor_meas_no[i], meas_value[i], 
           pcwsrdb);
         /* handling rrd */
@@ -372,11 +366,14 @@ ploghandler( void *arg) {
                  "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
           break;
 	}
-        syslog(LOG_DEBUG, "ploghandler: spar.sensor_no: %d: "
+        syslog(LOG_DEBUG, "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
           "spar.sensor_name: %s: spar.par_name: %s\n", 
-          spar.sensor_no, spar.sensor_name, spar.par_name);
+	  sensor_meas_no[i], spar.sensor_no, spar.sensor_name, spar.par_name);
+        syslog(LOG_INFO, "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
+	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, spar.par_name,
+	       meas_value[i]);
       }
-      syslog(LOG_DEBUG, "ploghandler: buf: %s\n", buf);
+      //syslog(LOG_DEBUG, "%s\n", buf);
     }
 
     /*cleanup and close database */
