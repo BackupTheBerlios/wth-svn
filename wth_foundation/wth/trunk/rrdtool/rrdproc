@@ -42,10 +42,23 @@ my $name;
 #my %extraopts;
 
 #my %createdefs;
-#my %graphdefs;
+my %graphdefs;
 
 #my @Sensors;
 
+#
+#
+#
+sub
+usage {
+    print "Usage: rrdproc --<option>, where <option> is one of:\n";
+    print "\tgraph:\tcreate and display some graphs\n";
+    print "\tinfo:\tprint information of rrd data file\n";
+    print "\tcreate:\tcreate rrd file\n";
+    print "\tfill:\tenter data into  rrd file\n";
+    print "\thelp:\tprint this help\n";
+    exit 1;
+}
 
 #
 # option --fetch
@@ -160,11 +173,11 @@ graphrrd {
         }
     }
     if ( $rrdok) {
-        print "graph (graphrrd)\t: sensor: $rrd\n" if ( $DEBUG == 1);
+        print "graph (graphrrd)\t: sensor: $rrd\n" if ( $DEBUG);
         $imagefile = $extraopts{$rrd}->{imgfile};
         @graphstr = ();
         push( @graphstr, $imagefile);
-        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG == 1);
+        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG);
 
         foreach $gopt ( keys %{ $graphopts{$rrd}} ) {
             push ( @graphstr, $gopt);
@@ -173,7 +186,7 @@ graphrrd {
 
         push ( @graphstr, @{ $graphdefs{$rrd}});
 
-        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG == 1);
+        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG);
         RRDs::graph @graphstr;
 
         if ($ERROR = RRDs::error) {
@@ -205,10 +218,13 @@ graphrrd {
     }
 }
 
-
 #
 # main
 #
+if ( $#ARGV == -1 ) {
+  usage();
+}
+
 GetOptions( "create" => \$create,
             "info"   => \$info,
             "fetch"  => \$fetch,
@@ -217,12 +233,6 @@ GetOptions( "create" => \$create,
             "help"   => \$help,
           );
 
-print $version;
-
-if ($ARGV[0]) {
-    print "Usage: \n";
-    exit 5;
-}
 #
 # read configuration file
 #
@@ -240,20 +250,31 @@ if ( $ENV{DEBUG} ) {
         $DEBUG =1;
     }
 }
+
 #
 # Go, create these rrd's
 #
 if ( $create) {
-    foreach $sensor ( @Sensors ) {
-
+NEXTSENSOR:  foreach $sensor ( @Sensors ) {
+      print "sensor: $sensor\n";
         @creatstr = ();
-        foreach $copt ( keys %{ $createopts{$sensor}} ) {
-            push ( @creatstr, $copt);
-            push ( @creatstr, $createopts{$sensor}{$copt});
+        my $numkeys = keys % { $createopts{$sensor}} ;
+        if ( $numkeys == 0 ) {
+          print "Create options missing for sensor: $sensor\n";
+          print "Please check rrdproc.conf!\n";
+          next NEXTSENSOR;
         }
-        push ( @creatstr, @{ $createdefs{$sensor}}) 
-            if defined $createdefs{$sensor};
-
+        foreach $copt ( keys %{ $createopts{$sensor}} ) {
+          push ( @creatstr, $copt);
+          push ( @creatstr, $createopts{$sensor}{$copt});
+        }
+        if ( !defined $createdefs{$sensor}) {
+          print "Create definitions missing for sensor: $sensor\n";
+          print "Please check rrdproc.conf!\n";
+          next NEXTSENSOR;
+        } else {
+          push ( @creatstr, @{ $createdefs{$sensor}}) 
+        }
         print "Creating rrd $extraopts{$sensor}->{rrdfile}\n";
         RRDs::create  $extraopts{$sensor}->{rrdfile}, @creatstr;
         $ERROR = RRDs::error;
@@ -428,10 +449,5 @@ if ( $graph) {
 # 
 #
 if ( $help) {
-    print "Usage: rrdproc --<option>, where <option> is one of:\n";
-    print "\tgraph:\tcreate and display some graphs\n";
-    print "\tinfo:\tprint information of rrd data file\n";
-    print "\tcreate:\tcreate rrd file\n";
-    print "\tfill:\tenter data into  rrd file\n";
-    print "\thelp:\tprint this help\n";
+    usage();
 }
