@@ -41,7 +41,6 @@ initpcwsr (struct termios *newtio, struct termios *oldtio, char *sdevice ) {
   if ( ( pfd = open( sdevice, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK)) 
            == -1 ) {
     perror("initpcwsr: Unable to open serial device");
-    return -1;
   } 
   
   /* Make the file descriptor asynchronous (the manual page says only 
@@ -123,12 +122,17 @@ ploghandler( void *arg) {
     unsigned char data[MAXMSGLEN];
     char clk[MAXMSGLEN];
     char *msg;
+    char *rrdfile;
     static char buf[MAXMSGLEN];
     time_t dataset_date;
     struct tm *ctm;
     senspar_t spar;
 
     syslog( LOG_DEBUG, "ploghandler: start of execution\n");
+
+    if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
+      return( ( void *) &failure);
+
     /* setting timezone */
     tzset(); 
     /* serial initialization */ 
@@ -357,6 +361,7 @@ ploghandler( void *arg) {
         datadb( dataset_date, sensor_meas_no[i], meas_value[i], 
           pcwsrdb);
         /* handling rrd */
+        /* fetch names from database */
         if ( ( err = senspardb( sensor_meas_no[i], &spar, pcwsrdb)) != 0 ) {
 	  syslog(LOG_DEBUG,"ploghandler: senspardb returned error: %d\n", err);
 
@@ -372,8 +377,16 @@ ploghandler( void *arg) {
         syslog(LOG_INFO, "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
 	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, spar.par_name,
 	       meas_value[i]);
+        snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
+          spar.sensor_name, spar.sensor_no);
+        printf("ploghandler: rrdfile: %s\n", rrdfile);
+        rrd_update_r( rrdfile, template, 1, (const char **)(ustrg + 2));
+        if ( rrd_test_error()) {
+           syslog( LOG_ALERT, "ploghandler: RRD Error: %s\n", rrd_get_error());
+           return(-1);
+        }
+
       }
-      //syslog(LOG_DEBUG, "%s\n", buf);
     }
 
     /*cleanup and close database */

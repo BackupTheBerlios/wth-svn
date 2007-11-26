@@ -73,12 +73,12 @@ getlast {
     my @retlist;
 
     my $rrd = shift(@_);
-    print "fetch (getlast)\t: rrd: $rrd\n" if ( $DEBUG == 1);
+    print "fetch (getlast)\t: rrd: $rrd\n" if ( $DEBUG);
 
     foreach $sensor ( keys %fetchopts ) {
         if ( $rrd eq $sensor ) {
             print "fetch (getlast)\t: sensor valid: $sensor\n" 
-                if ( $DEBUG == 1);
+                if ( $DEBUG);
             $rrdok = 1;
         }
     }
@@ -93,7 +93,7 @@ getlast {
 	    }
        }
 
-       print "fetch (getlast)\t: fetchstr: @fetchstr\n" if ( $DEBUG == 1);
+       print "fetch (getlast)\t: fetchstr: @fetchstr\n" if ( $DEBUG);
 
        my ($start,$step,$names,$array) =
            RRDs::fetch @fetchstr;
@@ -103,7 +103,7 @@ getlast {
 
        foreach $Val (@$names) {
            $dsname = $Val if ($Val ne "");
-	   print "fetch (getlast)\t: dsname : $dsname\n" if ( $DEBUG == 1);
+	   print "fetch (getlast)\t: dsname : $dsname\n" if ( $DEBUG);
        }
 
        #
@@ -134,7 +134,7 @@ getlast {
        push(@retlist, $dsname);
     } else {
         printf "fetch (getlast)\t: Can't find sensor : \"$rrd\"!\n" 
-            if ( $DEBUG == 1);
+            if ( $DEBUG);
         $Val = "NA";
         push(@retlist, $Val);
     }
@@ -238,9 +238,11 @@ GetOptions( "create" => \$create,
 #
 $cfgfile = "rrdproc.conf";
 unless ($ret = do $cfgfile) {
-    warn "couldn't parse $cfgfile: $@"         if $@;
-    warn "couldn't do $cfgfile: $!"            unless defined $ret;
-    warn "couldn't run $cfgfile"               unless $ret;
+    warn "Couldn't parse $cfgfile: $@"         if $@;
+    warn "Couldn't do $cfgfile: $!"            unless defined $ret;
+    warn "Couldn't run $cfgfile"               unless $ret;
+    print "Please check config file \"$cfgfile\"\n";
+    exit -1;
 }
 
 print "Sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
@@ -256,7 +258,6 @@ if ( $ENV{DEBUG} ) {
 #
 if ( $create) {
 NEXTSENSOR:  foreach $sensor ( @Sensors ) {
-      print "sensor: $sensor\n";
         @creatstr = ();
         my $numkeys = keys % { $createopts{$sensor}} ;
         if ( $numkeys == 0 ) {
@@ -404,7 +405,7 @@ if ( $fill) {
 if ( $fetch) {
     foreach $sensor ( @Sensors) {
         print "fetch (main)\t: Fetching rrd last data: $sensor\n" 
-            if ( $DEBUG == 1);
+            if ( $DEBUG);
         ($time, $val, $name) = getlast($sensor);
         print "\t$sensor : $val at " . scalar localtime($time) . "\n";
     }
