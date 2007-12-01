@@ -56,6 +56,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <pthread.h>
+#include <rrd.h>
 
 #define VERSION     "0.5.0"
 #define	MAXLINE     4096	

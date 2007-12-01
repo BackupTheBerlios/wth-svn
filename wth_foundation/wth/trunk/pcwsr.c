@@ -122,7 +122,11 @@ ploghandler( void *arg) {
     unsigned char data[MAXMSGLEN];
     char clk[MAXMSGLEN];
     char *msg;
+    char tstrg[MAXBUFF];
+    char pstrg[MAXBUFF];
     char *rrdfile;
+    char *template;
+    char **ustrg;
     static char buf[MAXMSGLEN];
     time_t dataset_date;
     struct tm *ctm;
@@ -132,6 +136,15 @@ ploghandler( void *arg) {
 
     if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
       return( ( void *) &failure);
+
+    if (( msg = malloc(MAXMSGLEN)) == NULL)
+      return( ( void *) &failure);
+
+    if (( template = malloc(MAXMSGLEN)) == NULL)
+      return( ( void *) &failure);
+
+    ustrg = (char **)malloc(sizeof(char *));
+    ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
 
     /* setting timezone */
     tzset(); 
@@ -356,6 +369,9 @@ ploghandler( void *arg) {
 	  "Please report incident to: Volker.Jahns@thalreit.de",
 	  clk, sver, saddr);
       }
+
+      /* database and rrd handling */
+      snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
       for ( i = 0; i < nval; i++) 
       {
         datadb( dataset_date, sensor_meas_no[i], meas_value[i], 
@@ -367,25 +383,39 @@ ploghandler( void *arg) {
 
 	}
         if ( spar.sensor_no != sensor_no ) {
-	  syslog(LOG_WARNING, "ploghandler: sensor_no mismatch: sensor_no: %d : "
-                 "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
+	  syslog(LOG_WARNING, 
+             "ploghandler: sensor_no mismatch: sensor_no: %d : "
+             "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
           break;
 	}
-        syslog(LOG_DEBUG, "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
+        syslog(LOG_DEBUG, 
+          "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
           "spar.sensor_name: %s: spar.par_name: %s\n", 
 	  sensor_meas_no[i], spar.sensor_no, spar.sensor_name, spar.par_name);
         syslog(LOG_INFO, "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
-	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, spar.par_name,
-	       meas_value[i]);
-        snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
-          spar.sensor_name, spar.sensor_no);
-        printf("ploghandler: rrdfile: %s\n", rrdfile);
-        rrd_update_r( rrdfile, template, 1, (const char **)(ustrg + 2));
-        if ( rrd_test_error()) {
-           syslog( LOG_ALERT, "ploghandler: RRD Error: %s\n", rrd_get_error());
-           return(-1);
+	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
+          spar.par_name, meas_value[i]);
+        snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
+        strncat(tstrg, ":", 1);
+        strncat(tstrg, template, strlen(template));
+        /*
+        snprintf(template,MAXMSGLEN,"%s", spar.par_name);
+        strncat(pstrg, template, strlen(template));
+        if ( i < ( nval -1)) {
+          strncat(pstrg, ":", 1);
         }
-
+        */
+      }
+      snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
+        spar.sensor_name, spar.sensor_no);
+      printf("ploghandler: rrdfile: %s: update string: %s\n", 
+        rrdfile, tstrg);
+      snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
+      rrd_clear_error();
+      rrd_get_context();
+      rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
+      if ( rrd_test_error()) {
+         syslog( LOG_ALERT, "ploghandler: RRD Error: %s\n", rrd_get_error());
       }
     }
 
