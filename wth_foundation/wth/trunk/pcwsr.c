@@ -122,8 +122,7 @@ ploghandler( void *arg) {
     unsigned char data[MAXMSGLEN];
     char clk[MAXMSGLEN];
     char *msg;
-    char tstrg[MAXBUFF];
-    char pstrg[MAXBUFF];
+    char tstrg[MAXMSGLEN];
     char *rrdfile;
     char *template;
     char **ustrg;
@@ -398,17 +397,10 @@ ploghandler( void *arg) {
         snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
         strncat(tstrg, ":", 1);
         strncat(tstrg, template, strlen(template));
-        /*
-        snprintf(template,MAXMSGLEN,"%s", spar.par_name);
-        strncat(pstrg, template, strlen(template));
-        if ( i < ( nval -1)) {
-          strncat(pstrg, ":", 1);
-        }
-        */
       }
       snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
         spar.sensor_name, spar.sensor_no);
-      printf("ploghandler: rrdfile: %s: update string: %s\n", 
+      syslog(LOG_DEBUG, "ploghandler: rrdfile: %s: update string: %s\n", 
         rrdfile, tstrg);
       snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
       rrd_clear_error();
