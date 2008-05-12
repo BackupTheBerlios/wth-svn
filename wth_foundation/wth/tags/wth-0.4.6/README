@@ -1,0 +1,219 @@
+wth is a free software solution to read weatherstation data
+of the Lacrosse Technology WS2010 or Conrad resp. ELV WS2000 PC 
+interface, which stores data of 16 temperature, humidity and 
+pressure sensors, 1 wind sensor and 1 rainfall sensor. 
+
+A DCF77 receiver is built into the interface. The interface connects 
+thru the serial port to the computing equipment. The communication 
+protocol has been published by the manufacturer and is fully 
+implemented by the wth software.
+
+The code is seperated in three parts:
+
+(1) a library which offers a high level functions to connect to the 
+    PC interface or over the network.
+
+(2) the TCP server code which allows for a network connection
+    for remote data retrieval. This includes telnet access.
+
+(3) the wthc client code either reads the PC interface or connects
+    to the wthd server to retrieve data.
+
+
+Pressure is logged as received, i.e. as an absolute pressure value.
+
+In order to change it to sealevel based value the following RRD CDEF 
+will do
+Thalreit HEIGHT = 456m
+Munich   HEIGHT = 530m
+456,8,/,press,+
+
+Pressure plots range from 970 - 1040 (Seewetter), 945 - 1055 (Barograph
+in Malberg, Meteorologie und Klimatologie)
+
+As an asset, xmlrpc support has been added. The xmlrpc server 
+wthxmld uses Eric Kidd's xmlrpc-c. The wthxc client code allows
+to retrieve the weatherstation data. For demonstration purposes
+a simple perl client - wth-xmlrpc - has been added as well.
+RPC methods have been implemented to represent the protocol of
+the WS2000 weatherstations. The return values are base64 encoded 
+by the wthxmld server.
+
+The wthxmld server needs a configuration file which is provided
+in subdirectoy abyss/conf as file abyss.conf .
+
+The wth-xmlrpc perl client uses  the perl module Frontier::Client
+which must be installed for proper function.
+
+Build a PHP web-based weather page using flash weather gauges
+and graphs.  All of the wthc files are in the root directory of the
+tar-ball, and directories are added that contain Flash,
+PHP, postgres, and crontab files...
+
+Flash
+php
+crontab
+postgres
+
+wthc.c and libwth.c code have been modified to enable the application 
+to update a
+postgres database with the data collected from a WS2010 data logger.
+The data is used to update a PHP based weather web-site.  Flash based
+weather dials and graphs are dynamically updated with the data from
+the database when a user loads/reloads weather.php.  See the file
+"JJYs_wthc_Modification_Notes-Sep_10_2005.txt" for details.
+
+The weather station has been running quite nicely now for a number of
+weeks, so I figured I would share my work with you.  Please feel free
+to share it with others by adding it to your site
+http://wth.berlios.de.  Perhaps others can use it.
+
+Jim Yuzwalk's wthc Modification Notes
+-------------------------------------
+   
+
+ 1) I modified the wth.h file in the following by changing the 
+    time variable in the dataset structure to a long.  This was
+    done to store the "age" data in the time location.
+
+    /* data structures */
+    struct dataset {
+    //JJY modified this
+    //time_t time;
+    long time;    
+    int sign;
+    float value;
+    };
+
+ 
+ 2) In wthc.c I added the ability to process a new command number,
+    number 7.  It will poll the WS-2010 data logger as with command
+    12 but it will store the results in a postgres database.
+
+    I also added a series of commands to automatically catch and
+    process data reception errors.  This was done in libwth.c
+    as well.  In all cases -- at least to the best of my memory --
+    I provided comments as to where I modified the code.
+
+
+ 3) libwthc.c contains the majority of work I did in making wthc
+    robust.  I includes a great deal of error checking, and wthc
+    now runs smoothly in the background on my FreeBSD server, silently
+    filling in database rows.
+
+    ***It appears that a key to success was to only request data from
+       the data logger every 180 seconds or longer.  Too many data
+       requests per period of time leads to data logger faults.
+
+
+ 4) To install postgres go to the postgres site and read the details.
+    Once installed, create a database called "weather."  I included a
+    skeleton database table, weather_db.txt, that can  be used to
+    create the table weather in the weather database.  Do this by
+    accessing the weather database...
+
+      psql weather
+
+    And then from within the weather database do a...
+
+      \i /path_to_weather_db.txt/weather_db.txt
+
+   
+    After that, you'll be ready to start using wthc to fill in the 
+    database.  But, you'll have to modify the libwth.c file.  Do this
+    by changing the following line within libwth.c...
+
+       conninfo = "dbname=weather user=jjy";
+
+    the user name should be set to whatever your user name is.
+
+
+    By the way, be sure to start postgres with the -i option...
+
+      /usr/local/pgsql/bin/pg_ctl start -s -o "-i" -w -l /var/log/pgsql 
+
+   
+    If you don't do this, the php code will not be able to access the
+    database.
+ 
+
+ 5) wthc can now be started, when the FreeBSD server boots
+    up, by placing the weather.sh script in the /usr/local/etc/rc.d
+    directory.  In your installation you probably need to modify
+    the script since I placed wthc in my home directory's bin directory. 
+
+
+ 6) Now, make a directory in your web server's document directory to 
+    hold the files included in the php directory.  I used the
+    following directory name...
+
+      /usr/local/apache2/htdocs/weather
+
+
+    Copy all of the files in the included php directory to this newly
+    created directory.
+
+    For these php files to work you'll need php installed on your http
+    server with ming and/or gd support enabled.  If you do not want to
+    use ming modify the weather.php file by commenting out the
+    three <OBJECT> blocks at the very end of the weather.php file.
+    And uncomment out the three references to <img src="file_name.gif.php">.
+    That is, uncomment these...
+
+    <!--
+    <img src="tmp_hum_bar.gif.php">
+    // -->
+
+    <!--
+    <img src="tmp_hum.gif.php">
+    // -->
+
+    <!--
+    <img src="wind.gif.php">
+    // -->
+
+    These three bits of code generate the weather data graphs using gd,
+    while the three <OBJECT> blocks generate the same graphs using ming.
+    Ming, at least in my opinion, is neater since it generates vector
+    images, i.e., swf or flash files!
+
+
+ 7) You may need to add DB to your apache2 web server's support
+    library to allow php to access postgres.  Do this by un-zipping
+    DB-1.7.6.tgz, located in the postgres directory of this tar-ball,
+    and copying the resulting DB directory and DB.php file to
+    /usr/local/apache2/lib/php/ or wherever your apache's lib/php
+    directory is located.
+
+ 8) After all this is done you should get something that looks like 
+    weather_example.html in the example directory.  The gauges, of
+    course, will display current data on an active web-site.
+
+
+
+Troubleshooting
+---------------
+
+FreeBSD
+-------
+Upgrading to FreeBSD 4.5 caused wthc to exit with timeout:
+
+wthc -c0 -s -v
+
+The following syslog messages occured:
+
+Mar 19 21:50:58 pegasus wthc[40810]: experimental test release 0.4.2 - December 2001 
+Mar 19 21:50:58 pegasus wthc[40810]: wcmd: called for command request: 0 
+Mar 19 21:50:58 pegasus wthc[40810]: initserial: error fcntl: Inappropriate ioctl for device
+
+Problem was that /dev hasn't been upgraded. Remake of device files
+in /dev
+
+sh MAKEDEV all
+
+solved the issue.
+
+wthc had been compiled with GNU build chain.
+./generate_build
+./configure 
+gmake wthc

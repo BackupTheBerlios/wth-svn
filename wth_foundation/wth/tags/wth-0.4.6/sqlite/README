@@ -1,0 +1,45 @@
+SQLITE Database description for WS2000 and Lacrosse Weatherstation
+
+create 
+table sensordata
+(
+datasetno INT PRIMARY KEY,
+datasetdate DATE,
+datasettime TIME,
+parameterno INT,
+parametervalue FLOAT
+)
+
+
+create table
+sensorstatus
+(
+statusetno INT PRIMARY KEY,
+statusetdate DATE,
+statussettime TIME,
+sensorno INT,
+sensorstatus INT
+)
+
+create table
+sensornames
+(
+sensorno INT PRIMARY KEY,
+sensorname VARCHAR(255)
+)
+
+create table
+parameternames
+(
+parameterno INT PRIMARY KEY,
+parametername VARCHAR(255)
+)
+
+
+create table
+sensorparameters
+(
+sensorparameterno INT PRIMARY KEY,
+sensorno INT,
+parameterno INT
+)
