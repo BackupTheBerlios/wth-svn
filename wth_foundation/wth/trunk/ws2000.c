@@ -4,7 +4,7 @@
 
    $Id$
 
-   Copyright (C) 2001-2004,2007 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2001-2004,2007,2008 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -856,11 +856,7 @@ time_t dcftime(unsigned char *data, int ndat) {
     syslog(LOG_DEBUG, "dcftime : year : %d %d\n", tmp2, tmp1);
 
     t.tm_year = tmp1 + 10*tmp2 + 100;
-
-    /* surprise, surprise */
     t.tm_isdst = -1;
-	
-    /* time conversion */
     tzset();
 
     err = time(&ltim);
@@ -977,74 +973,93 @@ datex(unsigned char *data, int ndat) {
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
     if ( ws2000station.sensor[i].status != 0 ) {
-    j = (i-1) % 2;
-    /* even i */
-    if ( ((i-1) % 2) == 0 ) {
-      mbit=3; nbit=7;
-      j = (5*(i-1) - j)/2 + 4;
+      j = (i-1) % 2;
+      /* even i */
+      if ( ((i-1) % 2) == 0 ) {
+	mbit=3; nbit=7;
+	j = (5*(i-1) - j)/2 + 4;
 
-      /* temperature */ 
-      meas_value =  
-        10 * getbits(data[j+1], mbit-1, 3) + 
-        getbits(data[j], nbit, 4) +
-        0.1* getbits(data[j], mbit, 4);
-      if ( getbits(data[j+1], mbit, 1) == 1 ) {  
-        meas_value = -meas_value; 
-      }
-      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
-      printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
-        i, (long int)dataset_date, meas_value);
-      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
+	/* temperature */ 
+	meas_value =  
+	  10 * getbits(data[j+1], mbit-1, 3) + 
+	  getbits(data[j], nbit, 4) +
+	  0.1* getbits(data[j], mbit, 4);
+	if ( getbits(data[j+1], mbit, 1) == 1 ) {  
+	  meas_value = -meas_value; 
+	}
+	datadb( dataset_date, i, meas_value, ws2000db);
+	printf("ws2000station.sensor[%d].status: %d\n",
+	       i, ws2000station.sensor[i].status);
+	printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
+	       i, (long int)dataset_date, meas_value);
+	printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 
-      /* humidity 
-	 the value is calculated from an 8bit Byte which is formed
-	 by two Nibbles    
-      */
-      Lo = getbits(data[j+1], nbit, 4);
-      Hi = getbits(data[j+2], mbit-1, 3) << 4;
-      meas_value = Hi + Lo;
-      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
-      printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
-        i, (long int)dataset_date, meas_value);
-      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
+	/* humidity 
+	   the value is calculated from an 8bit Byte which is formed
+	   by two Nibbles    
+	*/
+	Lo = getbits(data[j+1], nbit, 4);
+	Hi = getbits(data[j+2], mbit-1, 3) << 4;
+	meas_value = Hi + Lo;
+	datadb( dataset_date, i, meas_value, ws2000db);
+ 	printf("ws2000station.sensor[%d].status: %d\n", 
+	       i, ws2000station.sensor[i].status);
+	printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
+	       i, (long int)dataset_date, meas_value);
+	printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 
-
-      /* Bit 3 of Hi Nibble is new flag */
-      //rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
-      //getbits(data[j+2], mbit, 1);
-    } /* odd i */ else if ( ((i-1) % 2) == 1) {
-      mbit=7; nbit=3;
-      j = (5*(i-1) - j)/2 + 4;
-
-      /* temperature */
-      meas_value =
-        10  * getbits(data[j+1], mbit-1, 3) +
-        getbits(data[j+1], nbit, 4) +
-        0.1 * getbits(data[j], mbit, 4);
-      if (  getbits(data[j+1], mbit, 1) == 1) {
-        meas_value = - meas_value;
-      }
-
-      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
-      printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
-        i, (long int)dataset_date, meas_value);
-      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
-
-      /* humidity 
-	 the value is calculated from an 8bit Byte which is formed
-	 by two Nibbles    
-      */
-      Lo = getbits(data[j+2], nbit, 4);
-      Hi = getbits(data[j+2], mbit-1, 3) << 4;
-      meas_value = Hi + Lo;
-      printf("ws2000station.sensor[%d].status: %d\n", i, ws2000station.sensor[i].status);
-      printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
-        i, (long int)dataset_date, meas_value);
-      printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
 	/* Bit 3 of Hi Nibble is new flag */
+        meas_value =
+	  getbits(data[j+2], mbit, 1);
+ 	printf("ws2000station.sensor[%d].status: %d\n", 
+	       i, ws2000station.sensor[i].status);
+	printf("Humidity: i: %d dataset_date: %lu new flag: %f\n", 
+	       i, (long int)dataset_date, meas_value);
+	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
+	//getbits(data[j+2], mbit, 1);
+      } /* odd i */ else if ( ((i-1) % 2) == 1) {
+	mbit=7; nbit=3;
+	j = (5*(i-1) - j)/2 + 4;
+
+	/* temperature */
+	meas_value =
+	  10  * getbits(data[j+1], mbit-1, 3) +
+	  getbits(data[j+1], nbit, 4) +
+	  0.1 * getbits(data[j], mbit, 4);
+	if (  getbits(data[j+1], mbit, 1) == 1) {
+	  meas_value = - meas_value;
+	}
+
+	datadb( dataset_date, i, meas_value, ws2000db);
+	printf("ws2000station.sensor[%d].status: %d\n", 
+	       i, ws2000station.sensor[i].status);
+	printf("Temperature: i: %d dataset_date: %lu meas_value: %f\n", 
+	       i, (long int)dataset_date, meas_value);
+	printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
+
+	/* humidity 
+	   the value is calculated from an 8bit Byte which is formed
+	   by two Nibbles    
+	*/
+	Lo = getbits(data[j+2], nbit, 4);
+	Hi = getbits(data[j+2], mbit-1, 3) << 4;
+	meas_value = Hi + Lo;
+	datadb( dataset_date, i, meas_value, ws2000db);
+	printf("ws2000station.sensor[%d].status: %d\n",
+	       i, ws2000station.sensor[i].status);
+	printf("Humidity: i: %d dataset_date: %lu meas_value: %f\n", 
+	       i, (long int)dataset_date, meas_value);
+	printf("j+1: %d mbit-1: %d j: %d nbit: %d\n", j+1, mbit-1, j, nbit);
+	/* Bit 3 of Hi Nibble is new flag */
+	meas_value =
+	  getbits(data[j+2], mbit, 1);
+ 	printf("ws2000station.sensor[%d].status: %d\n", 
+	       i, ws2000station.sensor[i].status);
+	printf("Humidity: i: %d dataset_date: %lu new flag: %f\n", 
+	       i, (long int)dataset_date, meas_value);
 	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign = 
-      //getbits(data[j+2], mbit, 1);
-    }
+	//getbits(data[j+2], mbit, 1);
+      }
     } else {
       printf("Sensor  #%d: Temperature/Humiditysensor not found\n", i);
     }
@@ -1059,7 +1074,10 @@ datex(unsigned char *data, int ndat) {
     printf("Rainsensor:\t\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value);
     // rain new flag
-    //rw->sens[16].mess[rw->wstat.ndats].sign      = getbits(data[25], 7, 1);
+    meas_value =  getbits(data[25], 7, 1);
+    printf("Rainsensor:\t\tdataset_date: %lu meas_value (new data): %f\n", 
+      (long int)dataset_date, meas_value);
+
   } else {
     printf("Sensor  #9: Rainsensor not found\n");
   }
@@ -1103,26 +1121,26 @@ datex(unsigned char *data, int ndat) {
     100 *  getbits(data[30], 7, 4) +
     10  *  getbits(data[30], 3, 4) +
     getbits(data[29], 7, 4) + 200;
+  datadb( dataset_date, 21, meas_value, ws2000db);
   printf("Indoorsensor(Pressure):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  datadb( dataset_date, 21, meas_value, ws2000db);
 
   /* indoor temperature */
   meas_value = 
     10  * getbits(data[32], 3, 4) + 
     getbits(data[31], 7, 4) +
     0.1 * getbits(data[31], 7, 4);
+  datadb( dataset_date, 22, meas_value, ws2000db);
   printf("Indoorsensor(Temperature):\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  datadb( dataset_date, 22, meas_value, ws2000db);
 
   /* indoor humidity */
   Lo = getbits(data[32], 7, 4);
   Hi = getbits(data[33], 2, 3) << 4;
   meas_value = Hi + Lo;
+  datadb( dataset_date, 23, meas_value, ws2000db);
   printf("Indoorsensor(Humidity):\t\tdataset_date: %lu meas_value: %f\n", 
     (long int)dataset_date, meas_value);
-  datadb( dataset_date, 23, meas_value, ws2000db);
 
   } else {
     printf("Sensor #11: Indoorsensor not found\n");
@@ -1133,7 +1151,6 @@ datex(unsigned char *data, int ndat) {
 	
   return(0);
 };
-
 
 
 

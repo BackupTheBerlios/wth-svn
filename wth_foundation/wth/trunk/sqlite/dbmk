@@ -1,6 +1,11 @@
 #!/usr/bin/perl
 
 #
+# dbmk
+# create SQLITE database for ws2000 and pcwsr weatherstation
+#
+# $Id$
+#
 # SQLITE Database description for 
 # - WS2000 and Lacrosse Weatherstation
 # - PCWSR weatherstation receiver
@@ -18,6 +23,9 @@
 #     - sensors which
 #         - measure parameter values
 #
+# Copyright (C) 2008 Volker Jahns, volker@thalreit.de
+#
+
 use strict;
 use DBI;
 use Getopt::Std;
