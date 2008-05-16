@@ -1177,38 +1177,38 @@ datex(unsigned char *data, int ndat) {
         /* handling rrd */
         /* fetch names from database */
         if ( ( err = senspardb( sensor_meas_no[i], &spar, ws2000db)) != 0 ) {
-	  syslog(LOG_DEBUG,"ploghandler: senspardb returned error: %d\n", err);
+	  syslog(LOG_DEBUG,"datex: senspardb returned error: %d\n", err);
 
 	}
         if ( spar.sensor_no != sensor_no ) {
 	  syslog(LOG_WARNING, 
-		 "ploghandler: sensor_no mismatch: sensor_no: %d : "
+		 "datex: sensor_no mismatch: sensor_no: %d : "
 		 "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
           break;
 	}
         syslog(LOG_DEBUG, 
-	       "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
+	       "datex: sensor_meas_no: %d : spar.sensor_no: %d: "
 	       "spar.sensor_name: %s: spar.par_name: %s\n", 
 	       sensor_meas_no[i], spar.sensor_no, spar.sensor_name, 
 	       spar.par_name);
         syslog(LOG_INFO, 
-	       "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
+	       "datex: %lu : sensor: %s%d : parameter: %s: %f\n",
 	       (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
 	       spar.par_name, meas_value[i]);
         snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
         strncat(tstrg, ":", 1);
         strncat(tstrg, template, strlen(template));
       }
-    snprintf( rrdfile, sizeof(rrdfile), "%s%d.rrd", 
+    snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
 	      spar.sensor_name, spar.sensor_no);
-    syslog(LOG_DEBUG, "ploghandler: rrdfile: %s: update string: %s\n", 
+    syslog(LOG_DEBUG, "datex: rrdfile: %s: update string: %s\n", 
 	   rrdfile, tstrg);
     snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
     rrd_clear_error();
     rrd_get_context();
     rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
     if ( rrd_test_error()) {
-      syslog( LOG_ALERT, "ploghandler: RRD Error: %s\n", rrd_get_error());
+      syslog( LOG_ALERT, "datex: RRD Error: %s\n", rrd_get_error());
     }
     
   } else {
