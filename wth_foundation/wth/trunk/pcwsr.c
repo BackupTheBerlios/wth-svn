@@ -5,7 +5,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2001-2004,2007 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2001-2004,2007,2008 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -178,7 +178,7 @@ ploghandler( void *arg) {
       ctm = gmtime(&dataset_date);
       strftime(clk, sizeof(clk), "%a %b %d %Y %X", ctm); 
 
-      /* When we get here, we should have 8 bytes 
+     /* When we get here, we should have 8 bytes 
          starting with STX and ending with ETX. */
       if (data[0]!=STX)
       {
@@ -373,8 +373,7 @@ ploghandler( void *arg) {
       snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
       for ( i = 0; i < nval; i++) 
       {
-        datadb( dataset_date, sensor_meas_no[i], meas_value[i], 
-          pcwsrdb);
+        datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
         /* handling rrd */
         /* fetch names from database */
         if ( ( err = senspardb( sensor_meas_no[i], &spar, pcwsrdb)) != 0 ) {
@@ -391,7 +390,8 @@ ploghandler( void *arg) {
           "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
           "spar.sensor_name: %s: spar.par_name: %s\n", 
 	  sensor_meas_no[i], spar.sensor_no, spar.sensor_name, spar.par_name);
-        syslog(LOG_INFO, "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
+        syslog(LOG_INFO, 
+          "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
 	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
           spar.par_name, meas_value[i]);
         snprintf(template,MAXMSGLEN,"%f", meas_value[i]);

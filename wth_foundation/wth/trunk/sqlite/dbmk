@@ -83,6 +83,21 @@ if ( $options{w} ) {
     )
   ");
 
+  #
+  # sensor status
+  #
+  $dbh->do("
+    CREATE TABLE
+    sensornewflag
+    (
+      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      statusset_date DATE NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      new_flag INTEGER NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+    )
+  ");
+
   $dbh->do("
     CREATE TABLE
     ws2000status
@@ -189,21 +204,28 @@ if ( $options{w} ) {
   # table sensorparameters 
   #
   # Sensor1
-  $dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') ");
-  $dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') "); # temperature
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') "); # humidity
+
   # Sensor2
-  $dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') ");
-  $dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') "); # temperature
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') "); # humidity
+
   $dbh->do(" INSERT INTO sensorparameters VALUES ('5','3','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('6','3','2') ");
+
   $dbh->do(" INSERT INTO sensorparameters VALUES ('7','4','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('8','4','2') ");
+
   $dbh->do(" INSERT INTO sensorparameters VALUES ('9','5','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('10','5','2') ");
+
   $dbh->do(" INSERT INTO sensorparameters VALUES ('11','6','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('12','6','2') ");
+
   $dbh->do(" INSERT INTO sensorparameters VALUES ('13','7','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('14','7','2') ");
+
   # Sensor8
   $dbh->do(" INSERT INTO sensorparameters VALUES ('15','8','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('16','8','2') ");
