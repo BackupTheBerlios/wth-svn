@@ -1171,6 +1171,7 @@ datex(unsigned char *data, int ndat) {
     sensor_meas_no[2] = 23;
 
     /* database and rrd handling */
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, ws2000db);
     for ( i = 0; i < nval; i++) 
       {
 	datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);

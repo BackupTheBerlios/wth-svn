@@ -251,4 +251,6 @@ int statdb( long statusset_date, int sensor_no, int sensor_status,
             sqlite3 *wthdb);
 int newdb( long statusset_date, int sensor_no, int new_flag, 
             sqlite3 *wthdb);
+int writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
+         float meas_value[], sqlite3 *wthdb );
 int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
