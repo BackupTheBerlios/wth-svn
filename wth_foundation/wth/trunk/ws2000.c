@@ -910,7 +910,6 @@ datex(unsigned char *data, int ndat) {
   char **ustrg;
 
   float meas_value[3];
-  senspar_t spar;
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
 
@@ -969,12 +968,12 @@ datex(unsigned char *data, int ndat) {
   /* open sqlite db file */
   err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
   syslog(LOG_DEBUG, 
-    "datex: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-    ws2000station.config.dbfile,
-    err, sqlite3_errmsg(ws2000db));
+	 "datex: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+	 ws2000station.config.dbfile,
+	 err, sqlite3_errmsg(ws2000db));
   if ( err) {
     syslog( LOG_ALERT, "datex: failed to open database %s. error: %s\n", 
-	     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
     free( errmsg);
     return -1;
   } else {
@@ -982,11 +981,14 @@ datex(unsigned char *data, int ndat) {
   }
 
   nval = 0;
+  new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
     if ( ws2000station.sensor[i].status != 0 ) {
       nval = 2;
+      sensor_no = i;
       syslog(LOG_DEBUG, "datex: sensor #%d temperature/humidity found\n", i);
+
       j = (i-1) % 2;
       /* even i */
       if ( ((i-1) % 2) == 0 ) {
@@ -1000,10 +1002,7 @@ datex(unsigned char *data, int ndat) {
 	if ( getbits(data[j+1], mbit, 1) == 1 ) {  
 	  meas_value[0] = -meas_value[0]; 
 	}
-	datadb( dataset_date, i, meas_value[0], ws2000db);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d temperature:\tdataset_date: %lu meas_value: %f\n", 
-	  i, (long int)dataset_date, meas_value[0]);
+
 	/* humidity 
 	   the value is calculated from an 8bit Byte which is formed
 	   by two Nibbles    
@@ -1011,23 +1010,12 @@ datex(unsigned char *data, int ndat) {
 	Lo = getbits(data[j+1], nbit, 4);
 	Hi = getbits(data[j+2], mbit-1, 3) << 4;
 	meas_value[1] = Hi + Lo;
-	/* Bit 3 of Hi Nibble is new flag */
+
+	/* bit 3 of Hi nibble is new flag */
         new = getbits(data[j+2], mbit, 1);
-	datadb( dataset_date, i, meas_value[1], ws2000db);
-        newdb( dataset_date, i, new, ws2000db);
-	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
-	//getbits(data[j+2], mbit, 1);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d humidity:\t\tdataset_date: %lu meas_value: %f new flag: %d\n",
-	  i, (long int)dataset_date, meas_value[1], new);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d ws2000station.sensor[%d].status: %d\n",
-	  i,i, ws2000station.sensor[i].status);
+
         syslog(LOG_DEBUG, "datex: sensor #%d humidity: Hi: %x(h) Lo: %x(h)\n", 
-	  i, Hi, Lo);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d j+1: %d mbit-1: %d j: %d nbit: %d\n", 
-	  i, j+1, mbit-1, j, nbit);
+	       i, Hi, Lo);
       } /* odd i */ else if ( ((i-1) % 2) == 1) {
 	mbit=7; nbit=3;
 	j = (5*(i-1) - j)/2 + 4;
@@ -1039,11 +1027,6 @@ datex(unsigned char *data, int ndat) {
 	if (  getbits(data[j+1], mbit, 1) == 1) {
 	  meas_value[0] = - meas_value[0];
 	}
-
-	datadb( dataset_date, i, meas_value[0], ws2000db);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d, temperature:\tdataset_date: %lu meas_value: %f\n", 
-	  i, (long int)dataset_date, meas_value[0]);
 	/* humidity 
 	   the value is calculated from an 8bit Byte which is formed
 	   by two Nibbles    
@@ -1051,99 +1034,125 @@ datex(unsigned char *data, int ndat) {
 	Lo = getbits(data[j+2], nbit, 4);
 	Hi = getbits(data[j+2], mbit-1, 3) << 4;
 	meas_value[1] = Hi + Lo;
-	datadb( dataset_date, i, meas_value[1], ws2000db);
 	/* Bit 3 of Hi Nibble is new flag */
 	new =
 	  getbits(data[j+2], mbit, 1);
-        newdb( dataset_date, i, new, ws2000db);
 	//rw->sens[2*i+1].mess[rw->wstat.ndats].sign = 
 	//getbits(data[j+2], mbit, 1);
-	syslog(LOG_DEBUG,
-          "datex: sensor #%d humidity\t\tdataset_date: %lu meas_value: %f new flag: %d\n", 
-	  i, (long int)dataset_date, meas_value[1], new);
-	syslog(LOG_DEBUG,"datex: ws2000station.sensor[%d].status: %d\n", 
-	  i, ws2000station.sensor[i].status);
-        syslog(LOG_DEBUG, "datex: sensor #%d humidity: Hi: %x(h) Lo: %x(h)\n", 
-	       i, Hi, Lo);
-	syslog(LOG_DEBUG,"datex: sensor #%d j+1: %d mbit-1: %d j: %d nbit: %d\n", 
-	       i,j+1, mbit-1, j, nbit);
       }
+      /* temperature */
+      sensor_meas_no[0] = 2*i - 1;
+      syslog(LOG_DEBUG,
+	     "datex: sensor #%d temperature:\tdataset_date: %lu meas_value: %f sensor_meas_no: %d\n", 
+	     i, (long int)dataset_date, meas_value[0], sensor_meas_no[0]);
+      /* humidity */
+      sensor_meas_no[1] = 2*i;
+      syslog(LOG_DEBUG,
+	     "datex: sensor #%d humidity:\t\tdataset_date: %lu meas_value: %f sensor_meas_no: %d new flag: %d\n",
+	     i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
+      syslog(LOG_DEBUG,
+	     "datex: sensor #%d ws2000station.sensor[%d].status: %d\n",
+	     i,i, ws2000station.sensor[i].status);
+
+
+      newdb( dataset_date, i, new, ws2000db);
+      writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
+	       ws2000db);
+
+      //rw->sens[2*i+1].mess[rw->wstat.ndats].sign  = 
+      //getbits(data[j+2], mbit, 1);
+
+
     } else {
       syslog(LOG_DEBUG,"datex: sensor #%d temperature/humidity not found\n", 
-        i);
+	     i);
     }
   }
 
   /* Sensor #9: Rainsensor */
   if ( ws2000station.sensor[9].status != 0) {
     nval = 1;
+    sensor_no = 9;
     syslog(LOG_DEBUG, "datex: sensor #9 rain found\n");
     Hi = getbits(data[25], 6, 7) << 8 ;
     Lo = getbits(data[24], 7, 8);
     meas_value[0]   = Hi + Lo;
-    datadb( dataset_date, 17, meas_value[0], ws2000db);
-    // rain new flag
+    sensor_meas_no[0] = 17;
+    //datadb( dataset_date, 17, meas_value[0], ws2000db);
+    /* rainsensor new flag */
     new =  getbits(data[25], 7, 1);
     newdb( dataset_date, 9, new, ws2000db);
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
+	     ws2000db);
     syslog(LOG_DEBUG,
-      "datex: sensor #9 rain:\t\tdataset_date: %lu meas_value: %f new: %d\n", 
-      (long int)dataset_date, meas_value[0], new);
+	   "datex: sensor #9 rain:\t\tdataset_date: %lu meas_value: %f new: %d\n", 
+	   (long int)dataset_date, meas_value[0], new);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #9 rain not found\n");
   }
 
-  /* Sensor #10: Windsensor */
+  /* sensor #10: Windsensor */
   if ( ws2000station.sensor[10].status != 0) {
     nval = 3;
+    sensor_no = 10;
     syslog(LOG_DEBUG, "datex: sensor #10 wind found\n");
-    /*wind speed */
+    /* wind speed */
     meas_value[0] = 
       100 * getbits(data[27], 6, 3) +
       10  * getbits(data[27], 3, 4) +
       getbits(data[26], 6, 3) +
       0.1 * getbits(data[26], 3, 4);
-    datadb( dataset_date, 18, meas_value[0], ws2000db);
-    //wind new flag
+    sensor_meas_no[0] = 18;
+
+    //datadb( dataset_date, 18, meas_value[0], ws2000db);
+    /* wind new flag */
     new = getbits ( data[27], 7, 1);
     newdb( dataset_date, 10, new, ws2000db);
     syslog(LOG_DEBUG,
-      "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
-      (long int)dataset_date, meas_value[0], new);
+	   "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
+	   (long int)dataset_date, meas_value[0], new);
 
     /* wind direction */
     meas_value[1] =
       100 * getbits( data[29], 1, 2 ) +
       10 * getbits(data[28], 7, 4 ) +
       getbits(data[28], 3, 4 );
-    datadb( dataset_date, 19, meas_value[1], ws2000db);
+    sensor_meas_no[1] = 20;
+
+    //datadb( dataset_date, 19, meas_value[1], ws2000db);
     syslog(LOG_DEBUG,
-      "datex: sensor #10 wind direction:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[1]);
+	   "datex: sensor #10 wind direction:\tdataset_date: %lu meas_value: %f\n", 
+	   (long int)dataset_date, meas_value[1]);
 
     /* mean deviation of wind direction */
     meas_value[2] =
       getbits( data[29], 4, 2 );
-    datadb( dataset_date, 20, meas_value[2], ws2000db);
-    syslog(LOG_DEBUG,
-      "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[2]);
-    } else {
-      syslog(LOG_DEBUG,"sensor #10 windsensor not found\n");
-    } 
+    sensor_meas_no[2] = 19;
 
-  /* Sensor #11: Indoorsensor */
+    syslog(LOG_DEBUG,
+	   "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
+	   (long int)dataset_date, meas_value[2]);
+    //datadb( dataset_date, 20, meas_value[2], ws2000db);
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
+	     ws2000db);
+  } else {
+    syslog(LOG_DEBUG,"sensor #10 windsensor not found\n");
+  } 
+
+  /* sensor #11: Indoorsensor */
   if ( ws2000station.sensor[11].status != 0) {
     nval = 3;
     sensor_no = 11;
     syslog(LOG_DEBUG, "datex: sensor #11 indoor found\n");
+
     /* barometric pressure */
     meas_value[0] = 
-    100 *  getbits(data[30], 7, 4) +
-    10  *  getbits(data[30], 3, 4) +
-    getbits(data[29], 7, 4) + 200;
+      100 *  getbits(data[30], 7, 4) +
+      10  *  getbits(data[30], 3, 4) +
+      getbits(data[29], 7, 4) + 200;
     syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor pressure:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[0]);
+	   "datex: sensor #11 indoor pressure:\tdataset_date: %lu meas_value: %f\n", 
+	   (long int)dataset_date, meas_value[0]);
     sensor_meas_no[0] = 21;
 
     /* indoor temperature */
@@ -1151,67 +1160,27 @@ datex(unsigned char *data, int ndat) {
       10  * getbits(data[32], 3, 4) + 
       getbits(data[31], 7, 4) +
       0.1 * getbits(data[31], 7, 4);
-    syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor temp.:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[1]);
     sensor_meas_no[1] = 22;
+    syslog(LOG_DEBUG,
+	   "datex: sensor #11 indoor temp.:\tdataset_date: %lu meas_value: %f\n", 
+	   (long int)dataset_date, meas_value[1]);
 
     /* indoor humidity */
     Lo = getbits(data[32], 7, 4);
     Hi = getbits(data[33], 2, 3) << 4;
     meas_value[2] = Hi + Lo;
-
-    new = getbits( data[33], 3, 1);
-    newdb( dataset_date, 11, new, ws2000db); 
-    syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor humidity:\tdataset_date: %lu meas_value: %f new: %d\n", 
-      (long int)dataset_date, meas_value[2], new);
-    syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
-
     sensor_meas_no[2] = 23;
 
-    /* database and rrd handling */
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, ws2000db);
-    for ( i = 0; i < nval; i++) 
-      {
-	datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);
-        /* handling rrd */
-        /* fetch names from database */
-        if ( ( err = senspardb( sensor_meas_no[i], &spar, ws2000db)) != 0 ) {
-	  syslog(LOG_DEBUG,"datex: senspardb returned error: %d\n", err);
+    /* indoor sensor new flag */
+    new = getbits( data[33], 3, 1);
+    syslog(LOG_DEBUG,
+	   "datex: sensor #11 indoor humidity:\tdataset_date: %lu meas_value: %f new: %d\n", 
+	   (long int)dataset_date, meas_value[2], new);
+    syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
-	}
-        if ( spar.sensor_no != sensor_no ) {
-	  syslog(LOG_WARNING, 
-		 "datex: sensor_no mismatch: sensor_no: %d : "
-		 "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
-          break;
-	}
-        syslog(LOG_DEBUG, 
-	       "datex: sensor_meas_no: %d : spar.sensor_no: %d: "
-	       "spar.sensor_name: %s: spar.par_name: %s\n", 
-	       sensor_meas_no[i], spar.sensor_no, spar.sensor_name, 
-	       spar.par_name);
-        syslog(LOG_INFO, 
-	       "datex: %lu : sensor: %s%d : parameter: %s: %f\n",
-	       (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
-	       spar.par_name, meas_value[i]);
-        snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
-        strncat(tstrg, ":", 1);
-        strncat(tstrg, template, strlen(template));
-      }
-    snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
-	      spar.sensor_name, spar.sensor_no);
-    syslog(LOG_DEBUG, "datex: rrdfile: %s: update string: %s\n", 
-	   rrdfile, tstrg);
-    snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
-    rrd_clear_error();
-    rrd_get_context();
-    rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
-    if ( rrd_test_error()) {
-      syslog( LOG_ALERT, "datex: RRD Error: %s\n", rrd_get_error());
-    }
-    
+    newdb( dataset_date, 11, new, ws2000db); 
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
+	     ws2000db);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
   }
@@ -1549,7 +1518,7 @@ int getsrd ( unsigned char *data, int *mdat) {
     with an ETX char to signalize it's OK 
     */
     if ( readdata(fd, data, mdat) == -1 ) {
-      printf("readdata problem\n");
+      syslog(LOG_ALERT, "getsrd: readdata problem\n");
       closeserial(fd, &oldtio);
       return(-1);
     }

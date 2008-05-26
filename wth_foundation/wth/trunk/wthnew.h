@@ -118,6 +118,33 @@ enum {
   ECMD    = -8,
 };
 
+/* sensor parameter assignment */
+enum {
+  SENSOR1TEMP      = 1,
+  SENSOR1HUM       = 2,
+  SENSOR2TEMP      = 3,
+  SENSOR2HUM       = 4,
+  SENSOR3TEMP      = 5,
+  SENSOR3HUM       = 6,
+  SENSOR4TEMP      = 7,
+  SENSOR4HUM       = 8,
+  SENSOR5TEMP      = 9,
+  SENSOR5HUM       = 10,
+  SENSOR6TEMP      = 11,
+  SENSOR6HUM       = 12,
+  SENSOR7TEMP      = 13,
+  SENSOR7HUM       = 14,
+  SENSOR8TEMP      = 15,
+  SENSOR8HUM       = 16,
+  RAINSENSOR       = 17,
+  WINDSENSORSPEED  = 18,
+  WINDSENSORDIR    = 19,
+  WINDSENSORVAR    = 20,
+  INDOORPRESS      = 21,
+  INDOORTEMP       = 22,
+  INDOORHUM        = 23
+};
+
 static const int success = 0;
 static const int failure = 1;
 

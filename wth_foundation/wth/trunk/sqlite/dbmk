@@ -203,26 +203,31 @@ if ( $options{w} ) {
   #
   # table sensorparameters 
   #
-  # Sensor1
+  # sensor1
   $dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') "); # temperature
   $dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') "); # humidity
 
-  # Sensor2
+  # sensor2
   $dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') "); # temperature
   $dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') "); # humidity
 
+  # sensor3
   $dbh->do(" INSERT INTO sensorparameters VALUES ('5','3','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('6','3','2') ");
 
+  # sensor4
   $dbh->do(" INSERT INTO sensorparameters VALUES ('7','4','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('8','4','2') ");
 
+  # sensor5
   $dbh->do(" INSERT INTO sensorparameters VALUES ('9','5','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('10','5','2') ");
 
+  # sensor6
   $dbh->do(" INSERT INTO sensorparameters VALUES ('11','6','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('12','6','2') ");
 
+  # sensor7
   $dbh->do(" INSERT INTO sensorparameters VALUES ('13','7','1') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('14','7','2') ");
 
