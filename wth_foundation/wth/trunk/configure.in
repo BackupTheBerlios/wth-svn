@@ -6,11 +6,14 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 USE_AUTOHEADER
 
+
+
 AC_INIT(libwth.c)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(wth, 0.4.5)
 AM_CONFIG_HEADER(config.h)
-AC_DEFINE(_GNU_SOURCE)
+#AC_DEFINE(_GNU_SOURCE)
+AC_DEFINE([_GNU_SOURCE], [], [Description])
 #AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
 
 dnl Checks for programs.
@@ -49,7 +52,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(fcntl.h strings.h sys/ioctl.h syslog.h unistd.h)
-AC_CHECK_HEADERS(sqlite3.h)
+AC_CHECK_HEADERS(sqlite3.h, , AC_MSG_ERROR(sqlite3 headers not found. Please install first.), )
 
 if test "$enable_xmlrpc" = yes; then
   AC_CHECK_LIB(md5, MD5Init,, 

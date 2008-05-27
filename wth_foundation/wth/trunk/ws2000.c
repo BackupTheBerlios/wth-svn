@@ -34,24 +34,24 @@ sqlite3 *ws2000db;
 
 */
 void *
-wloghandler( ) {
+ws2000_hd( ) {
   int lfd;
   int waitmax  = 0;
 
   for ( ;; ) {
-    syslog(LOG_DEBUG,"wloghandler awakening\n");
+    syslog(LOG_INFO,"ws2000_hd awakening\n");
     while ( waitmax < MAXWAIT ) {
-      syslog(LOG_DEBUG,"wloghandler: waitmax: %d\n", waitmax);
+      syslog(LOG_DEBUG,"ws2000_hd: waitmax: %d\n", waitmax);
       lfd = open( lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
       if ( lfd == -1 ) {
-        syslog(LOG_DEBUG,"wloghandler: %s\n", strerror(errno));
-        syslog(LOG_DEBUG, "wloghandler: lockfile already locked\n");
+        syslog(LOG_CRIT,"ws2000_hd: %s\n", strerror(errno));
+        syslog(LOG_CRIT, "ws2000_hd: lockfile already locked\n");
 	sleep(5);
       } else {
 	/* sending command to weather station */
         wsconf.command = 12;
-        syslog(LOG_DEBUG,"wloghandler: sending command: %d\n", wsconf.command); 
-	syslog(LOG_DEBUG,"wloghandler: wcmd: %s\n",(char *)wcmd()); 
+        syslog(LOG_DEBUG,"ws2000_hd: sending command: %d\n", wsconf.command); 
+	syslog(LOG_INFO,"ws2000_hd: %s\n",(char *)wcmd()); 
         close( lfd);
         unlink( lockfile);
         waitmax = 0;
@@ -72,7 +72,7 @@ wloghandler( ) {
 */
 
 void *
-cmdhandler( ) {
+cmd_hd( ) {
   int cfd;
   //char *rbuf;
   int waitmax = 0;
@@ -108,9 +108,9 @@ cmdhandler( ) {
 
 
 
-/* wcmd
-  
-   execution of WS2000 weatherstation commands
+/* 
+  wcmd  
+  execution of WS2000 weatherstation commands
 
 */
 char *
@@ -140,7 +140,7 @@ wcmd ( ) {
 
   ws2000station.status.DCFtime  = dcftime(data, ndat);
   if ( ws2000station.status.DCFtime == -1) {
-    syslog( LOG_DEBUG, "wcmd: DCF not synchronized\n");
+    syslog( LOG_INFO, "wcmd: DCF not synchronized\n");
   }
 
   /* get status of weatherstation 
@@ -412,41 +412,41 @@ wcmd ( ) {
 */
 int 
 demasq(unsigned char *data, int *mdat) {
-    int i;
-    int j;
+  int i;
+  int j;
 
-    syslog(LOG_DEBUG, "demasq : length dataframe : %d\n", *mdat);
+  syslog(LOG_DEBUG, "demasq : length dataframe : %d\n", *mdat);
 
-    /* process all data but first and last byte */
-    for ( i = 1; i < *mdat - 2; i++ ) {
-        if ( data[i] == ENQ && data[i+1] == DC2 ) {
-            syslog(LOG_DEBUG, 
-		   "demasq : STX found: i %d: data[i] %x: data[i+1] %x\n",
-		   i, data[i], data [i+1]);
-            data[i] = STX;
-            for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
-            *mdat -=1;
-        }
-        if ( data[i] == ENQ && data[i+1] == DC3 ) {
-            syslog(LOG_DEBUG, 
-		   "demasq : ETX found: i %d: data[i] %x: data[i+1] %x\n",
-		   i, data[i], data [i+1]);
-            data[i] = ETX;
-            for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
-            *mdat -= 1; 
-        }
-        if ( data[i] == ENQ && data[i+1] == NAK ) {
-            syslog(LOG_DEBUG, 
-		   "demasq : ENQ found: i %d: data[i] %x: data[i+1] %x\n",
-		   i, data[i], data [i+1]);
-            data[i] = ENQ;
-            for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
-            *mdat -= 1;
-        }
-
+  /* process all data but first and last byte */
+  for ( i = 1; i < *mdat - 2; i++ ) {
+    if ( data[i] == ENQ && data[i+1] == DC2 ) {
+      syslog(LOG_DEBUG, 
+	     "demasq : STX found: i %d: data[i] %x: data[i+1] %x\n",
+	     i, data[i], data [i+1]);
+      data[i] = STX;
+      for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
+      *mdat -=1;
     }
-    syslog(LOG_DEBUG, "demasq : length dataframe after corr :%d\n", *mdat);
-    return(0);
+    if ( data[i] == ENQ && data[i+1] == DC3 ) {
+      syslog(LOG_DEBUG, 
+	     "demasq : ETX found: i %d: data[i] %x: data[i+1] %x\n",
+	     i, data[i], data [i+1]);
+      data[i] = ETX;
+      for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
+      *mdat -= 1; 
+    }
+    if ( data[i] == ENQ && data[i+1] == NAK ) {
+      syslog(LOG_DEBUG, 
+	     "demasq : ENQ found: i %d: data[i] %x: data[i+1] %x\n",
+	     i, data[i], data [i+1]);
+      data[i] = ENQ;
+      for ( j = i+1; j < *mdat - 1; j++ ) data[j] = data[j + 1]; 
+      *mdat -= 1;
+    }
+
+  }
+  syslog(LOG_DEBUG, "demasq : length dataframe after corr :%d\n", *mdat);
+  return(0);
 } 
 
 
@@ -794,7 +794,8 @@ wstat(unsigned char *data, int mdat ) {
      -1, if DCF not synchronized.
    
 */
-time_t dcftime(unsigned char *data, int ndat) {
+time_t 
+dcftime(unsigned char *data, int ndat) {
     int err;
     int tmp1;
     int tmp2;   
@@ -898,8 +899,9 @@ settime ( ) {
 
 */
 int 
-datex(unsigned char *data, int ndat) {
-  int i, j, err, mbit, nbit, nval, sensor_no, sensor_meas_no[3], Hi, Lo, new;
+datex ( unsigned char *data, int ndat) {
+  int i, j, err, mbit, nbit, nval, sensor_no, sensor_meas_no[3];
+  int Hi, Lo, new;
   time_t dataset_date;
   long age;
   char *clk, *errmsg = 0;
@@ -1136,7 +1138,7 @@ datex(unsigned char *data, int ndat) {
     writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
 	     ws2000db);
   } else {
-    syslog(LOG_DEBUG,"sensor #10 windsensor not found\n");
+    syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
   } 
 
   /* sensor #11: Indoorsensor */

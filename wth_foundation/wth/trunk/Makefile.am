@@ -1,5 +1,5 @@
 noinst_LIBRARIES = libwth.a libwthxml.a
-libwth_a_SOURCES = libwth.c serial.c net.c wthutil.c wth.h wthnet.h wthprv.h 
+libwth_a_SOURCES = libwth.c serial.c net.c wth.h wthnet.h wthprv.h 
 
 #libwthxml_a_SOURCES = libwth.c xml/dataxml.c serial.c net.c xml/xml.c wth.h wthnet.h wthprv.h 
 

@@ -11,6 +11,13 @@
 
 
 int main ( int argc, char **argv) {
+<<<<<<< .mine
+  struct rrd_context *wctx;
+  long *pdp_step;
+  int rargc;
+  const char *filename = "/tmp/PressureI.rrd";
+  char *template = "PressureI";
+=======
   struct rrd_context *wctx;
   char *filename = "Humidity1.rrd";
   char *template = "Humidity1";
@@ -21,10 +28,19 @@ int main ( int argc, char **argv) {
   printf("wthrrd_th: argv[1]: %s\n", argv[1]);
   printf("wthrrd_th: argv[2]: %s\n", argv[2]);
   ustrg[2] = "973709225:51";
+>>>>>>> .r164
 
+<<<<<<< .mine
+  wctx = rrd_get_context();
+  rargc = 1;
+     
+  //rrd_update(argc, argv);
+  rrd_update_r( filename, template, argc -1, "973709217:967");
+=======
   //rrd_update_r( filename, template, argc-2, (const char **)(argv + 2));
   rrd_update_r( filename, template, 1, (const char **)(ustrg + 2));
   //rrd_update(argc, argv);
+>>>>>>> .r164
   if ( rrd_test_error()) {
     printf("RRD Error: %s\n", rrd_get_error());
     return(-1); 
@@ -47,5 +63,6 @@ int main ( int argc, char **argv) {
   RRA:AVERAGE:0.5:6:700 \
   RRA:AVERAGE:0.5:24:775 \
   RRA:AVERAGE:0.5:288:797
+  ./wthrrd_th /tmp/PressureI.rrd 973709205:967
 
 */

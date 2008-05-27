@@ -44,8 +44,8 @@ bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthnewd$(EXEEXT) \
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
-	ChangeLog INSTALL NEWS acconfig.h config.guess config.sub \
-	depcomp install-sh missing mkinstalldirs
+	ChangeLog INSTALL NEWS config.guess config.sub depcomp \
+	install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -61,8 +61,7 @@ AR = ar
 ARFLAGS = cru
 libwth_a_AR = $(AR) $(ARFLAGS)
 libwth_a_LIBADD =
-am_libwth_a_OBJECTS = libwth.$(OBJEXT) serial.$(OBJEXT) net.$(OBJEXT) \
-	wthutil.$(OBJEXT)
+am_libwth_a_OBJECTS = libwth.$(OBJEXT) serial.$(OBJEXT) net.$(OBJEXT)
 libwth_a_OBJECTS = $(am_libwth_a_OBJECTS)
 libwthxml_a_AR = $(AR) $(ARFLAGS)
 libwthxml_a_LIBADD =
@@ -111,14 +110,14 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run aclocal-1.9
+ACLOCAL = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run aclocal-1.9
 AMDEP_FALSE = #
 AMDEP_TRUE = 
-AMTAR = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run tar
-AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoconf
-AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run autoheader
-AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run automake-1.9
-AWK = gawk
+AMTAR = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run tar
+AUTOCONF = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoconf
+AUTOHEADER = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run autoheader
+AUTOMAKE = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run automake-1.9
+AWK = nawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2 -DFREEBSD -Wall
@@ -140,7 +139,7 @@ LDFLAGS =
 LIBOBJS = 
 LIBS = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/trunk/missing --run makeinfo
+MAKEINFO = ${SHELL} /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/missing --run makeinfo
 OBJEXT = o
 PACKAGE = wth
 PACKAGE_BUGREPORT = 
@@ -179,7 +178,7 @@ host_os = freebsd6.2
 host_vendor = unknown
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /proj/wetter/software/serial/wth/trunk/install-sh
+install_sh = /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -197,7 +196,7 @@ target_cpu = i386
 target_os = freebsd6.2
 target_vendor = unknown
 noinst_LIBRARIES = libwth.a libwthxml.a
-libwth_a_SOURCES = libwth.c serial.c net.c wthutil.c wth.h wthnet.h wthprv.h 
+libwth_a_SOURCES = libwth.c serial.c net.c wth.h wthnet.h wthprv.h 
 #bin_PROGRAMS = wthc wthd wthxc wthxmld 
 wthc_SOURCES = wthc.c wth.h
 #wthc_LDADD = libwth.a -L/usr/local/lib -lmpatrol
@@ -284,7 +283,7 @@ config.h: stamp-h1
 stamp-h1: $(srcdir)/config.h.in $(top_builddir)/config.status
 	@rm -f stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status config.h
-$(srcdir)/config.h.in:  $(am__configure_deps) $(top_srcdir)/acconfig.h
+$(srcdir)/config.h.in:  $(am__configure_deps) 
 	cd $(top_srcdir) && $(AUTOHEADER)
 	rm -f stamp-h1
 	touch $@
@@ -357,7 +356,6 @@ include ./$(DEPDIR)/wthd.Po
 include ./$(DEPDIR)/wthdb.Po
 include ./$(DEPDIR)/wthnewd.Po
 include ./$(DEPDIR)/wthnewpd.Po
-include ./$(DEPDIR)/wthutil.Po
 
 .c.o:
 	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

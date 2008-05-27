@@ -148,6 +148,16 @@ enum {
 static const int success = 0;
 static const int failure = 1;
 
+
+typedef struct threadinfo {
+  int num_active;
+  pthread_cond_t thread_exit_cv;
+  pthread_mutex_t mutex;
+  int received_shutdown_req; /* 0=false, 1=true */
+} thread_info_t;
+
+thread_info_t pthread_info;
+
 /* data structures */
 typedef struct dataset {
   time_t dataset_time;
@@ -232,25 +242,39 @@ typedef struct key {
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
 
-int initdata();
-char *echoconfig();
+int wthd_init();
 int echodata( unsigned char *data, int mdat);
 unsigned char getbits( unsigned char x, int p, int n);
 char *mkmsg( const char *, ...);
 char *mkmsg2( const char *, ...);
+int usage (int exitcode, char *error, char *addl);
+char *tnusage (int exitcode, char *error, char *addl);
+int usaged (int exitcode, char *error, char *addl);
+char *readconfig();
+char *echoconfig();
+Sigfunc *signal(int signo, Sigfunc *func);
+void *signal_hd( void *arg);
+
+extern int Socket(int, int, int); 
+ssize_t Read(int, void *, size_t); 
+int Write(int, void *, size_t);   
+int Accept(int, SA *, socklen_t *);
+int Bind(int, const SA *, socklen_t);
+int Listen(int, int); 
+int Close(int); 
+pid_t Fork(void); 
+int Setsockopt(int, int, int, const void *, socklen_t); 
+int Writen(int, void *, size_t);  
+const char *inet_ntop(int, const void *, char *, size_t);
+int inet_pton(int, const char *, void *); 
 
 int chklockf( const char *lockfile);
 int setlck( const char *lockfile);
 int unlck( const char *lockfile, int fd);
 
-/* pcwsr functions */
-void *ploghandler();
-
-/* ws2000 functions */
-void *wloghandler();
-
-
-void * cmdhandler();
+void *pcwsr_hd();
+void *ws2000_hd();
+void *cmd_hd();
 
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);

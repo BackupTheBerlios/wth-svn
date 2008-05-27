@@ -57,10 +57,11 @@
 
 #define BAUDRATE    B9600
 #define MAXBUFF     131072
+#define MAXMSGLEN   1024
 #define TIMEOUT     7
 /* Serial port devices */
 #if defined(LINUX)
-# define SER_DEVICE "/dev/ttyS0"
+# define SER_DEVICE "/dev/ttyUSB0"
 #elif defined(FREEBSD)
 # define SER_DEVICE "/dev/ttyd0"
 #else // default
@@ -193,7 +194,6 @@ typedef struct key Ckey;
 int werrno;      /* weatherstation errors */
 int daemon_proc;		/* set nonzero by daemon_init() */
 
-
 int daemon_init(const char *, int); 
 
 char *tnusage(int exitcode, char *error, char *addl);
@@ -216,7 +216,6 @@ char *wcmd(struct cmd *pcmd, struct wthio *rw);
 int initdata(struct wthio *rw);
 struct cmd *initcmd(void );
 
-
 extern int Socket(int, int, int); 
 ssize_t Read(int, void *, size_t); 
 int Write(int, void *, size_t);   
@@ -224,16 +223,13 @@ int Accept(int, SA *, socklen_t *);
 int Bind(int, const SA *, socklen_t);
 int Listen(int, int); 
 int Close(int); 
-
 pid_t Fork(void); 
 int Setsockopt(int, int, int, const void *, socklen_t); 
 int Writen(int, void *, size_t);  
-
 const char *inet_ntop(int, const void *, char *, size_t);
 int inet_pton(int, const char *, void *); 
 
 typedef void Sigfunc ( int);  
-
 Sigfunc *signal( int signo, Sigfunc *func);
 
 int initserial( int *pfd, struct termios *newtio, 
@@ -251,5 +247,5 @@ char *mkmsg( const char *, ...);
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat, struct cmd *pcmd);
 int datex( unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
-char *pdata( struct wthio *rw, struct cmd *pcmd);
+char *pdata( struct wthio *rw, struct cmd *pcmd );
 int echodata( unsigned char *data, int mdat);

@@ -106,7 +106,7 @@ static int closepcwsr( int fd, struct termios *oldtio) {
    logging pcwsr data to rrd and Sqlite DB
 */
 void *
-ploghandler( void *arg) {
+pcwsr_hd( void *arg) {
     int i, fd, err;
     int hi, lo, dummy;
     int mask = 0x7f;
@@ -131,7 +131,7 @@ ploghandler( void *arg) {
     struct tm *ctm;
     senspar_t spar;
 
-    syslog( LOG_DEBUG, "ploghandler: start of execution\n");
+    syslog( LOG_DEBUG, "pcwsr_hd: start of execution\n");
 
     if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
       return( ( void *) &failure);
@@ -182,12 +182,12 @@ ploghandler( void *arg) {
          starting with STX and ending with ETX. */
       if (data[0]!=STX)
       {
-      	printf("ploghandler: no STX seen - can't happen!  Skipping..\n");
+      	printf("pcwsr_hd: no STX seen - can't happen!  Skipping..\n");
 	continue;
       };
       if (data[7]!=ETX)
       {
-      	printf("ploghandler: no ETX seen - skipping to next STX..\n");
+      	printf("pcwsr_hd: no ETX seen - skipping to next STX..\n");
 	continue;
       };
 	      
@@ -197,7 +197,7 @@ ploghandler( void *arg) {
       styp  = styp >> 4;
       saddr = dummy & 0xf;
       sensor_no = dummy;
-      syslog( LOG_DEBUG, "ploghandler: styp: %d : saddr: %d : sensor_no: %d \n", 
+      syslog( LOG_DEBUG, "pcwsr_hd: styp: %d : saddr: %d : sensor_no: %d \n", 
         styp, saddr, sensor_no);
       strcpy(buf,"");
      
@@ -377,21 +377,21 @@ ploghandler( void *arg) {
         /* handling rrd */
         /* fetch names from database */
         if ( ( err = senspardb( sensor_meas_no[i], &spar, pcwsrdb)) != 0 ) {
-	  syslog(LOG_DEBUG,"ploghandler: senspardb returned error: %d\n", err);
+	  syslog(LOG_DEBUG,"pcwsr_hd: senspardb returned error: %d\n", err);
 
 	}
         if ( spar.sensor_no != sensor_no ) {
 	  syslog(LOG_WARNING, 
-             "ploghandler: sensor_no mismatch: sensor_no: %d : "
+             "pcwsr_hd: sensor_no mismatch: sensor_no: %d : "
              "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
           break;
 	}
         syslog(LOG_DEBUG, 
-          "ploghandler: sensor_meas_no: %d : spar.sensor_no: %d: "
+          "pcwsr_hd: sensor_meas_no: %d : spar.sensor_no: %d: "
           "spar.sensor_name: %s: spar.par_name: %s\n", 
 	  sensor_meas_no[i], spar.sensor_no, spar.sensor_name, spar.par_name);
         syslog(LOG_INFO, 
-          "ploghandler: %lu : sensor: %s%d : parameter: %s: %f\n",
+          "pcwsr_hd: %lu : sensor: %s%d : parameter: %s: %f\n",
 	  (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
           spar.par_name, meas_value[i]);
         snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
@@ -400,14 +400,14 @@ ploghandler( void *arg) {
       }
       snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
         spar.sensor_name, spar.sensor_no);
-      syslog(LOG_DEBUG, "ploghandler: rrdfile: %s: update string: %s\n", 
+      syslog(LOG_DEBUG, "pcwsr_hd: rrdfile: %s: update string: %s\n", 
         rrdfile, tstrg);
       snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
       rrd_clear_error();
       rrd_get_context();
       rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
       if ( rrd_test_error()) {
-         syslog( LOG_ALERT, "ploghandler: RRD Error: %s\n", rrd_get_error());
+         syslog( LOG_ALERT, "pcwsr_hd: RRD Error: %s\n", rrd_get_error());
       }
     }
 

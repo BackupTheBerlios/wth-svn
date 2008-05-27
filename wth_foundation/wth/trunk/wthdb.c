@@ -145,9 +145,9 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   char *rrdfile;
   char *template;
   char **ustrg;
-
   senspar_t spar;
-        
+
+  err = 0;        
   if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
     return(-1);
 
@@ -177,7 +177,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 	   "spar.sensor_name: %s: spar.par_name: %s\n", 
 	   sensor_meas_no[i], spar.sensor_no, spar.sensor_name,
 	   spar.par_name);
-    syslog(LOG_INFO, 
+    syslog(LOG_DEBUG, 
 	   "writedb: %lu : sensor: %s : parameter: %s: %f\n",
 	   (long int)dataset_date, spar.sensor_name, 
 	   spar.par_name, meas_value[i]);
@@ -199,8 +199,8 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
-  if ( rrd_test_error()) {
-    syslog( LOG_ALERT, "writedb: RRD Error: %s\n", rrd_get_error());
+  if ( ( err = rrd_test_error())) {
+    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n", rrd_test_error());
   }
-  return(0);
+  return(err);
 }

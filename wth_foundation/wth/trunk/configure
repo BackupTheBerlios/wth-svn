@@ -1823,8 +1823,10 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
           ac_config_headers="$ac_config_headers config.h"
 
+#AC_DEFINE(_GNU_SOURCE)
+
 cat >>confdefs.h <<\_ACEOF
-#define _GNU_SOURCE 1
+#define _GNU_SOURCE
 _ACEOF
 
 #AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
@@ -3904,6 +3906,10 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
 
+else
+  { { echo "$as_me:$LINENO: error: sqlite3 headers not found. Please install first." >&5
+echo "$as_me: error: sqlite3 headers not found. Please install first." >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 done
