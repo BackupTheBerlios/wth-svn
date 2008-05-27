@@ -113,7 +113,7 @@ cmd_hd( ) {
   execution of WS2000 weatherstation commands
 
 */
-char *
+int
 wcmd ( ) {
   int ndat = 0;                   /* length of array containing the 
                                      data frame */
