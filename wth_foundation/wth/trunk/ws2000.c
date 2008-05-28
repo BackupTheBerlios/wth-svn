@@ -51,7 +51,7 @@ ws2000_hd( ) {
 	/* sending command to weather station */
         wsconf.command = 12;
         syslog(LOG_DEBUG,"ws2000_hd: sending command: %d\n", wsconf.command); 
-	syslog(LOG_INFO,"ws2000_hd: %s\n",(char *)wcmd()); 
+	syslog(LOG_INFO,"ws2000_hd: wcmd return code: %d\n", wcmd()); 
         close( lfd);
         unlink( lockfile);
         waitmax = 0;
@@ -409,8 +409,6 @@ wcmd ( ) {
 	return(1);
       }
     }
-    syslog(LOG_NOTICE, 
-	   "wcmd: command 12: no data available ( ( <DLE> received)");
     return(0);
   }//command 12
 
@@ -1450,7 +1448,6 @@ readdata (int fd, unsigned char *data, int *ndat)
   err = -1;
   maxfd = fd +1;
  
-  syslog(LOG_INFO,"readdata: begin of exec"); 
   /* loop until input is available */
   while ( loop) {
 	
@@ -1464,17 +1461,17 @@ readdata (int fd, unsigned char *data, int *ndat)
 	switch (n) {
 	case -1:
           if ( errno == EBADF ) 
-	    syslog(LOG_INFO, "readdata: select error: EBADF");
+	    syslog(LOG_CRIT, "readdata: select error: EBADF");
           else if ( errno == EINTR ) 
-	    syslog(LOG_INFO, "readdata: select error: EINTR");
+	    syslog(LOG_CRIT, "readdata: select error: EINTR");
           else if ( errno == EINVAL ) 
-	    syslog(LOG_INFO, "readdata: select error: EINVAL");
+	    syslog(LOG_CRIT, "readdata: select error: EINVAL");
           else
-	    syslog(LOG_INFO, "readdata: select error");
+	    syslog(LOG_CRIT, "readdata: select error");
           err = -1; loop = 0;
 	  break;
 	case 0:
-	  syslog(LOG_INFO, "readdata: select: Timeout\n");
+	  syslog(LOG_CRIT, "readdata: select: Timeout\n");
           err = -1; loop = 0;
           break;
 	default:
