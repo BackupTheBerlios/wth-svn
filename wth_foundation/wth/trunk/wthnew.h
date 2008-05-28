@@ -287,7 +287,7 @@ int getsrd(unsigned char *data, int *mdat);
 char *wstat(unsigned char *data, int mdat);
 time_t dcftime(unsigned char *data, int ndat);
 int settime();
-char *wcmd();
+int wcmd();
 int readdata( int fd, unsigned char *data, int *ndat);
 ws2000key_t *c( int n);
 int wstrlen( unsigned char *s);

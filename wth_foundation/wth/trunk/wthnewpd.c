@@ -29,8 +29,9 @@ main ( int argc, char **argv )
   openlog("wthd", LOG_PID , wsconf.logfacility);
   syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
   unlink( ws2000lck);
-  tzset(); /* setting timezone */
+  tzset();
 
+  /* block signals in main */
   sigemptyset( &signals_to_block);
   sigaddset(&signals_to_block, SIGUSR1);
   pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
