@@ -1,0 +1,275 @@
+<%doc>
+
+  rrdget Mason component
+
+  dhandler, called via http://<hostname>/rrdget/?rrd=<sensor>  
+  using rrdfetch from within Mason to fetch single values
+
+  rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
+  mason:   http://www.masonhq.com
+
+  adapt the %getopts hash to your needs
+
+</%doc>
+
+
+<%flags>
+    inherit => undef
+</%flags>
+
+
+<& RRDGet, %ARGS &>
+
+
+<%once>
+    use strict;
+    use RRDs;
+    use Image::Magick;
+
+    my $DAY   = 86400;
+    my $WEEK  = 604800;
+    my $MONTH = 18144000;
+ 
+    sub getlast {
+     my $lasttim;
+     my $lastval;
+     my $dsname;
+     my $ERROR;
+     my @retlist;
+
+     my $sensor = shift(@_);
+     my ($start,$step,$names,$array) = 
+         RRDs::fetch "$sensor", "--start", "-6000", "LAST";
+
+     $ERROR = RRDs::error;
+     print "ERROR: $ERROR\n" if $ERROR ;
+
+     foreach my $val (@$names) {
+       $dsname = $val if ($val ne "");
+     }
+
+     #
+     # get last entry in rrd and store to $lastval
+     #
+     foreach my $line (@$array){
+       foreach my $val (@$line) {
+         if ($val ne "") {
+           $lasttim = $start;
+           $lastval = $val;
+           push (@retlist, $start);
+           push (@retlist, $val);
+         }
+       }
+       $start += $step;
+     }
+
+     #
+     # no data found 
+     # 
+     if ( $lastval eq "") {
+       $lasttim= $start;
+       $lastval = "NA";
+       push(@retlist, $lasttim);
+       push(@retlist, $lastval);
+     }
+
+     push(@retlist, $dsname);
+     return wantarray ? @retlist : $retlist[0];
+
+    }
+       
+
+    sub getwinddir {
+     my $wdir = shift(@_);
+     my $wdirsym;
+     my @retlist;
+
+     if ( ((348.75 <= $wdir) && ( $wdir < 360 )) || 
+          ((0 <= $wdir ) && ($wdir < 11.25)) ) {
+         $wdirsym = "N";
+     }
+     elsif ( ( 11.25 <= $wdir) && ( $wdir < 33.75 ) )  {
+         $wdirsym = "NNE";
+     }
+     elsif ( ( 33.75 <= $wdir) && ( $wdir < 56.25 ) )  {
+         $wdirsym = "NE";
+     }
+     elsif ( ( 56.25 <= $wdir) && ( $wdir < 78.75 ) )  {
+         $wdirsym = "ENE";
+     }
+     elsif ( ( 78.75 <= $wdir) && ( $wdir < 101.25 ) )  {
+         $wdirsym = "E";
+     }
+     elsif ( ( 101.25 <= $wdir) && ( $wdir < 123.75 ) )  {
+         $wdirsym = "ESE";
+     }
+     elsif ( ( 123.75 <= $wdir) && ( $wdir < 146.25 ) )  {
+         $wdirsym = "SE";
+     }
+     elsif ( ( 146.25 <= $wdir) && ( $wdir < 168.75 ) )  {
+         $wdirsym = "SSE";
+     }
+     elsif ( ( 168.75 <= $wdir) && ( $wdir < 191.25 ) )  {
+         $wdirsym = "S";
+     }
+     elsif ( ( 191.25 <= $wdir) && ( $wdir < 213.75 ) )  {
+         $wdirsym = "SSW";
+     }
+     elsif ( ( 213.75 <= $wdir) && ( $wdir < 236.25 ) )  {
+         $wdirsym = "SW";
+     }
+     elsif ( ( 236.25 <= $wdir) && ( $wdir < 258.75 ) )  {
+         $wdirsym = "WSW";
+     }
+     elsif ( ( 258.75 <= $wdir) && ( $wdir < 281.25 ) )  {
+         $wdirsym = "W";
+     }
+     elsif ( ( 281.25 <= $wdir) && ( $wdir < 303.75 ) )  {
+         $wdirsym = "WNW";
+     }
+     elsif ( ( 303.75 <= $wdir) && ( $wdir < 326.25 ) )  {
+         $wdirsym = "NW";
+     }
+     elsif ( ( 326.25 <= $wdir) && ( $wdir < 348.75 ) )  {
+         $wdirsym = "NNW";
+     }
+     else {
+         $wdirsym = "NNN";
+     }
+     
+     push(@retlist, $wdirsym);
+     return wantarray ? @retlist : $retlist[0];
+    }    
+
+
+</%once>
+
+
+<%def RRDGet>
+
+<%args>
+     $rrd   => undef; 
+     $start => undef;
+</%args>
+
+<%init>
+    my $ERROR;
+    my $imagefile = "test.png";
+
+    my %graphopts = (
+        PressureI => [
+            $imagefile,
+            "--start", $start,
+            "--title", "Atmospheric Pressure",
+            "--interlace",
+            "--imgformat", "PNG",
+            "--vertical-label", "[mbar]",
+            "--lower-limit", 960,
+            "--upper-limit", 1040,
+            "--width", 100,
+            "--y-grid", "5:2",
+            "--units-exponent", 0,
+            "--rigid",
+            "DEF:pressure=/proj/wetter/logs/sens20.rrd:press:AVERAGE",
+            "CDEF:nnpress=1.055615,pressure,*",
+            "LINE2:nnpress#00a000:Pressure",
+            "GPRINT:nnpress:AVERAGE:Average %1.2lf",
+            "GPRINT:nnpress:MAX:Maximum %1.2lf",
+            "GPRINT:nnpress:MIN:Minimum %1.2lf\\n" ],
+
+        TempI     => [
+            $imagefile,
+            "--title", "Indoor Temperature",
+            "--interlace",
+            "--imgformat", "PNG",
+            "--vertical-label", "[C]",
+            "--lower-limit=0",
+            "--width", 100,
+            "DEF:tempi=/proj/wetter/logs/sens21.rrd:tempi:AVERAGE",
+            "LINE2:tempi#00a000:Temperature",
+            "GPRINT:tempi:AVERAGE:Average %1.2lf",
+            "GPRINT:tempi:MAX:Maximum %1.2lf",
+            "GPRINT:tempi:MIN:Minimum %1.2lf\\n" ],
+
+        HumidityI => [
+            $imagefile,
+            "--title", "Indoor Humidity",
+            "--interlace",
+            "--imgformat", "PNG",
+            "--vertical-label", "[% rel.hum.]",
+            "--lower-limit=0",
+            "--width", 100,
+            "DEF:humi=/proj/wetter/logs/sens22.rrd:humi:AVERAGE",
+            "LINE2:humi#00a000:Humidity",
+            "GPRINT:humi:AVERAGE:Average %1.2lf",
+            "GPRINT:humi:MAX:Maximum %1.2lf",
+            "GPRINT:humi:MIN:Minimum %1.2lf\\n" ],
+
+    );
+
+    my %getopts = (
+       PressureI => {
+          rrdfile => "/proj/wetter/logs/sens20.rrd",
+          description => "Atmospheric Pressure",
+          unit => "hPa",
+       },
+       TempI      =>  {
+          rrdfile => "/proj/wetter/logs/sens21.rrd",
+          description => "Indoor Temperature",
+          unit => "°C",
+       },
+       HumidityI  =>  {
+          rrdfile => "/proj/wetter/logs/sens22.rrd",
+          description => "Indoor Humidity",
+          unit => "% rel.hum.",
+       },
+    );
+
+</%init>
+
+<%perl>
+   
+    my $rrdok     = 0;
+    my $sensor    = "";
+    my $errortext = "";
+    my $Time;
+    my $Val;
+    my $Name;
+    my @returnlst;
+    my $Winddir;
+
+    open(DFH,">/tmp/debug.rrdgetmason");
+
+    # check if $rrd is a valid datasource
+    foreach $sensor ( keys %getopts ) {
+	printf DFH "sensor: $sensor\n";
+        if ( $rrd eq $sensor ) {
+            $rrdok = 1;
+        }
+    }	
+
+    if ( $rrdok) {
+        printf DFH "sensor OK: rrd : $rrd, sensor: $sensor\n";
+    	print DFH "$rrd: $getopts{$rrd}->{rrdfile}\n";
+
+    	($Time, $Val, $Name ) = getlast( $getopts{$rrd}->{rrdfile});
+
+        push (@returnlst, $Val);
+
+	printf DFH ("$Time : $Val [hPa] : $getopts{$rrd}->{description} ");
+
+        if ( $rrd eq "WindDir" ) {
+	  $Winddir = getwinddir($Val);
+          push(@returnlst, $Winddir);
+	}
+    } else {
+        printf DFH ("Can't find sensor : \"$rrd\"!");
+        $Val = "NA";
+        push(@returnlst, $Val);
+    }
+  
+    return($Val);
+
+</%perl>
+
+</%def>

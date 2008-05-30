@@ -1,0 +1,127 @@
+<%doc>
+
+  rrdgraph Mason component
+
+  using rrdgraph from within Mason
+
+  rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
+  mason:   http://www.masonhq.com
+
+  adapt the %graphopts in component RRDConf hash to your needs
+
+</%doc>
+
+
+<%flags>
+    inherit => undef
+</%flags>
+
+
+<& /RRDConf &>
+<& RRDGraph, %ARGS &>
+
+
+<%def RRDGraph>
+
+<%args>
+     $rrd   => undef;
+     $start => undef;
+</%args>
+
+<%init>
+    use Image::Magick;
+    use RRDs;
+
+    my $DAY   = 86400;
+    my $WEEK  = 604800;
+    my $MONTH = 18144000;
+    my $START = -86400;
+
+    my $ERROR;
+
+    my $Logtime;
+    my @graphstr;
+    my $gopt;
+    my $imagefile = "/tmp/$rrd.png";
+
+    my $rrdok     = 0;
+    my $sensor    = "";
+    my $errortext = "";
+
+    open(DFH,">>/tmp/debug.rrdgraphmason");
+
+    $Logtime = localtime;
+    # check if $rrd is a valid datasource
+    foreach $sensor ( keys %graphopts ) {
+	print DFH "$Logtime sensor: $sensor\n";
+        if ( $rrd eq $sensor ) {
+            $rrdok = 1;
+        }
+    }	
+
+    print DFH "$Logtime start: $START\n";
+
+    if ( $rrdok) {
+        print DFH "$Logtime sensor: $rrd, sensor: $sensor\n";
+#    	print DFH "$Logtime $rrd: @{ $graphopts{$rrd}}\n";
+
+        @graphstr = ();
+        push( @graphstr, $imagefile);
+
+        foreach $gopt ( keys %{ $graphopts{$rrd}} ) {
+            push ( @graphstr, $gopt);
+            push ( @graphstr, $graphopts{$rrd}{$gopt});
+        }
+
+        push ( @graphstr, @{ $graphdefs{$rrd}});
+
+        print DFH "$Logtime graphstr: @graphstr\n";
+        RRDs::graph @graphstr;
+    	#RRDs::graph @{ $graphopts{$rrd}};
+
+    	if ($ERROR = RRDs::error) {
+            $errortext = "RRDs ERROR:\n$ERROR";
+            print DFH "$Logtime ERROR: $ERROR\n";
+    	} else {
+    	    $r->content_type("image/png");
+    	    $r->send_http_header();
+
+    	    open(FH,"<$imagefile");
+    	    undef $/;
+    	    my $file = <FH>;
+
+    	    $r->content_type("image/png");
+    	    $m->clear_buffer; 
+    	    $m->print($file);
+    	    unlink ($imagefile);
+    	    close DFH;
+    	    $m->abort();
+        }
+    } else {
+        $errortext = "Can't find sensor : \"$rrd\"!";
+    }
+
+
+    # return image containing error text
+    if ( $errortext ne "" ) {
+        my $image = Image::Magick->new;
+        $image->Set(size=>'300x100');
+        $image->ReadImage('xc:white');
+        $image->Annotate( pointsize => 18, gravity=>'Center',
+                          text=>$errortext);
+    	$r->content_type("image/png");
+    	$m->clear_buffer;
+        $image->Write($imagefile);
+
+    	open(FH,"<$imagefile");
+    	undef $/;
+    	my $file = <FH>;
+    	$m->print($file);
+    	unlink ($imagefile);
+    	close DFH;
+    	$m->abort();
+    } 
+
+</%init>
+
+</%def>

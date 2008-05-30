@@ -1,0 +1,14 @@
+#!/usr/bin/perl -Tw
+use HTML::Mason;
+use strict; 
+my $comproot = "/proj/wetter/software/serial/wth/wth_foundation/wth/trunk/mason/";
+my $dataroot = "/proj/wetter/software/serial/wth/wth_foundation/wth/trunk/mason/data";
+
+my $outbuf;
+my $interp = new HTML::Mason::Interp ( comp_root  =>$comproot, 
+                                       data_dir   =>$dataroot, 
+                                       out_method =>\$outbuf);
+#$interp->allow_globals=> [ qw($lastval @retlist)];
+
+my $retval = $interp->exec('/rrdfetch', '?rrd=PressureI');
+print $outbuf;
