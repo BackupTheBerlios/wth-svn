@@ -13,47 +13,57 @@
     inherit => undef
 </%flags>
 
-<& RRDFetch, %ARGS &>
-
-
-<%def RRDFetch>
-
 <%args>
-     $rrd   => undef;
-     $ds    => undef;
-     $time  => undef;
+     $rrd
+     $start => undef
 </%args>
+
+<%filter>
+s/^\n//g;
+</%filter>
 
 <%init>
     use RRDs;
+    use Data::Dumper;
 
     my $ERROR;
     my $rrdok     = 0;
     my $sensor    = "";
     my $errortext = "";
 
-    my $logfile = "/tmp/rrdfetch.log";
+    my $logfile = ">>/tmp/rrdfetch.log";
     my $logtime;
     my $rrdval;
 
-    my %fetchopts;
-    my %extraopts;
-    my @fetchstr;
-    my $line;
-    my $lasttim;
-    my $lastval;
+
+    #%fetchopts;
+
+    my $lasttim = $start;
+    $lastval = "NA";
     my $dsname;
     my @retlist;
-
+    my $return;
 
     $m->clear_buffer;
-    print "logfile: $logfile\n";
-
-    open(DFH,"$logfile");
+    open(DFH,"$logfile")
+      or die "Can't open logfile";
     $logtime = localtime;
+    $logtime = $logtime . " RRDFetch:";
+   
+    # read configfile
+    my $configfile = "/tmp/wthrrd.conf";
+    unless ( $return = do $configfile)  {
+      die "Couldn't parse configfile: $configfile: $@" if $@;
+      die "Couldn't do configfile: $configfile: $!"    unless defined $return;
+      die "Couldn't run configfile: $configfile"       unless $return;
+    } 
+    print "testvariable: $testvariable\n";
+
     # check if $rrd is a valid datasource
-    print DFH "$logtime RRDGet starting execution\n";
+    print DFH "$logtime starting execution\n";
+    print DFH "$logtime checking available sensors\n";
     foreach $sensor ( keys %fetchopts ) {
+        print DFH "RRDFetch: $sensor\n";
         if ( $rrd eq $sensor ) {
 	    print DFH  "$logtime sensor valid: $sensor\n";
             $rrdok = 1;
@@ -61,7 +71,7 @@
     }
 
     if ( $rrdok) {
-       print DFH "$logtime $rrd: rrdfile : \"$fetchopts{$rrd}->{rrdfile}\"\n";
+       print DFH "$logtime $rrd: rrdfile : \"$extraopts{$rrd}->{rrdfile}\"\n";
 
        @fetchstr = ();
        push ( @fetchstr, $extraopts{$rrd}->{rrdfile} );
@@ -69,8 +79,10 @@
             push ( @fetchstr, $fopt);
             push ( @fetchstr, $fetchopts{$rrd}{$fopt});
        }
-
-       print DFH "$logtime fetchstr: @fetchstr\n";
+       if ( defined @fetchstr ) {
+         print DFH "$logtime fetchstr: ", @fetchstr, "\n"; 
+       }
+       print "length: $#fetchstr\n";
        my ($start,$step,$names,$array) = 
            RRDs::fetch @fetchstr;
 
@@ -86,7 +98,7 @@
        #
        foreach $line (@$array){
          foreach $rrdval (@$line) {
-           if ($rrdval ne "") {
+           if ( (defined $rrdval) && ($rrdval ne "")) {
              $lasttim = $start;
              $lastval = $rrdval;
              push (@retlist, $start);
@@ -114,85 +126,22 @@
         push(@retlist, $rrdval);
     }
 
-    if (!$time) {
-        print "$lastval";
-    } else {
+    if (!$start) {
+        # correction of raw pressure data
+        if ( $rrd eq "PressureI" ) {
+          $lastval = $lastval + ( $extraopts{$rrd}->{heightNN} / 8.0 );
+          print "$lastval";
+        } 
+        elsif ( $rrd eq "Winddev" ) {
+          $lastval = 22.5 * $lastval;
+          print "$lastval";
+        } 
+        else {
+          print "$lastval";
+        }
+    } 
+    else {
         print scalar localtime($lasttim);
     }
-    #return wantarray ? @retlist : $retlist[0];
-</%init>
-
-</%def>
-
-
-<%def GetWindDir>
-
-
-<%args>
-   $wdir => undef;
-</%args>
-
-
-<%init>
-     my $wdirsym;
-     my @retlist;
-
-     $m->clear_buffer;
-     if ( ((348.75 <= $wdir) && ( $wdir < 360 )) || 
-          ((0 <= $wdir ) && ($wdir < 11.25)) ) {
-         $wdirsym = "N";
-     }
-     elsif ( ( 11.25 <= $wdir) && ( $wdir < 33.75 ) )  {
-         $wdirsym = "NNE";
-     }
-     elsif ( ( 33.75 <= $wdir) && ( $wdir < 56.25 ) )  {
-         $wdirsym = "NE";
-     }
-     elsif ( ( 56.25 <= $wdir) && ( $wdir < 78.75 ) )  {
-         $wdirsym = "ENE";
-     }
-     elsif ( ( 78.75 <= $wdir) && ( $wdir < 101.25 ) )  {
-         $wdirsym = "E";
-     }
-     elsif ( ( 101.25 <= $wdir) && ( $wdir < 123.75 ) )  {
-         $wdirsym = "ESE";
-     }
-     elsif ( ( 123.75 <= $wdir) && ( $wdir < 146.25 ) )  {
-         $wdirsym = "SE";
-     }
-     elsif ( ( 146.25 <= $wdir) && ( $wdir < 168.75 ) )  {
-         $wdirsym = "SSE";
-     }
-     elsif ( ( 168.75 <= $wdir) && ( $wdir < 191.25 ) )  {
-         $wdirsym = "S";
-     }
-     elsif ( ( 191.25 <= $wdir) && ( $wdir < 213.75 ) )  {
-         $wdirsym = "SSW";
-     }
-     elsif ( ( 213.75 <= $wdir) && ( $wdir < 236.25 ) )  {
-         $wdirsym = "SW";
-     }
-     elsif ( ( 236.25 <= $wdir) && ( $wdir < 258.75 ) )  {
-         $wdirsym = "WSW";
-     }
-     elsif ( ( 258.75 <= $wdir) && ( $wdir < 281.25 ) )  {
-         $wdirsym = "W";
-     }
-     elsif ( ( 281.25 <= $wdir) && ( $wdir < 303.75 ) )  {
-         $wdirsym = "WNW";
-     }
-     elsif ( ( 303.75 <= $wdir) && ( $wdir < 326.25 ) )  {
-         $wdirsym = "NW";
-     }
-     elsif ( ( 326.25 <= $wdir) && ( $wdir < 348.75 ) )  {
-         $wdirsym = "NNW";
-     }
-     else {
-         $wdirsym = "NNN";
-     }
-     
-     push(@retlist, $wdirsym);
      return wantarray ? @retlist : $retlist[0];
 </%init>
-
-</%def>
