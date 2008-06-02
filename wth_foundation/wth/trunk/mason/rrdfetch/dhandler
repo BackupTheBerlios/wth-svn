@@ -14,7 +14,8 @@
 </%flags>
 
 <%args>
-     $rrd
+     $rrd   => undef
+     $ds    => undef
      $start => undef
 </%args>
 
@@ -34,7 +35,7 @@ s/^\n//g;
     my $logfile = ">>/tmp/rrdfetch.log";
     my $logtime;
     my $rrdval;
-
+    my $sstart;
 
     #%fetchopts;
 
@@ -43,69 +44,88 @@ s/^\n//g;
     my $dsname;
     my @retlist;
     my $return;
+    my $comp = $m->current_comp;
 
     $m->clear_buffer;
     open(DFH,"$logfile")
       or die "Can't open logfile";
+
+    *DFH = *STDOUT;
+
     $logtime = localtime;
     $logtime = $logtime . " RRDFetch:";
    
     # read configfile
-    my $configfile = "/tmp/wthrrd.conf";
+    my $configfile = "./wthrrd.conf";
     unless ( $return = do $configfile)  {
       die "Couldn't parse configfile: $configfile: $@" if $@;
       die "Couldn't do configfile: $configfile: $!"    unless defined $return;
       die "Couldn't run configfile: $configfile"       unless $return;
     } 
-    print "testvariable: $testvariable\n";
 
     # check if $rrd is a valid datasource
     print DFH "$logtime starting execution\n";
     print DFH "$logtime checking available sensors\n";
     foreach $sensor ( keys %fetchopts ) {
-        print DFH "RRDFetch: $sensor\n";
+        print  DFH "$logtime \$sensor: $sensor\n";
         if ( $rrd eq $sensor ) {
-	    print DFH  "$logtime sensor valid: $sensor\n";
+	    print DFH  "$logtime \$sensor valid: $sensor\n";
             $rrdok = 1;
         }
     }
+    print DFH "$logtime checking sensors done: OK\n";
 
     if ( $rrdok) {
-       print DFH "$logtime $rrd: rrdfile : \"$extraopts{$rrd}->{rrdfile}\"\n";
+       print DFH "$logtime $rrd: using rrdfile : \"$extraopts{$rrd}->{rrdfile}\"\n";
 
-       @fetchstr = ();
+       my @fetchstr = ();
        push ( @fetchstr, $extraopts{$rrd}->{rrdfile} );
        foreach my $fopt ( keys %{ $fetchopts{$rrd}} ) {
             push ( @fetchstr, $fopt);
             push ( @fetchstr, $fetchopts{$rrd}{$fopt});
        }
-       if ( defined @fetchstr ) {
-         print DFH "$logtime fetchstr: ", @fetchstr, "\n"; 
-       }
-       print "length: $#fetchstr\n";
-       my ($start,$step,$names,$array) = 
+
+       $#fetchstr = $#fetchstr -1;
+
+       print DFH "$logtime \@fetchstr: @fetchstr\n";
+       print DFH "$logtime length \@fetchstr: $#fetchstr\n";
+       #print Dumper(@fetchstr);
+
+       my ($sstart,$step,$names,$array) = 
            RRDs::fetch @fetchstr;
 
        $ERROR = RRDs::error;
        print DFH "$logtime ERROR: $ERROR\n" if $ERROR ;
 
-       foreach $rrdval (@$names) {
-         $dsname = $rrdval if ($rrdval ne "");
+       print DFH "$logtime checking DS \"$ds\"\n";
+       foreach $dsrrd (@$names) {
+         print DFH "$logtime \$rrdval: DS: \"$dsrrd\" \"$ds\"\n";
+         if ( $dsrrd eq $ds ) {
+           print DFH "$logtime DS found : $dsrrd\n";
+           $dsname = $dsrrd;
+	 }
        }
+       print DFH "$logtime checking DS done: OK\n";
 
        #
        # get last entry in rrd and store to $lastval
        #
        foreach $line (@$array){
+         print Dumper @$line;
+         print "line done\n";
+         print DFH "$logtime length \$line: $#line\n";
+         # print DFH "$logtime line: ", @$line, "\n";
          foreach $rrdval (@$line) {
+           #print DFH $rrdval;
            if ( (defined $rrdval) && ($rrdval ne "")) {
-             $lasttim = $start;
+             $lasttim = $sstart;
              $lastval = $rrdval;
-             push (@retlist, $start);
+             push (@retlist, $sstart);
              push (@retlist, $rrdval);
            }
          }
-         $start += $step;
+         #printf DFH "\n";
+         $sstart += $step;
        }
 
        #
