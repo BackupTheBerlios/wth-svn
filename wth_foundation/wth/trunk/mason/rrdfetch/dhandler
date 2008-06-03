@@ -2,7 +2,8 @@
 
   rrdfetch Mason component
 
-  dhandler, called via http://<hostname>/rrdfetch/?rrd=<sensor>  
+  dhandler, called via 
+    http://<hostname>/rrdfetch/?rrd=<sensor>&ds=<dsname>&start=<start>  
 
   rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
   mason:   http://www.masonhq.com
@@ -63,9 +64,8 @@ s/^\n//g;
       die "Couldn't run configfile: $configfile"       unless $return;
     } 
 
-    # check if $rrd is a valid datasource
     print DFH "$logtime starting execution\n";
-    print DFH "$logtime checking available sensors\n";
+    print DFH "$logtime checking configured sensors ( each sensor has its own rrd)\n";
     foreach $sensor ( keys %fetchopts ) {
         print  DFH "$logtime \$sensor: $sensor\n";
         if ( $rrd eq $sensor ) {
@@ -98,31 +98,34 @@ s/^\n//g;
        print DFH "$logtime ERROR: $ERROR\n" if $ERROR ;
 
        print DFH "$logtime checking DS \"$ds\"\n";
+       my $dsiter = 0;
+       my $dsnum  = 0;
        foreach $dsrrd (@$names) {
-         print DFH "$logtime \$rrdval: DS: \"$dsrrd\" \"$ds\"\n";
+         print DFH "$logtime DS: \"$dsrrd\" \"$ds\"\n";
          if ( $dsrrd eq $ds ) {
-           print DFH "$logtime DS found : $dsrrd\n";
+           $dsnum = $dsiter;
            $dsname = $dsrrd;
+           print DFH "$logtime DS found : \$dsname: $dsname \$dsnum: $dsnum\n";
 	 }
+         $dsiter++;
        }
        print DFH "$logtime checking DS done: OK\n";
 
        #
        # get last entry in rrd and store to $lastval
-       #
+       # each rrd must contain one datasource
        foreach $line (@$array){
-         print Dumper @$line;
-         print "line done\n";
-         print DFH "$logtime length \$line: $#line\n";
-         # print DFH "$logtime line: ", @$line, "\n";
-         foreach $rrdval (@$line) {
-           #print DFH $rrdval;
-           if ( (defined $rrdval) && ($rrdval ne "")) {
+         #print Dumper @$line;
+         $dsiter = 0;
+         foreach my $dsval (@$line) {
+           if ( (defined $dsval) && ($dsval ne "") && ( $dsiter == $dsnum)) {
+             print DFH "$logtime \$dsval: $dsval\n";
              $lasttim = $sstart;
-             $lastval = $rrdval;
+             $lastval = $dsval;
              push (@retlist, $sstart);
-             push (@retlist, $rrdval);
+             push (@retlist, $dsval);
            }
+           $dsiter++;
          }
          #printf DFH "\n";
          $sstart += $step;
