@@ -4,6 +4,8 @@
 
   using rrdgraph from within Mason
 
+  
+
   rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
   mason:   http://www.masonhq.com
 
@@ -17,7 +19,6 @@
 </%flags>
 
 
-<& /RRDConf &>
 <& RRDGraph, %ARGS &>
 
 
@@ -26,11 +27,13 @@
 <%args>
      $rrd   => undef;
      $start => undef;
+     $ds    => undef;
 </%args>
 
 <%init>
     use Image::Magick;
     use RRDs;
+    use Data::Dumper;
 
     my $DAY   = 86400;
     my $WEEK  = 604800;
@@ -39,7 +42,8 @@
 
     my $ERROR;
 
-    my $Logtime;
+    my $logfile = ">>/tmp/rrdgraph.log";
+    my $logtime;
     my @graphstr;
     my $gopt;
     my $imagefile = "/tmp/$rrd.png";
@@ -48,22 +52,35 @@
     my $sensor    = "";
     my $errortext = "";
 
-    open(DFH,">>/tmp/debug.rrdgraphmason");
+    open(DFH,"$logfile")
+      or die "Can't open logfile";
 
-    $Logtime = localtime;
+    *DFH = *STDOUT;
+    $logtime = localtime;
+    $logtime = $logtime . " RRDFetch:";
+    $logtime = localtime;
+
+    # read configfile
+    my $configfile = "./wthrrd.conf";
+    unless ( $return = do $configfile)  {
+      die "Couldn't parse configfile: $configfile: $@" if $@;
+      die "Couldn't do configfile: $configfile: $!"    unless defined $return;
+      die "Couldn't run configfile: $configfile"       unless $return;
+    } 
+
+    print DFH "$logtime starting execution\n";
+    print DFH "$logtime checking configured sensors ( each sensor has its own rrd)\n";
     # check if $rrd is a valid datasource
     foreach $sensor ( keys %graphopts ) {
-	print DFH "$Logtime sensor: $sensor\n";
+	print DFH "$logtime sensor: $sensor\n";
         if ( $rrd eq $sensor ) {
+            print DFH "$logtime sensor matches: $rrd\n";
             $rrdok = 1;
         }
     }	
-
-    print DFH "$Logtime start: $START\n";
+    print DFH "$logtime checking sensors done: OK\n";
 
     if ( $rrdok) {
-        print DFH "$Logtime sensor: $rrd, sensor: $sensor\n";
-#    	print DFH "$Logtime $rrd: @{ $graphopts{$rrd}}\n";
 
         @graphstr = ();
         push( @graphstr, $imagefile);
@@ -75,13 +92,13 @@
 
         push ( @graphstr, @{ $graphdefs{$rrd}});
 
-        print DFH "$Logtime graphstr: @graphstr\n";
+        print DFH "$logtime graphstr: @graphstr\n";
         RRDs::graph @graphstr;
     	#RRDs::graph @{ $graphopts{$rrd}};
 
     	if ($ERROR = RRDs::error) {
             $errortext = "RRDs ERROR:\n$ERROR";
-            print DFH "$Logtime ERROR: $ERROR\n";
+            print DFH "$logtime ERROR: $ERROR\n";
     	} else {
     	    $r->content_type("image/png");
     	    $r->send_http_header();
@@ -94,7 +111,7 @@
     	    $m->clear_buffer; 
     	    $m->print($file);
     	    unlink ($imagefile);
-    	    close DFH;
+    	    #close DFH;
     	    $m->abort();
         }
     } else {
@@ -109,7 +126,7 @@
         $image->ReadImage('xc:white');
         $image->Annotate( pointsize => 18, gravity=>'Center',
                           text=>$errortext);
-    	$r->content_type("image/png");
+    	#$r->content_type("image/png");
     	$m->clear_buffer;
         $image->Write($imagefile);
 
@@ -118,7 +135,7 @@
     	my $file = <FH>;
     	$m->print($file);
     	unlink ($imagefile);
-    	close DFH;
+    	#close DFH;
     	$m->abort();
     } 
 

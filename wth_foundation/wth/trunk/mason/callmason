@@ -13,6 +13,7 @@ my $interp = new HTML::Mason::Interp ( comp_root  =>$comproot,
                                        use_strict => 0);
 
 #my $retval = $interp->exec('/rrdfetch', rrd=>'PressureI', start=>'-86400');
-my $retval = $interp->exec('/rrdfetch', rrd=>'Indoorsensor', ds =>'Pressure');
+#my $retval = $interp->exec('/rrdfetch', rrd=>'Indoorsensor', ds =>'Pressure');
 #my $retval = $interp->exec('/rrdfetch', rrd=>'PressureI', ds =>'PressureI');
+my $retval = $interp->exec('/rrdgraph', rrd=>'PressureI', ds =>'PressureI');
 print $outbuf;
