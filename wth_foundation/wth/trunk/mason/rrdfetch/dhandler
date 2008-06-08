@@ -76,10 +76,17 @@ s/^\n//g;
     print DFH "$logtime checking sensors done: OK\n";
 
     if ( $rrdok) {
-       print DFH "$logtime $rrd: using rrdfile : \"$extraopts{$rrd}->{rrdfile}\"\n";
+       my $rrdfile = $extraopts{$rrd}->{rrdfile};
+       print Dumper $rrdfile;
+       print DFH "$logtime $rrd: using rrdfile : \"$rrdfile\"\n";
+       if ( -r $rrdfile) {
+          print DFH "$logtime rrdfile was found at: $rrdfile\n";
+       } else {
+          die "file does'nt exist: \"$rrdfile\"";
+       }
 
        my @fetchstr = ();
-       push ( @fetchstr, $extraopts{$rrd}->{rrdfile} );
+       push ( @fetchstr, $rrdfile );
        foreach my $fopt ( keys %{ $fetchopts{$rrd}} ) {
             push ( @fetchstr, $fopt);
             push ( @fetchstr, $fetchopts{$rrd}{$fopt});
