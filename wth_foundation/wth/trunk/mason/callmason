@@ -45,11 +45,12 @@ $r->content_type('text/xml');
 my $interp = new HTML::Mason::Interp ( comp_root  =>$comproot, 
                                        data_dir   =>$dataroot, 
                                        out_method =>\$outbuf,
-                                       allow_globals => [ '%fetchopts', '%extraopts', '$r'],
+                                       allow_globals => [ '%fetchopts', '%extraopts', '%graphopts', '%graphdefs'],
                                        use_strict => 0);
 
 #my $retval = $interp->exec('/rrdfetch', rrd=>'PressureI', start=>'-86400');
 #my $retval = $interp->exec('/rrdfetch', rrd=>'Indoorsensor', ds =>'Pressure');
 #my $retval = $interp->exec('/rrdfetch', rrd=>'PressureI', ds =>'PressureI');
-my $retval = $interp->exec('/rrdgraph', rrd=>'PressureI', ds =>'PressureI');
+#my $retval = $interp->exec('/rrdgraph', rrd=>'PressureI', ds =>'PressureI');
+my $retval = $interp->exec('/rrdgraph', rrd=>'Indoorsensor', ds =>'Pressure');
 print $outbuf;

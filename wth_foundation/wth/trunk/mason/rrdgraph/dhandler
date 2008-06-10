@@ -2,8 +2,10 @@
 
   rrdgraph Mason component
 
-  using rrdgraph from within Mason
+  using rrdtool graph from within Mason
 
+  usage:
+  http://<hostname>/rrdgraph?rrd=Indoorsensor&ds=Pressure&start=-86400
   
 
   rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
@@ -18,11 +20,6 @@
     inherit => undef
 </%flags>
 
-
-<& RRDGraph, %ARGS &>
-
-
-<%def RRDGraph>
 
 <%args>
      $rrd   => undef;
@@ -55,7 +52,7 @@
     open(DFH,"$logfile")
       or die "Can't open logfile";
 
-    #*DFH = *STDOUT;
+    *DFH = *STDOUT;
     $logtime = localtime;
     $logtime = $logtime . " RRDFetch:";
     $logtime = localtime;
@@ -81,7 +78,7 @@
     print DFH "$logtime checking sensors done: OK\n";
 
     if ( $rrdok) {
-
+        print DFH "$logtime sensor matches: $rrd\n";
         @graphstr = ();
         push( @graphstr, $imagefile);
 
@@ -109,13 +106,14 @@
 
     	    #$r->content_type("image/png");
     	    $m->clear_buffer; 
-    	    $m->print($file);
-    	    unlink ($imagefile);
+    	    #$m->print($file);
+    	    #unlink ($imagefile);
     	    close DFH;
     	    $m->abort();
         }
     } else {
         $errortext = "Can't find sensor : \"$rrd\"!";
+        printf DFH "$logtime $errortext\n";
     }
 
 
@@ -133,12 +131,10 @@
     	open(FH,"<$imagefile");
     	undef $/;
     	my $file = <FH>;
-    	$m->print($file);
-    	unlink ($imagefile);
+    	#$m->print($file);
+    	#unlink ($imagefile);
     	close DFH;
     	$m->abort();
     } 
 
 </%init>
-
-</%def>
