@@ -180,7 +180,7 @@ Sock_ntop(const struct sockaddr *sa, socklen_t salen)
 
 
 int
-daemon_init(const char *pname, int facility)
+daemon_init( )
 {
 	int		i;
 	pid_t	pid;
@@ -205,7 +205,7 @@ daemon_init(const char *pname, int facility)
 	for (i = 0; i < MAXFD; i++)
 		close(i);
 
-	openlog(pname, LOG_PID, facility);
+	//openlog(pname, LOG_PID, facility);
 
 	return(0);
 }

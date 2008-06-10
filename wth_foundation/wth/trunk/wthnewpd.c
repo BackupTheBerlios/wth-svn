@@ -17,7 +17,7 @@
 int
 main ( int argc, char **argv ) 
 {
-  int ret;
+  int op, ret, nobg;
   pthread_t ptid, wtid, stoptid;
   sigset_t signals_to_block;
 
@@ -26,8 +26,34 @@ main ( int argc, char **argv )
   if  (( ret = wthd_init()) != 0 ) {
     printf("wthd: can't initialize. Exit!\n");
   }
-  openlog("wthd", LOG_PID , wsconf.logfacility);
+
+  nobg = 0;
+  /* parse commandline */
+  while ((op = getopt(argc, argv, "dp:")) != -1) {
+    switch(op) {
+    case 'd':
+      nobg = 1;
+      break;
+    case 'p':
+      wsconf.port = strdup(optarg);
+      break;
+    case '?':
+      usaged(1,"command line error","");
+      break;
+    default:
+      usaged(0, "", "");
+    }
+  }
+
+
+  if ( nobg == 0 ) {
+    daemon_init();
+    openlog("wthd", LOG_PID , wsconf.logfacility);
+  } else {
+    openlog("wthd", LOG_PID | LOG_PERROR , wsconf.logfacility);
+  }
   syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
+
   unlink( ws2000lck);
   tzset();
 

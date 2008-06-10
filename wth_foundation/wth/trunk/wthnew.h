@@ -267,7 +267,7 @@ int Setsockopt(int, int, int, const void *, socklen_t);
 int Writen(int, void *, size_t);  
 const char *inet_ntop(int, const void *, char *, size_t);
 int inet_pton(int, const char *, void *); 
-
+int daemon_init( );
 int chklockf( const char *lockfile);
 int setlck( const char *lockfile);
 int unlck( const char *lockfile, int fd);

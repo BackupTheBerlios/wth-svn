@@ -55,7 +55,7 @@
     open(DFH,"$logfile")
       or die "Can't open logfile";
 
-    *DFH = *STDOUT;
+    #*DFH = *STDOUT;
     $logtime = localtime;
     $logtime = $logtime . " RRDFetch:";
     $logtime = localtime;
@@ -100,18 +100,18 @@
             $errortext = "RRDs ERROR:\n$ERROR";
             print DFH "$logtime ERROR: $ERROR\n";
     	} else {
-    	    $r->content_type("image/png");
-    	    $r->send_http_header();
+    	    #$r->content_type("image/png");
+    	    #$r->send_http_header();
 
     	    open(FH,"<$imagefile");
     	    undef $/;
     	    my $file = <FH>;
 
-    	    $r->content_type("image/png");
+    	    #$r->content_type("image/png");
     	    $m->clear_buffer; 
     	    $m->print($file);
     	    unlink ($imagefile);
-    	    #close DFH;
+    	    close DFH;
     	    $m->abort();
         }
     } else {
@@ -135,7 +135,7 @@
     	my $file = <FH>;
     	$m->print($file);
     	unlink ($imagefile);
-    	#close DFH;
+    	close DFH;
     	$m->abort();
     } 
 

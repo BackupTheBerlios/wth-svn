@@ -15,7 +15,6 @@
 
 
 
-
 srcdir = .
 top_srcdir = .
 
@@ -39,8 +38,7 @@ POST_UNINSTALL = :
 build_triplet = i386-unknown-freebsd6.2
 host_triplet = i386-unknown-freebsd6.2
 target_triplet = i386-unknown-freebsd6.2
-bin_PROGRAMS = wthc$(EXEEXT) wthd$(EXEEXT) wthnewd$(EXEEXT) \
-	wthnewpd$(EXEEXT)
+bin_PROGRAMS = wthnewpd$(EXEEXT)
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -56,30 +54,9 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
-LIBRARIES = $(noinst_LIBRARIES)
-AR = ar
-ARFLAGS = cru
-libwth_a_AR = $(AR) $(ARFLAGS)
-libwth_a_LIBADD =
-am_libwth_a_OBJECTS = libwth.$(OBJEXT) serial.$(OBJEXT) net.$(OBJEXT)
-libwth_a_OBJECTS = $(am_libwth_a_OBJECTS)
-libwthxml_a_AR = $(AR) $(ARFLAGS)
-libwthxml_a_LIBADD =
-libwthxml_a_SOURCES = libwthxml.c
-libwthxml_a_OBJECTS = libwthxml.$(OBJEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_wthc_OBJECTS = wthc.$(OBJEXT)
-wthc_OBJECTS = $(am_wthc_OBJECTS)
-wthc_DEPENDENCIES = libwth.a
-am_wthd_OBJECTS = wthd.$(OBJEXT)
-wthd_OBJECTS = $(am_wthd_OBJECTS)
-wthd_DEPENDENCIES = libwth.a
-am_wthnewd_OBJECTS = wthnewd.$(OBJEXT) utilnew.$(OBJEXT) \
-	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT)
-wthnewd_OBJECTS = $(am_wthnewd_OBJECTS)
-wthnewd_LDADD = $(LDADD)
 am_wthnewpd_OBJECTS = wthnewpd.$(OBJEXT) utilnew.$(OBJEXT) \
 	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT) \
 	wthdb.$(OBJEXT)
@@ -92,10 +69,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
-	$(wthd_SOURCES) $(wthnewd_SOURCES) $(wthnewpd_SOURCES)
-DIST_SOURCES = $(libwth_a_SOURCES) libwthxml.c $(wthc_SOURCES) \
-	$(wthd_SOURCES) $(wthnewd_SOURCES) $(wthnewpd_SOURCES)
+SOURCES = $(wthnewpd_SOURCES)
+DIST_SOURCES = $(wthnewpd_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -195,46 +170,12 @@ target_alias =
 target_cpu = i386
 target_os = freebsd6.2
 target_vendor = unknown
-noinst_LIBRARIES = libwth.a libwthxml.a
-libwth_a_SOURCES = libwth.c serial.c net.c wth.h wthnet.h wthprv.h 
-#bin_PROGRAMS = wthc wthd wthxc wthxmld 
-wthc_SOURCES = wthc.c wth.h
-#wthc_LDADD = libwth.a -L/usr/local/lib -lmpatrol
-wthc_LDADD = libwth.a 
-wthd_SOURCES = wthd.c wth.h 
-#wthd_LDADD = $(top_builddir)/libwth.a -lmpatrol -lbfd -liberty
-wthd_LDADD = libwth.a
-wthnewd_SOURCES = wthnew.h wthnewd.c utilnew.c pcwsr.c ws2000.c netnew.c
-wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c pcwsr.c ws2000.c netnew.c \
+wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c \
+  pcwsr.c ws2000.c netnew.c \
   wthdb.c
 
 wthnewpd_LDADD = -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th
-
-#wthxc_SOURCES = wthxc.c wth.h 
-#wthxc_LDADD = $(top_builddir)/libwthxml.a \
-#		-lmd5 -lwwwcore -lwwwxml \
-#		-lwwwzip -lwwwinit -lwwwapp \
-#		-lwwwhtml -lwwwtelnet -lwwwnews \
-#		-lwwwhttp -lwwwmime -lwwwgopher \
-#		-lwwwftp -lwwwfile -lwwwdir \
-#		-lwwwcache -lwwwstream -lwwwmux \
-#		-lwwwtrans -lwwwutils -lxmlrpc \
-#		-lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
-
-#wthxmld_SOURCES = wthxmld.c wth.h 
-#wthxmld_LDADD =  $(top_builddir)/libwthxml.a -lxmlrpc -lxmlrpc_abyss \
-#		-lxmlrpc_abyss_server -lxmlrpc_xmlparse \
-#		-lxmlrpc_xmltok \
-#		-lmd5 -lwwwcore -lwwwxml \
-#		-lwwwzip -lwwwinit -lwwwapp \
-#		-lwwwhtml -lwwwtelnet -lwwwnews \
-#		-lwwwhttp -lwwwmime -lwwwgopher \
-#		-lwwwftp -lwwwfile -lwwwdir \
-#		-lwwwcache -lwwwstream -lwwwmux \
-#		-lwwwtrans -lwwwutils -lxmlrpc \
-#		-lxmlrpc_client -lxmlrpc_xmlparse -lxmlrpc_xmltok
-noinst_HEADERS = wth.h wthnet.h wthprv.h
-EXTRA_DIST = abyss/conf/abyss.conf wth-xmlrpc php/ postgres/ example/ Flash/
+noinst_HEADERS = wthnew.h 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -290,17 +231,6 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-
-clean-noinstLIBRARIES:
-	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-libwth.a: $(libwth_a_OBJECTS) $(libwth_a_DEPENDENCIES) 
-	-rm -f libwth.a
-	$(libwth_a_AR) libwth.a $(libwth_a_OBJECTS) $(libwth_a_LIBADD)
-	$(RANLIB) libwth.a
-libwthxml.a: $(libwthxml_a_OBJECTS) $(libwthxml_a_DEPENDENCIES) 
-	-rm -f libwthxml.a
-	$(libwthxml_a_AR) libwthxml.a $(libwthxml_a_OBJECTS) $(libwthxml_a_LIBADD)
-	$(RANLIB) libwthxml.a
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
@@ -324,15 +254,6 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-wthc$(EXEEXT): $(wthc_OBJECTS) $(wthc_DEPENDENCIES) 
-	@rm -f wthc$(EXEEXT)
-	$(LINK) $(wthc_LDFLAGS) $(wthc_OBJECTS) $(wthc_LDADD) $(LIBS)
-wthd$(EXEEXT): $(wthd_OBJECTS) $(wthd_DEPENDENCIES) 
-	@rm -f wthd$(EXEEXT)
-	$(LINK) $(wthd_LDFLAGS) $(wthd_OBJECTS) $(wthd_LDADD) $(LIBS)
-wthnewd$(EXEEXT): $(wthnewd_OBJECTS) $(wthnewd_DEPENDENCIES) 
-	@rm -f wthnewd$(EXEEXT)
-	$(LINK) $(wthnewd_LDFLAGS) $(wthnewd_OBJECTS) $(wthnewd_LDADD) $(LIBS)
 wthnewpd$(EXEEXT): $(wthnewpd_OBJECTS) $(wthnewpd_DEPENDENCIES) 
 	@rm -f wthnewpd$(EXEEXT)
 	$(LINK) $(wthnewpd_LDFLAGS) $(wthnewpd_OBJECTS) $(wthnewpd_LDADD) $(LIBS)
@@ -343,18 +264,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/libwth.Po
-include ./$(DEPDIR)/libwthxml.Po
-include ./$(DEPDIR)/net.Po
 include ./$(DEPDIR)/netnew.Po
 include ./$(DEPDIR)/pcwsr.Po
-include ./$(DEPDIR)/serial.Po
 include ./$(DEPDIR)/utilnew.Po
 include ./$(DEPDIR)/ws2000.Po
-include ./$(DEPDIR)/wthc.Po
-include ./$(DEPDIR)/wthd.Po
 include ./$(DEPDIR)/wthdb.Po
-include ./$(DEPDIR)/wthnewd.Po
 include ./$(DEPDIR)/wthnewpd.Po
 
 .c.o:
@@ -423,7 +337,6 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/abyss/conf
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -549,7 +462,7 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES) $(PROGRAMS) $(HEADERS) config.h
+all-am: Makefile $(PROGRAMS) $(HEADERS) config.h
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
@@ -580,8 +493,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-noinstLIBRARIES \
-	mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -632,34 +544,19 @@ ps-am:
 uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 
 .PHONY: CTAGS GTAGS all all-am am--refresh check check-am clean \
-	clean-binPROGRAMS clean-generic clean-noinstLIBRARIES ctags \
-	dist dist-all dist-bzip2 dist-gzip dist-shar dist-tarZ \
-	dist-zip distcheck distclean distclean-compile \
-	distclean-generic distclean-hdr distclean-tags distcleancheck \
-	distdir distuninstallcheck dvi dvi-am html html-am info \
-	info-am install install-am install-binPROGRAMS install-data \
-	install-data-am install-exec install-exec-am install-info \
-	install-info-am install-man install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS uninstall-info-am
+	clean-binPROGRAMS clean-generic ctags dist dist-all dist-bzip2 \
+	dist-gzip dist-shar dist-tarZ dist-zip distcheck distclean \
+	distclean-compile distclean-generic distclean-hdr \
+	distclean-tags distcleancheck distdir distuninstallcheck dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-binPROGRAMS install-data install-data-am install-exec \
+	install-exec-am install-info install-info-am install-man \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-info-am
 
-
-xmltest: wthxmld wthxc
-	-killall wthxmld
-	-wthxmld abyss/conf/abyss.conf
-	-wthxc -c0 -h localhost -x
-	-wthxc -c5 -h localhost -x
-	-wthxc -c6 -i5 -h localhost -x	
-	-wthxc -c5 -h localhost -x
-	-wthxc -c6 -i3 -h localhost -x	
-	-wthxc -c5 -h localhost -x
-	-wthxc -c4 -h localhost -x
-	-wthxc -c5 -h localhost -x
-	-wthxc -c3 -h localhost -x
-	-wthxc -c5 -h localhost -x
-	-killall wthxmld
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
