@@ -91,7 +91,7 @@ main ( int argc, char **argv )
   }
   /* handling interactive commands */
   //pthread_create( &ctid, NULL, cmd_hd, NULL);
-  //pthread_join( &tid_cmd_hd, NULL);
+  //pthread_join( &tid_telnet_hd, NULL);
 
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
     pthread_join( ptid, NULL);
