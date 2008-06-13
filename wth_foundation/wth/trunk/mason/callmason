@@ -6,35 +6,39 @@
 
 use HTML::Mason;
 use HTML::Mason::CGIHandler;
-#use CGI qw(-no_debug);
+
+use Tk;
+use Tk::PNG;
+use MIME::Base64;
 
 use strict; 
 my $comproot = "/proj/wetter/software/serial/wth/wth_foundation/wth/trunk/mason/";
 my $dataroot = "/proj/wetter/software/serial/wth/wth_foundation/wth/trunk/mason/data";
 my $outbuf;
 
-%ENV = ( 'SCRIPT_NAME'          => '/login/welcome.html',
-         'REQUEST_METHOD'       => 'GET',
-         'HTTP_ACCEPT'          => 'text/html',
-         'HTTP_USER_AGENT'      => 'Mozilla/5.0',
-         'HTTP_CACHE_CONTROL'   => 'max-age=0',
-         'HTTP_ACCEPT_LANGUAGE' => 'en-us,en;q=0.5',
-         'HTTP_KEEP_ALIVE'      => '300',
-         'GATEWAY_INTERFACE'    => 'CGI-Perl/1.1',
-         'DOCUMENT_ROOT'        => '/usr/local/bricolage/comp',
-         'HTTP_REFERER'         => 'http://localhost/',
-         'HTTP_ACCEPT_ENCODING' => 'gzip,deflate',
-         'HTTP_CONNECTION'      => 'keep-alive',
-         'HTTP_ACCEPT_CHARSET'  => 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-         'HTTP_COOKIE'          => 'FOO=BAR; HEY=You',
-         'HTTP_HOST'            => 'localhost',
-         'AUTH_TYPE'            => 'Something',
-         'CONTENT_TYPE'         => 'text/html',
-         'CONTENT_LENGTH'       => 42,
-         'REQUEST_METHOD'       => 'GET',
-         'PATH_INFO'            => '/index.html',
-         'QUERY_STRING'         => "foo=1&bar=2&you=3&you=4",
-       );
+#%ENV = ( 'SCRIPT_NAME'          => '/login/welcome.html',
+#         'REQUEST_METHOD'       => 'GET',
+#         'HTTP_ACCEPT'          => 'text/html',
+#         'HTTP_USER_AGENT'      => 'Mozilla/5.0',
+#         'HTTP_CACHE_CONTROL'   => 'max-age=0',
+#         'HTTP_ACCEPT_LANGUAGE' => 'en-us,en;q=0.5',
+#         'HTTP_KEEP_ALIVE'      => '300',
+#         'GATEWAY_INTERFACE'    => 'CGI-Perl/1.1',
+#         'DOCUMENT_ROOT'        => '/usr/local/bricolage/comp',
+#         'HTTP_REFERER'         => 'http://localhost/',
+#         'HTTP_ACCEPT_ENCODING' => 'gzip,deflate',
+#         'HTTP_CONNECTION'      => 'keep-alive',
+#         'HTTP_ACCEPT_CHARSET'  => 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+#         'HTTP_COOKIE'          => 'FOO=BAR; HEY=You',
+#         'HTTP_HOST'            => 'localhost',
+#         'AUTH_TYPE'            => 'Something',
+#         'CONTENT_TYPE'         => 'text/html',
+#         'CONTENT_LENGTH'       => 42,
+#         'REQUEST_METHOD'       => 'GET',
+#         'PATH_INFO'            => '/index.html',
+#         'QUERY_STRING'         => "foo=1&bar=2&you=3&you=4",
+#         'DISPLAY'              => "0:0"
+#       );
 
 # Now create a fake apache object.
 my $r = HTML::Mason::FakeApache->new;
@@ -53,4 +57,27 @@ my $interp = new HTML::Mason::Interp ( comp_root  =>$comproot,
 #my $retval = $interp->exec('/rrdfetch', rrd=>'PressureI', ds =>'PressureI');
 #my $retval = $interp->exec('/rrdgraph', rrd=>'PressureI', ds =>'PressureI');
 my $retval = $interp->exec('/rrdgraph', rrd=>'Indoorsensor', ds =>'Pressure');
-print $outbuf;
+
+my $data = encode_base64($outbuf);
+
+print "DISPLAY: \"$ENV{DISPLAY}\"\n";
+if ( $ENV{DISPLAY}) {
+  my $main = new MainWindow;
+  my $quit_command = sub{exit};
+  $main ->Label(-text => 'Main')->pack;
+  $main->bind('<Control-Key-q>' => $quit_command);
+
+  $main ->Photo("Indoorsensor",
+             -data => $data, -format => 'PNG');
+  #$main->Label('-image' => "Pressure")->pack;
+  $main->Button(
+      -text    => 'Quit',
+      -underline => 0,
+      -command => $quit_command,
+  )->pack(-side => 'left');
+  MainLoop;
+} else {
+ print "DISPLAY is not set. Cannot run in terminal!\n";
+}
+
+#print $outbuf;

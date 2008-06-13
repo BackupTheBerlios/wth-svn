@@ -37,25 +37,18 @@
     my $MONTH = 18144000;
     my $START = -86400;
 
-    my $ERROR;
-
     my $logfile = ">>/tmp/rrdgraph.log";
-    my $logtime;
-    my @graphstr;
-    my $gopt;
     my $imagefile = "/tmp/$rrd.png";
 
-    my $rrdok     = 0;
-    my $sensor    = "";
     my $errortext = "";
+    my $sensor    = "";
 
     open(DFH,"$logfile")
       or die "Can't open logfile";
 
-    *DFH = *STDOUT;
-    $logtime = localtime;
+    #*DFH = *STDOUT;
+    my $logtime = localtime;
     $logtime = $logtime . " RRDFetch:";
-    $logtime = localtime;
 
     # read configfile
     my $configfile = "./wthrrd.conf";
@@ -67,7 +60,7 @@
 
     print DFH "$logtime starting execution\n";
     print DFH "$logtime checking configured sensors ( each sensor has its own rrd)\n";
-    # check if $rrd is a valid datasource
+    my $rrdok = 0;
     foreach $sensor ( keys %graphopts ) {
 	print DFH "$logtime sensor: $sensor\n";
         if ( $rrd eq $sensor ) {
@@ -77,36 +70,50 @@
     }	
     print DFH "$logtime checking sensors done: OK\n";
 
+    print DFH "$logtime checking datasources in rrd \"$rrd\"\n";
+    # check if $ds is a valid datasource
+    foreach my $dsname ( keys %{ $graphopts{$rrd}} ) {
+	print DFH "$logtime datasource: $dsname\n";
+        if ( $ds eq $dsname ) {
+            print DFH "$logtime datasource matches: $ds\n";
+            $rrdok = 1;
+        }
+    }	
+    print DFH "$logtime checking datasources done: OK\n";
+
     if ( $rrdok) {
         print DFH "$logtime sensor matches: $rrd\n";
-        @graphstr = ();
+        my @graphstr = ();
         push( @graphstr, $imagefile);
 
-        foreach $gopt ( keys %{ $graphopts{$rrd}} ) {
+        foreach my $gopt ( keys %{ $graphopts{$rrd}{$ds}} ) {
+            print DFH "$logtime gopt: $gopt\n";
             push ( @graphstr, $gopt);
-            push ( @graphstr, $graphopts{$rrd}{$gopt});
+            push ( @graphstr, $graphopts{$rrd}{$ds}{$gopt});
         }
 
-        push ( @graphstr, @{ $graphdefs{$rrd}});
+        push ( @graphstr, @{ $graphdefs{$ds}});
 
         print DFH "$logtime graphstr: @graphstr\n";
         RRDs::graph @graphstr;
     	#RRDs::graph @{ $graphopts{$rrd}};
 
-    	if ($ERROR = RRDs::error) {
+    	if (my $ERROR = RRDs::error) {
             $errortext = "RRDs ERROR:\n$ERROR";
             print DFH "$logtime ERROR: $ERROR\n";
     	} else {
     	    #$r->content_type("image/png");
     	    #$r->send_http_header();
 
-    	    open(FH,"<$imagefile");
+    	    open(FH,"<$imagefile") or 
+              die "Can't open $imagefile: $@";
+
     	    undef $/;
     	    my $file = <FH>;
 
     	    #$r->content_type("image/png");
     	    $m->clear_buffer; 
-    	    #$m->print($file);
+    	    $m->print($file);
     	    #unlink ($imagefile);
     	    close DFH;
     	    $m->abort();
@@ -131,8 +138,8 @@
     	open(FH,"<$imagefile");
     	undef $/;
     	my $file = <FH>;
-    	#$m->print($file);
-    	#unlink ($imagefile);
+    	$m->print($file);
+    	unlink ($imagefile);
     	close DFH;
     	$m->abort();
     } 
