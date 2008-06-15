@@ -62,15 +62,15 @@ my $data = encode_base64($outbuf);
 
 print "DISPLAY: \"$ENV{DISPLAY}\"\n";
 if ( $ENV{DISPLAY}) {
-  my $main = new MainWindow;
+  my $main = MainWindow->new( -title => "mason rrdgraph");
   my $quit_command = sub{exit};
-  $main ->Label(-text => 'Main')->pack;
   $main->bind('<Control-Key-q>' => $quit_command);
 
-  $main ->Photo("Indoorsensor",
+  my $image = $main ->Photo("Indoorsensor",
              -data => $data, -format => 'PNG');
   #$main->Label('-image' => "Pressure")->pack;
   $main->Button(
+      -image => $image,
       -text    => 'Quit',
       -underline => 0,
       -command => $quit_command,
