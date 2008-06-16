@@ -1,5 +1,13 @@
 wth - experimental test release 
 
+release 0.5.0
+- logging to rrd and sqlite databases
+- rrdtool mason integration for deployment on apache
+- data logging improved, now respects the sensor new flag
+- incorporates support for both WS2000 weatherstation by Lacrosse and PC weatherstationreceiver by ELV
+- wthc removed
+- postgres support removed
+
 release 0.4.6
 - using absolute pressure, was before:
   absolute pressure (in hPa) minus 200 (hPa)
