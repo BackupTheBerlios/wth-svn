@@ -6,15 +6,11 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 USE_AUTOHEADER
 
-
-
-AC_INIT(libwth.c)
+AC_INIT(wthd.c)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(wth, 0.4.5)
+AM_INIT_AUTOMAKE(wth, 0.5.0)
 AM_CONFIG_HEADER(config.h)
-#AC_DEFINE(_GNU_SOURCE)
 AC_DEFINE([_GNU_SOURCE], [], [Description])
-#AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$host_os")
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -34,17 +30,8 @@ CFLAGS="$CFLAGS $ARCH -Wall"
 #AC_MSG_ERROR(CFLAGS: $CFLAGS)
 AC_SUBST(CFLAGS)
 
-
 dnl WTH_LIBS="-L/usr/local/lib/"
 dnl LIBS="$LIBS $WTH_LIBS"
-
-
-AC_ARG_ENABLE(xmlrpc,
-  [  --enable-xmlrpc Enable xmlrpc functionality in wth.],
-  enable_xmlrpc="$enableval", enable_xmlrpc="no")
-AC_ARG_ENABLE(postgres,
-  [  --enable-postgres Enable postgres functionality in wth.],
-  enable_postgres="$enableval", enable_postgres="no")
 
 dnl Checks for libraries.
 
@@ -53,42 +40,8 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(fcntl.h strings.h sys/ioctl.h syslog.h unistd.h)
 AC_CHECK_HEADERS(sqlite3.h, , AC_MSG_ERROR(sqlite3 headers not found. Please install first.), )
+AC_CHECK_HEADERS(pthreads.h, , AC_MSG_ERROR(pthreads headers not found. Please install first.), )
 
-if test "$enable_xmlrpc" = yes; then
-  AC_CHECK_LIB(md5, MD5Init,, 
-    AC_MSG_ERROR(wth needs md5 library. Please install md5 first.))
-
-  AC_CHECK_HEADERS(xmlrpc.h xmlrpc_client.h xmlrpc_abyss.h, ,
-    AC_MSG_ERROR(xmlrpc headers not found. Please install first.), 
-    [#if HAVE_XMLRPC_H
-    #include <xmlrpc.h>
-    #endif
-    ])
-  LIBS="$LIBS -lxmlrpc -lexpat"
-  AC_TRY_LINK(
-     [#include<xmlrpc.h> ],
-     [xmlrpc_env env;],
-     [AC_DEFINE(WITH_LIBXMLRPC,1,[Compile with xmlrpc functionality.])],
-     AC_MSG_ERROR([Can't find/use -lxmlrpc. Please install xmlrpc first.])
-  )
-fi
-
-if test "$enable_postgres" = yes; then
-  LIBS="$LIBS -L/usr/local/lib"
-  AC_CHECK_LIB(pq,PQsetdbLogin,,
-    AC_MSG_ERROR(wth needs postgres library. Please install postgres first.))
-
-  AC_CHECK_HEADERS(pgsql/libpq-fe.h, ,
-    AC_MSG_ERROR(postgres headers not found. Please install postgres first.), 
-    [#if HAVE_POSTGRES_H
-    #include <pgsql/libpq-fe.h>
-    #endif
-    ])
-  CFLAGS="$CFLAGS -DPOSTGRES"
-  #AC_MSG_ERROR(CFLAGS: $CFLAGS)
-  AC_SUBST(CFLAGS)
-  LIBS="$LIBS -lpq"
-fi
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -102,4 +55,3 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(mktime select socket strcspn strdup strerror strspn)
 
 AC_OUTPUT(Makefile)
-
