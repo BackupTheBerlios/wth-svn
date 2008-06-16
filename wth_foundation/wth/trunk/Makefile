@@ -38,7 +38,7 @@ POST_UNINSTALL = :
 build_triplet = i386-unknown-freebsd6.2
 host_triplet = i386-unknown-freebsd6.2
 target_triplet = i386-unknown-freebsd6.2
-bin_PROGRAMS = wthnewpd$(EXEEXT)
+bin_PROGRAMS = wthd$(EXEEXT)
 DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -57,11 +57,10 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_wthnewpd_OBJECTS = wthnewpd.$(OBJEXT) utilnew.$(OBJEXT) \
-	pcwsr.$(OBJEXT) ws2000.$(OBJEXT) netnew.$(OBJEXT) \
-	wthdb.$(OBJEXT)
-wthnewpd_OBJECTS = $(am_wthnewpd_OBJECTS)
-wthnewpd_DEPENDENCIES =
+am_wthd_OBJECTS = wthd.$(OBJEXT) util.$(OBJEXT) pcwsr.$(OBJEXT) \
+	ws2000.$(OBJEXT) net.$(OBJEXT) wthdb.$(OBJEXT)
+wthd_OBJECTS = $(am_wthd_OBJECTS)
+wthd_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -69,8 +68,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(wthnewpd_SOURCES)
-DIST_SOURCES = $(wthnewpd_SOURCES)
+SOURCES = $(wthd_SOURCES)
+DIST_SOURCES = $(wthd_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -127,7 +126,7 @@ RANLIB = ranlib
 SET_MAKE = 
 SHELL = /bin/bash
 STRIP = 
-VERSION = 0.4.5
+VERSION = 0.5.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -170,12 +169,12 @@ target_alias =
 target_cpu = i386
 target_os = freebsd6.2
 target_vendor = unknown
-wthnewpd_SOURCES = wthnew.h wthnewpd.c utilnew.c \
-  pcwsr.c ws2000.c netnew.c \
+wthd_SOURCES = wth.h wthd.c util.c \
+  pcwsr.c ws2000.c net.c \
   wthdb.c
 
-wthnewpd_LDADD = -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th
-noinst_HEADERS = wthnew.h 
+wthd_LDADD = -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th
+noinst_HEADERS = wth.h 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -254,9 +253,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-wthnewpd$(EXEEXT): $(wthnewpd_OBJECTS) $(wthnewpd_DEPENDENCIES) 
-	@rm -f wthnewpd$(EXEEXT)
-	$(LINK) $(wthnewpd_LDFLAGS) $(wthnewpd_OBJECTS) $(wthnewpd_LDADD) $(LIBS)
+wthd$(EXEEXT): $(wthd_OBJECTS) $(wthd_DEPENDENCIES) 
+	@rm -f wthd$(EXEEXT)
+	$(LINK) $(wthd_LDFLAGS) $(wthd_OBJECTS) $(wthd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -264,12 +263,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/netnew.Po
+include ./$(DEPDIR)/net.Po
 include ./$(DEPDIR)/pcwsr.Po
-include ./$(DEPDIR)/utilnew.Po
+include ./$(DEPDIR)/util.Po
 include ./$(DEPDIR)/ws2000.Po
+include ./$(DEPDIR)/wthd.Po
 include ./$(DEPDIR)/wthdb.Po
-include ./$(DEPDIR)/wthnewpd.Po
 
 .c.o:
 	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

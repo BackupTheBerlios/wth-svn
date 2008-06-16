@@ -110,7 +110,7 @@
 /* #undef TM_IN_SYS_TIME */
 
 /* Version number of package */
-#define VERSION "0.4.5"
+#define VERSION "0.5.0"
 
 /* Compile with xmlrpc functionality. */
 /* #undef WITH_LIBXMLRPC */

@@ -3,7 +3,7 @@
   reading writing database data 
 
 */
-#include "wthnew.h"
+#include "wth.h"
 
 /*
   datadb - insert measured values

@@ -1,6 +1,6 @@
 /*
 
-  wthnewpd.c
+  wthd.c
 
   server to read WS2000 weatherstation and pcwsr weathersensor receiver
   
@@ -11,7 +11,7 @@
   Copyright (C) 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
 
 */
-#include "wthnew.h"
+#include "wth.h"
 
 
 int

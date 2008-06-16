@@ -27,7 +27,7 @@
  
 */
 
-#include "wthnew.h"
+#include "wth.h"
 
 extern int daemon_proc; 
 
