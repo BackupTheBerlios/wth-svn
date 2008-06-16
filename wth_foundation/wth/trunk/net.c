@@ -27,9 +27,74 @@
  
 */
 
-#include "wth.h"
+#include "wthnew.h"
 
 extern int daemon_proc; 
+
+
+pid_t
+Fork(void)
+{
+	pid_t	pid;
+
+	if ( (pid = fork()) == -1) {
+	  syslog(LOG_INFO,"fork error");
+	  werrno = ESIG;
+	  return(-1);
+	}
+	return(pid);
+}
+
+
+int
+Close(int fd)
+{
+  if (close(fd) == -1) {
+	werrno = errno;
+	syslog(LOG_INFO,"Close: close error: %s",
+		   strerror(werrno));
+	return(-1);
+  }
+  return(0);
+}
+
+
+ssize_t	/* Write "n" bytes to a descriptor. */
+writen(int fd, const void *vptr, size_t n)
+{
+	size_t		nleft;
+	ssize_t		nwritten;
+	const char	*ptr;
+
+	ptr = vptr;
+	nleft = n;
+	while (nleft > 0) {
+		if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
+			if (errno == EINTR)
+				nwritten = 0;	/* and call write() again */
+			else
+				return(-1);	/* error */
+		}
+
+		nleft -= nwritten;
+		ptr   += nwritten;
+	}
+	return(n);
+}
+/* end writen */
+
+int
+Writen(int fd, void *ptr, size_t nbytes)
+{
+  if (writen(fd, ptr, nbytes) != nbytes) {
+	werrno = ENET;
+	syslog(LOG_INFO,"Writen: writen error");
+	return(-1);
+  }
+  return(0);
+}
+
+
 
 /* include sock_ntop */
 char *
@@ -115,7 +180,7 @@ Sock_ntop(const struct sockaddr *sa, socklen_t salen)
 
 
 int
-daemon_init(const char *pname, int facility)
+daemon_init( )
 {
 	int		i;
 	pid_t	pid;
@@ -140,7 +205,7 @@ daemon_init(const char *pname, int facility)
 	for (i = 0; i < MAXFD; i++)
 		close(i);
 
-	openlog(pname, LOG_PID, facility);
+	//openlog(pname, LOG_PID, facility);
 
 	return(0);
 }
@@ -305,7 +370,7 @@ Bind(int fd, const struct sockaddr *sa, socklen_t salen)
    IPv4 version
  
 */
-int getnrd( unsigned char *data, int *mdat, struct cmd *pcmd) {
+int getnrd( unsigned char *data, int *mdat) {
     int                  sockfd, n, len;
     char                 sendline[MAXLINE] = "1";
     unsigned char nbuf[MAXBUFF];
@@ -319,25 +384,25 @@ int getnrd( unsigned char *data, int *mdat, struct cmd *pcmd) {
     servaddr.sin_family = AF_INET;
 
     /* hostname or ipaddress */
-    if (inet_pton(AF_INET, pcmd->hostname, &servaddr.sin_addr) == 1) {
+    if (inet_pton(AF_INET, wsconf.hostname, &servaddr.sin_addr) == 1) {
 	  addrs[0] = &servaddr.sin_addr;
 	  addrs[1] = NULL;
 	  pptr = &addrs[0];
-    } else if ( (hp = gethostbyname(pcmd->hostname)) != NULL) {
+    } else if ( (hp = gethostbyname(wsconf.hostname)) != NULL) {
 	  pptr = (struct in_addr **) hp->h_addr_list;
     } else {
 	  werrno = h_errno;
 	  syslog(LOG_INFO,"hostname error for %s: %s", 
-		 pcmd->hostname, hstrerror(h_errno));
+		 wsconf.hostname, hstrerror(h_errno));
 	  return (-1);
 	  }
     /* port number or service name */
-    if ( (n = atoi(pcmd->port)) > 0)
+    if ( (n = atoi(wsconf.port)) > 0)
 	  servaddr.sin_port = htons(n);
-    else if ( (sp = getservbyname(pcmd->port, "tcp")) != NULL)
+    else if ( (sp = getservbyname(wsconf.port, "tcp")) != NULL)
 	  servaddr.sin_port = sp->s_port;
     else {
-	  syslog(LOG_INFO,"getservbyname error for %s", pcmd->port);
+	  syslog(LOG_INFO,"getservbyname error for %s", wsconf.port);
 	  werrno = ENET;
 	  return(-1);
     }
@@ -366,7 +431,7 @@ int getnrd( unsigned char *data, int *mdat, struct cmd *pcmd) {
     }
 
     /* write command to server */
-    snprintf( sendline, sizeof(sendline), "%d\r\n", (*pcmd).command);
+    snprintf( sendline, sizeof(sendline), "%d\r\n", wsconf.command);
     if ( Writen( sockfd, sendline, 1) == -1 )
       return(-1);
     
@@ -388,4 +453,28 @@ int getnrd( unsigned char *data, int *mdat, struct cmd *pcmd) {
 }
 
 
+ssize_t
+Read(int fd, void *ptr, size_t nbytes)
+{
+	ssize_t		n;
 
+	if ( (n = read(fd, ptr, nbytes)) == -1) {
+	  werrno = errno;
+	  syslog(LOG_INFO,"Read: read error: %s",
+			 strerror(werrno));
+	  return(-1);
+	}
+	return(n);
+}
+
+int
+Write(int fd, void *ptr, size_t nbytes)
+{
+  if (write(fd, ptr, nbytes) != nbytes) {
+	werrno = errno;
+	syslog(LOG_INFO,"Write: write error: %s",
+		   strerror(werrno));
+	return(-1);
+  }
+  return(0);
+}

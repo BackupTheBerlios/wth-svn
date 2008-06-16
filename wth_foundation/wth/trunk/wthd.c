@@ -1,79 +1,41 @@
 /*
-   wthd - the Weather daemon
-   
-   	 
-   tcp service for interactive weather 
-   
-   	 tcp server program to read serial connected weatherstation interface
-   	 
-   
-   features
-      IPv4
-   		TCP
-   		iterative
-   
-   $Id: wthd.c,v 1.1 2002/07/04 09:51:52 jahns Exp jahns $
-   $Revision: 1.1 $
 
+  wthnewpd.c
 
-   Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
+  server to read WS2000 weatherstation and pcwsr weathersensor receiver
+  
+  threaded version
+  each thread handles the serial data read,
+  right now data are echoed to standard out
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
+  Copyright (C) 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
- 
-
-	 
 */
+#include "wthnew.h"
 
- 
-#include        "wth.h"
-#include        "wthnet.h"
 
 int
-main(int argc, char **argv)
+main ( int argc, char **argv ) 
 {
-  /* network */
-  int		       err, listenfd, telnetfd, connfd, maxfdp1, nready;
-  struct sockaddr_in   servaddr, tnservaddr;
-  char		       readline[MAXLINE];
+  int op, ret, nobg;
+  pthread_t ptid, wtid, stoptid;
+  sigset_t signals_to_block;
 
-  /* data */
-  struct cmd           *pcmd;
-  struct wthio         wio;
-  int                  ndata = 0;
-  int                  nobg = 0;
-  int                  is_command = 0;
-  int                  o;
-  unsigned char        data[MAXBUFF];
-  char                 *nakfram = "\x02\x01\x15\xe8\x03";
-  char                 *rbuf;
-  fd_set               rset;
-	
-  werrno = 0;
+  char *ws2000lck = WS2000LOCK;
 
-  initdata(&wio);
-  pcmd = initcmd();
-  readconfig(pcmd);
-	
+  if  (( ret = wthd_init()) != 0 ) {
+    printf("wthd: can't initialize. Exit!\n");
+  }
+
+  nobg = 0;
   /* parse commandline */
-  while ((o = getopt(argc, argv, "dp:")) != -1) {
-    switch(o) {
+  while ((op = getopt(argc, argv, "dp:")) != -1) {
+    switch(op) {
     case 'd':
       nobg = 1;
       break;
     case 'p':
-      pcmd->port = strdup(optarg);
+      wsconf.port = strdup(optarg);
       break;
     case '?':
       usaged(1,"command line error","");
@@ -83,130 +45,59 @@ main(int argc, char **argv)
     }
   }
 
-  if ( nobg == 0 ) 
-    daemon_init("wthd", LOGFACILITY);
-  else if ( nobg == 1) {
-    openlog("wthd", LOG_PID, LOGFACILITY);
-    printf("wthd: ready\n");
+
+  if ( nobg == 0 ) {
+    daemon_init();
+    openlog("wthd", LOG_PID , wsconf.logfacility);
+  } else {
+    openlog("wthd", LOG_PID | LOG_PERROR , wsconf.logfacility);
   }
-	
-  /* create 1st TCP socket */
-  listenfd = Socket(AF_INET, SOCK_STREAM, 0); 
-  bzero(&servaddr, sizeof(servaddr));
-  servaddr.sin_family      = AF_INET;
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port        = htons(atoi(pcmd->port));
-  Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
-  Listen(listenfd, LISTENQ);
+  syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
 
+  unlink( ws2000lck);
+  tzset();
 
-  /* create 2nd TCP socket */
-  telnetfd = Socket(AF_INET, SOCK_STREAM, 0);
-  bzero(&tnservaddr, sizeof(tnservaddr));
-  tnservaddr.sin_family      = AF_INET;
-  tnservaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  tnservaddr.sin_port        = htons(atoi(pcmd->tnport));
-	
-  Bind(telnetfd, (SA *) &tnservaddr, sizeof(tnservaddr));
-  Listen(telnetfd, LISTENQ);
+  /* block signals in main */
+  sigemptyset( &signals_to_block);
+  sigaddset(&signals_to_block, SIGUSR1);
+  pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
 
-  FD_ZERO(&rset);
-  maxfdp1 = max(listenfd, telnetfd) + 1;
+  /* thread to catch shutdown signal */
+  pthread_create(&stoptid, NULL, signal_hd, NULL);
+  pthread_info.num_active = 0;
+  pthread_cond_init(&pthread_info.thread_exit_cv, NULL);
+  pthread_mutex_init(&pthread_info.mutex, NULL);
 
-  for ( ; ; ) {
-    FD_SET(listenfd, &rset);
-    FD_SET(telnetfd, &rset);
-
-    if ( ( nready = select(maxfdp1, &rset, NULL, NULL, NULL)) < 0 ) {
-      if ( errno == EINTR )
-	continue;
-      else
-	syslog(LOG_INFO, "select error");
+  /* PCWSR thread */
+  if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
+    if ( ( ret = pthread_create( &ptid, NULL, pcwsr_hd, NULL) == 0)) {
+	syslog(LOG_INFO, "wthd: creating PCWSR thread: success\n");
+    } else {
+	syslog(LOG_ALERT,"wthd: error! Can't create PCWSR thread\n");
     }
-
-    if ( FD_ISSET(listenfd, &rset)) {
-      connfd = accept(listenfd, (SA *) NULL, NULL); 
-      Read(connfd, readline, MAXLINE);
-      pcmd->command = o = atoi(readline);
-      pcmd->argcmd  = 0;
-      pcmd->netflg  = 0;
-         
-      if ( getsrd( data, &ndata, pcmd) == -1 ) {
-	syslog(LOG_INFO,"error reading serial data");
-	strncpy(data, nakfram, strlen(nakfram));
-	ndata = strlen(nakfram);
-      }
-		 
-      Write(connfd, data, ndata);
-      /* syslog(LOG_INFO,"command request: %s\n", c(o)->descr); */
-      Close(connfd);
-    }
-		
-    if ( FD_ISSET(telnetfd, &rset)) {
-      connfd = Accept(telnetfd, (SA *) NULL, NULL);
-      snprintf(readline, sizeof(readline), "\n\n%s\n\t%s\n>",
-	       "Welcome to wth service","Type h for help");
-      Write(connfd, readline, strlen(readline));
-      pcmd->argcmd = 0;
-      pcmd->netflg = 0;
-      for ( ; ; ) {
-	Read(connfd, readline, MAXLINE);
-
-	if ( ( err = strncmp(readline, "h", 1)) == 0 ) {
-	  snprintf(readline, sizeof(readline), tnusage(0,"",""));
-	  Write(connfd, readline, strlen(readline));
-	}
-	else if ( ( err = strncmp(readline, "0", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "1", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "2", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "3", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "4", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "5", 1)) == 0) {
-	  pcmd->command = o = atoi(readline);
-	  is_command = 1;
-	}
-	else if ( ( err = strncmp(readline, "q", 1)) == 0)
-	  break;
-	else if ( ( err = strncmp(readline, "quit", 4)) == 0)
-	  break;
-	else {
-	  snprintf(readline, sizeof(readline), tnusage(0,"",""));
-	  Write(connfd, readline, strlen(readline));
-	}
-			
-	if ( is_command == 1 ) {
-	  rbuf = wcmd(pcmd, &wio);
-	  printf("rbuf: %s\n", rbuf);
-	  snprintf(readline, sizeof(readline), rbuf);
-	  Write(connfd, readline, strlen(readline));
-	  pcmd->argcmd  = 0;
-	  pcmd->netflg  = 0;
-	  is_command = 0;
-	}
-			
-	snprintf(readline, sizeof(readline), ">");
-	Write(connfd, readline, strlen(readline));
-      }
-      Close(connfd);
-    }
-		
+    syslog(LOG_DEBUG,"wthd: pcwsrstation.config.device: %s\n", 
+      pcwsrstation.config.device);
   }
-  return(0);
+
+  /* WS2000 thread */
+  if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
+    if ( ( ret = pthread_create( &wtid, NULL, ws2000_hd, NULL) == 0)) {
+      syslog(LOG_DEBUG, "wthd: creating WS2000 thread: success");
+    } else {
+      syslog(LOG_ALERT,"wthd: error! Can't create WS2000 thread");
+    } 
+    syslog(LOG_DEBUG, "wthd: ws2000station.config.device: %s\n", 
+      ws2000station.config.device);
+  }
+  /* handling interactive commands */
+  //pthread_create( &ctid, NULL, cmd_hd, NULL);
+  //pthread_join( &tid_telnet_hd, NULL);
+
+  if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
+    pthread_join( ptid, NULL);
+  }
+  if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
+    pthread_join( wtid, NULL);
+  }
+  exit(0);
 }
-
-

@@ -1,11 +1,17 @@
-/* wth.h
+/* 
+   wthnew.h
 
-   global header file for WS2000 weatherstation communication
-   
-   $Id: wth.h,v 1.1 2002/07/04 09:50:21 jahns Exp jahns $
-   $Revision: 1.1 $
+   global header file for serial weatherstation communication
+   for use of 
 
-   Copyright (C) 2000-2001,2005 Volker Jahns <Volker.Jahns@thalreit.de>
+     WS2000
+     PC weathersensor receiver
+     1-wire weatherstation
+ 
+   $Id: wthnew.h 177 2008-06-10 15:19:08Z vjahns $
+   $Revision: 177 $
+
+   Copyright (C) 2000-2001,2005,2007 Volker Jahns <Volker.Jahns@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -37,60 +43,51 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
-#include <sys/select.h>	/* for convenience */
+#include <sys/select.h>	/* for convenience */ 
 #include <sys/socket.h>	/* basic socket definitions */
 #include <sys/time.h>	/* timespec{} for pselect() */
 #include <sys/uio.h>	/* for iovec{} and readv/writev */
 #include <sys/un.h>	/* for Unix domain sockets */
 #include <sys/wait.h>
 #include <syslog.h>
+#include <sqlite3.h>
 #include <termios.h>
 #include <time.h>	/* timespec{} for pselect() */
 #include <unistd.h>
 #include <math.h>
+#include <pthread.h>
+#include <rrd.h>
 
-#if defined POSTGRES
-  #include <pgsql/libpq-fe.h>
-#endif
-
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-
-#define BAUDRATE    B9600
+#define VERSION     "0.5.0"
+#define	MAXLINE     4096	
+#define	MAXSOCKADDR 128
+#define	BUFFSIZE    8192
+#define MAXFD       64
 #define MAXBUFF     131072
-#define MAXMSGLEN   1024
-#define TIMEOUT     7
+#define MAXSENSORS  42
+#define MAXPARAM    8
+#define MAXDATA     256
+#define PCWSRLEN    8
+#define MAXMSGLEN   256
+#define MAXQUERYLEN 1024
+
 /* Serial port devices */
 #if defined(LINUX)
-# define SER_DEVICE "/dev/ttyUSB0"
+# define SER_DEVICE "/dev/ttyS0"
 #elif defined(FREEBSD)
 # define SER_DEVICE "/dev/ttyd0"
 #else // default
 # define SER_DEVICE ""
 #endif
-#define MAXSENSORS  42
-#define MAXDATA     2048
-#define LOGFACILITY LOG_LOCAL7
-#define WPORT       "5001"
-#define TNPORT      "5002"
-#define XMLPORT     "8005"
-#define MAXFD       64
-#define XMLNAME     "XML-RPC Weatherstation C Client"
-#define WSTYPE      "WS2000"
-#define DATABASE    "weather"
-#define DBUSER      "postgres"
-#define UNITS       "SI"
-#define OUTFMT      "old"
 
 /* from unp.h */
-#define	MAXLINE      4096	/* max text line length */
-#define	MAXSOCKADDR  128	/* max socket address structure size */
-#define	BUFFSIZE     8192	/* buffer size for reads and writes */
-#define LISTENQ      1024    /* 2nd argument to listen() */
+#define LISTENQ     1024    /* 2nd argument to listen() */
 
 /* Following shortens all the type casts of pointer arguments */
 #define	SA	     struct sockaddr
 #define max(a,b)     ((a) > (b) ? (a) : (b))
 
+#define WS2000LOCK "/tmp/LCK...wth";
 
 enum {
   SOH = 0x01,
@@ -121,46 +118,107 @@ enum {
   ECMD    = -8,
 };
 
+/* sensor parameter assignment */
+enum {
+  SENSOR1TEMP      = 1,
+  SENSOR1HUM       = 2,
+  SENSOR2TEMP      = 3,
+  SENSOR2HUM       = 4,
+  SENSOR3TEMP      = 5,
+  SENSOR3HUM       = 6,
+  SENSOR4TEMP      = 7,
+  SENSOR4HUM       = 8,
+  SENSOR5TEMP      = 9,
+  SENSOR5HUM       = 10,
+  SENSOR6TEMP      = 11,
+  SENSOR6HUM       = 12,
+  SENSOR7TEMP      = 13,
+  SENSOR7HUM       = 14,
+  SENSOR8TEMP      = 15,
+  SENSOR8HUM       = 16,
+  RAINSENSOR       = 17,
+  WINDSENSORSPEED  = 18,
+  WINDSENSORDIR    = 19,
+  WINDSENSORVAR    = 20,
+  INDOORPRESS      = 21,
+  INDOORTEMP       = 22,
+  INDOORHUM        = 23
+};
+
+static const int success = 0;
+static const int failure = 1;
+
+
+typedef struct threadinfo {
+  int num_active;
+  pthread_cond_t thread_exit_cv;
+  pthread_mutex_t mutex;
+  int received_shutdown_req; /* 0=false, 1=true */
+} thread_info_t;
+
+thread_info_t pthread_info;
 
 /* data structures */
-struct dataset {
-  time_t time;
-  long age;
-  int sign;
-  float value;
-};
+typedef struct dataset {
+  time_t dataset_time;
+  float meas_value;
+} dataset_t;
 
-struct sensor {
+typedef struct param {
+  char *paramname;
+  dataset_t sample[MAXDATA];
+} param_t;
+
+typedef struct sensor {
   int status;
-  char *type;
-  struct dataset mess[MAXDATA];
-};
+  param_t param[MAXPARAM];
+  char *sensorname;
+  char *rrdfile;
+  int address;
+  char *version;
+  float updatefreq;
+  time_t lastseen;
+} sensor_t;
 
-struct DCFstruct {
-  int stat;
-  int sync;
-  time_t time;
-};
+typedef struct senspar {
+  int sensor_no;
+  char *sensor_name;
+  char *par_name;
+} senspar_t;
 
-struct wstatus {
-  int nsens;
-  int version;
-  int intvaltime;
-  long ndats;
-  char *ebuf;
-};
+typedef struct ws2000stat {
+  time_t interval;  /* internal measurement interval of WS2000 PC interface */
+  int version;      /* internal version number */
+  int DCFstat;      /* status of DCF receiver */
+  int DCFsync;      /* sync bit of DCF receiver */
+  time_t DCFtime;   /* DCF time */
+  int HFstat;       /* HF status bit */
+  int Battstat;     /* battery status */
+  int numsens;      /* internal number of sensors */
+  int ndats;        /* number of datasets retrieved */
+} ws2000stat_t;
 
+typedef struct wsconf {
+  char *dbfile;
+  char *device;
+} wsconf_t;
 
-struct wthio {
-  struct sensor sens[MAXSENSORS];
-  struct DCFstruct DCF;
-  struct wstatus wstat;
-};  
+typedef struct ws2000 {
+  ws2000stat_t status;
+  wsconf_t config;
+  sensor_t sensor[MAXSENSORS];
+} ws2000_t;
 
-struct cmd {
+typedef struct pcwsr {
+  wsconf_t config;
+  sensor_t sensor[MAXSENSORS];
+} pcwsr_t;
+
+typedef struct conf {
   int command;
   int argcmd;
   int netflg;
+  int debug;
   int verbose;
   int timeout;
   int logfacility;
@@ -168,53 +226,34 @@ struct cmd {
   char *port;
   char *tnport;
   char *xmlport;
-  char *database;
-  char *dbuser;
-  char *wstype;
-  char *device;
-  int baudrate;
-  int cstopb;
-  int nbits;
-  int parity;
+  char *wwwport;
   char *units;
   char *outfmt;
-  char *rrdfile;
-};
+} conf_t;
 
-struct key {
+typedef void Sigfunc ( int);
+
+typedef struct key {
   char *word;
   int id;
   char *descr;
-};
+} ws2000key_t;
 
+int werrno;
+int daemon_proc;          /* set nonzero by daemon_init() */
 
-typedef struct key Ckey;
-
-/* global variables */
-int werrno;      /* weatherstation errors */
-int daemon_proc;		/* set nonzero by daemon_init() */
-
-int daemon_init(const char *, int); 
-
-char *tnusage(int exitcode, char *error, char *addl);
-int usage(int exitcode, char *error, char *addl);
-int usaged(int exitcode, char *error, char *addl);
-char *readconfig(struct cmd *pcmd);
-char *echoconfig(struct cmd *pcmd);
-
-int getxmlrd(unsigned char *data, int *mdat, struct cmd *);
-int getnrd(unsigned char *data, int *mdat, struct cmd *);
-int getsrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-
-int getcd(unsigned char *data, int *mdat, struct cmd *pcmd);
-int getrd(unsigned char *data, int *mdat, struct cmd *pcmd);
-char *wstat(unsigned char *data, int mdat, struct wthio *rw);
-time_t dcftime(unsigned char *data, int ndat);
-int settime(struct wthio *rw);
-char *wcmd(struct cmd *pcmd, struct wthio *rw);
-
-int initdata(struct wthio *rw);
-struct cmd *initcmd(void );
+int wthd_init();
+int echodata( unsigned char *data, int mdat);
+unsigned char getbits( unsigned char x, int p, int n);
+char *mkmsg( const char *, ...);
+char *mkmsg2( const char *, ...);
+int usage (int exitcode, char *error, char *addl);
+char *tnusage (int exitcode, char *error, char *addl);
+int usaged (int exitcode, char *error, char *addl);
+char *readconfig();
+char *echoconfig();
+Sigfunc *signal(int signo, Sigfunc *func);
+void *signal_hd( void *arg);
 
 extern int Socket(int, int, int); 
 ssize_t Read(int, void *, size_t); 
@@ -228,24 +267,41 @@ int Setsockopt(int, int, int, const void *, socklen_t);
 int Writen(int, void *, size_t);  
 const char *inet_ntop(int, const void *, char *, size_t);
 int inet_pton(int, const char *, void *); 
+int daemon_init( );
+int chklockf( const char *lockfile);
+int setlck( const char *lockfile);
+int unlck( const char *lockfile, int fd);
 
-typedef void Sigfunc ( int);  
-Sigfunc *signal( int signo, Sigfunc *func);
-
-int initserial( int *pfd, struct termios *newtio, 
-		struct termios *oldtio, struct cmd *pcmd);
-int closeserial( int fd, struct termios *oldtio);
-int readdata( int fd, unsigned char *data, 
-  int *ndat, struct cmd *pcmd);
-
-Ckey *c( int n);
-int wstrlen( unsigned char *s);
-
-unsigned char getbits( unsigned char x, int p, int n);
-char *mkmsg( const char *, ...);
+void *pcwsr_hd();
+void *ws2000_hd();
+void *cmd_hd();
 
 int demasq( unsigned char *data, int *mdat);
-int chkframe( unsigned char *data, int *mdat, struct cmd *pcmd);
-int datex( unsigned char *data, int ndat, struct wthio *rw, struct cmd *pcmd);
-char *pdata( struct wthio *rw, struct cmd *pcmd );
-int echodata( unsigned char *data, int mdat);
+int chkframe( unsigned char *data, int *mdat);
+int datex( unsigned char *data, int ndat);
+int getcd(unsigned char *data, int *mdat);
+int getrd(unsigned char *data, int *mdat);
+int getnrd(unsigned char *data, int *mdat);
+int getsrd(unsigned char *data, int *mdat);
+
+char *wstat(unsigned char *data, int mdat);
+time_t dcftime(unsigned char *data, int ndat);
+int settime();
+int wcmd();
+int readdata( int fd, unsigned char *data, int *ndat);
+ws2000key_t *c( int n);
+int wstrlen( unsigned char *s);
+
+ws2000_t ws2000station;
+pcwsr_t  pcwsrstation;
+conf_t   wsconf;
+
+int datadb( long dataset_date, int sensor_param, float meas_value, 
+            sqlite3 *wthdb) ;
+int statdb( long statusset_date, int sensor_no, int sensor_status, 
+            sqlite3 *wthdb);
+int newdb( long statusset_date, int sensor_no, int new_flag, 
+            sqlite3 *wthdb);
+int writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
+         float meas_value[], sqlite3 *wthdb );
+int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
