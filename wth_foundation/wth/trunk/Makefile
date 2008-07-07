@@ -3,16 +3,13 @@
 # 
 # Volker Jahns, volker@thalreit.de
 #
-# include_dirs = -I. -I/usr/local/include -I/usr/include
-# CFLAGS = $(include_dirs)
-# req_libs = -L/usr/local/lib -lsqlite3 -lrrd_th -lpthread
 objects = wthd.o ws2000.o pcwsr.o util.o wthdb.o net.o
 
 $(objects): %.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c $< -o $@
 
 wthd : $(objects)
-	cc -o wthd $(objects)
+	cc -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th -o wthd $(objects)
 
 clean:
 	rm -fr *.o *~
