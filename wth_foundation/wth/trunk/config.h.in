@@ -17,20 +17,14 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `md5' library (-lmd5). */
-#undef HAVE_LIBMD5
-
-/* Define to 1 if you have the `pq' library (-lpq). */
-#undef HAVE_LIBPQ
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
 /* Define to 1 if you have the `mktime' function. */
 #undef HAVE_MKTIME
 
-/* Define to 1 if you have the <pgsql/libpq-fe.h> header file. */
-#undef HAVE_PGSQL_LIBPQ_FE_H
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
@@ -83,15 +77,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 if you have the <xmlrpc_abyss.h> header file. */
-#undef HAVE_XMLRPC_ABYSS_H
-
-/* Define to 1 if you have the <xmlrpc_client.h> header file. */
-#undef HAVE_XMLRPC_CLIENT_H
-
-/* Define to 1 if you have the <xmlrpc.h> header file. */
-#undef HAVE_XMLRPC_H
-
 /* Name of package */
 #undef PACKAGE
 
@@ -121,9 +106,6 @@
 
 /* Version number of package */
 #undef VERSION
-
-/* Compile with xmlrpc functionality. */
-#undef WITH_LIBXMLRPC
 
 /* Description */
 #undef _GNU_SOURCE
