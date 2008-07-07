@@ -944,7 +944,8 @@ datex ( unsigned char *data, int ndat) {
   float meas_value[3];
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
-
+  syslog(LOG_DEBUG, "datex : rrdpath in datex : %s", 
+    ws2000station.config.rrdpath);
   if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
     return(-1);
 

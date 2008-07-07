@@ -2,13 +2,16 @@
 
   wthd.c
 
+  $Id$
+  $Revision$
+
   server to read WS2000 weatherstation and pcwsr weathersensor receiver
   
   threaded version
   each thread handles the serial data read,
   right now data are echoed to standard out
 
-  Copyright (C) 2002,2007 Volker Jahns, Volker.Jahns@thalreit.de
+  Copyright (C) 2002-2008 Volker Jahns, volker@thalreit.de
 
 */
 #include "wth.h"

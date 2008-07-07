@@ -1,9 +1,9 @@
-/* utilnew.c
+/* util.c
 
    $Id$
    $Revision$
 
-   Copyright 2007 Volker Jahns <volker@thalreit.de>
+   Copyright 2007,2008 Volker Jahns <volker@thalreit.de>
 
    collection of utility functions
 
@@ -36,6 +36,8 @@
 */
 int 
 wthd_init( ) {
+  int err;
+  char * rbuf;
   /* default parameters valid for all stations */
   wsconf.timeout     = 30;
   wsconf.logfacility = LOG_LOCAL5;
@@ -51,12 +53,19 @@ wthd_init( ) {
   wsconf.outfmt      = "old";
   
   ws2000station.config.dbfile        = "ws2000.db";
-  ws2000station.config.device        = "/dev/ttyd0";
+  ws2000station.config.device        = "/dev/ttyd1";
+  ws2000station.config.dbpath        = ".";
+  ws2000station.config.rrdpath       = ".";
   ws2000station.status.interval      = 300;  
 
   pcwsrstation.config.dbfile         = "pcwsr.db";
-  pcwsrstation.config.device         = "/dev/ttyd1";
+  pcwsrstation.config.device         = "n.a.";
  
+  err = readconfig();
+  rbuf = malloc(2*MAXMSGLEN*sizeof(char *));
+  strncpy( rbuf, echoconfig(), MAXMSGLEN);
+  printf("Configuration:\n%s", rbuf);
+
   return(0);
 }
 
@@ -105,34 +114,6 @@ getbits(unsigned char x, int p, int n) {
 }
 
 
-/* mkmsg
-
-   man snprintf (LINUX) sample code modified
-   
-   old version - does malloc lead to seg fault?
-*/
-char *
-mkmsg(const char *fmt, ...) {
-   int n, size = 1024;
-   char *p;
-   va_list ap;
-   if ((p = malloc(MAXBUFF)) == NULL)
-      return NULL;
-   //printf("mkmsg: alloc p OK\n");
-   while (1) {
-      va_start(ap, fmt);
-      n = vsnprintf (p, size, fmt, ap);
-      va_end(ap);
-      if (n > -1 && n < size)
-         return (p);
-      if (n > -1)    /* LINUX glibc 2.1, FreeBSD */ 
-		size = n+1;  
-	  else           /* LINUX glibc 2.0 */
-        size *= 2;  /* twice the old size */
-      if ((p = realloc (p, size)) == NULL)
-         return NULL;
-   }
-}
 
 char *
 mkmsg2( const char *fmt, ...) {
@@ -196,7 +177,7 @@ char *
 tnusage (int exitcode, char *error, char *addl) {
   char *s;
 
-  s = mkmsg("Available commands include:\n"
+  s = mkmsg2("Available commands include:\n"
                      "\t0\t\tPoll DCF Time\n"
                      "\t1\t\tRequest dataset\n"
                      "\t2\t\tSelect next dataset\n"
@@ -225,7 +206,7 @@ usaged (int exitcode, char *error, char *addl) {
 
 
 /* readconfig : read configuration file */
-char *
+int
 readconfig( ) {
   FILE *cfg;
   char line[BUFFSIZE];
@@ -242,11 +223,9 @@ readconfig( ) {
     cfgfile = "/usr/local/etc/wth.conf";
   }
   else {
-    rbuf = mkmsg("No configuration file found, using default parameters\n");
-    return(rbuf);
+    perror("No config file found");
+    return(-1);
   }
-
-  rbuf = mkmsg("Using config file: %s\n", cfgfile);
 
   /* stolen from thttpd code */
   while ( fgets(line, sizeof(line), cfg) != NULL) {
@@ -273,62 +252,42 @@ readconfig( ) {
         if ( strcasecmp( name, "timeout" ) == 0 ) {
 		  wsconf.timeout = atoi(value);
         } else if ( strcasecmp( name, "logfacility" ) == 0 ) {
-		    if ( strcasecmp( value, "kern") == 0 ) 
-			  wsconf.logfacility = LOG_KERN;
-			else if ( strcasecmp( value, "user") == 0 ) 
-			  wsconf.logfacility = LOG_USER;
-			else if ( strcasecmp( value, "mail") == 0 ) 
-			  wsconf.logfacility = LOG_MAIL;     
-			else if ( strcasecmp( value, "daemon") == 0 ) 
-			  wsconf.logfacility = LOG_DAEMON;
-			else if ( strcasecmp( value, "syslog") == 0 ) 
-			  wsconf.logfacility = LOG_SYSLOG;
-			else if ( strcasecmp( value, "lpr") == 0 ) 
-			  wsconf.logfacility = LOG_LPR;
-			else if ( strcasecmp( value, "news") == 0 ) 
-			  wsconf.logfacility = LOG_NEWS;
-			else if ( strcasecmp( value, "uucp") == 0 ) 
-			  wsconf.logfacility = LOG_UUCP;
-			else if ( strcasecmp( value, "cron") == 0 ) 
-			  wsconf.logfacility = LOG_CRON;
-			else if ( strcasecmp( value, "ftp") == 0 ) 
-			  wsconf.logfacility = LOG_FTP;
-			else if ( strcasecmp( value, "local0") == 0 ) 
+		    if ( strcasecmp( value, "local0") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL0;
-			else if ( strcasecmp( value, "local1") == 0 ) 
+		    else if ( strcasecmp( value, "local1") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL1;
-			else if ( strcasecmp( value, "local2") == 0 ) 
+		    else if ( strcasecmp( value, "local2") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL2;
-			else if ( strcasecmp( value, "local3") == 0 ) 
+		    else if ( strcasecmp( value, "local3") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL3;
-			else if ( strcasecmp( value, "local4") == 0 ) 
+		    else if ( strcasecmp( value, "local4") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL4;
-			else if ( strcasecmp( value, "local5") == 0 ) 
+		    else if ( strcasecmp( value, "local5") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL5;
-			else if ( strcasecmp( value, "local6") == 0 ) 
+		    else if ( strcasecmp( value, "local6") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL6;
-			else if ( strcasecmp( value, "local7") == 0 ) 
+		    else if ( strcasecmp( value, "local7") == 0 ) 
 			  wsconf.logfacility = LOG_LOCAL7;
-        } else if ( strcasecmp( name, "device" ) == 0 ) {
-		  ws2000station.config.device = strdup(value);
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 		  wsconf.port = strdup(value);
         } else if ( strcasecmp( name, "tnport" ) == 0 ) {
 		  wsconf.tnport = strdup(value);
-        } else if ( strcasecmp( name, "xmlport" ) == 0 ) {
-		  wsconf.xmlport = strdup(value);
-        } else if ( strcasecmp( name, "rrdfile" ) == 0 ) {
-		  ws2000station.sensor[0].rrdfile = strdup(value);
+        } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
+		  ws2000station.config.device = strdup(value);
+        } else if ( strcasecmp( name, "ws2000.dbpath" ) == 0 ) {
+		  ws2000station.config.dbpath = strdup(value);
+        } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
+		  ws2000station.config.rrdpath = strdup(value);
                   /* this is not complete and 
                      has to be changed
 		  */
         } else {
-	  rbuf = mkmsg("unknown option '%s' inf configuration file\n", name );
-          return(rbuf);
+	  printf("unknown option '%s' inf configuration file\n", name );
+          return(-1);
         }
     }		
   }
-  return(rbuf);  
+  return(0);  
 }
 
 
@@ -342,42 +301,40 @@ echoconfig ( ) {
   char *s;
   static char t[MAXMSGLEN];
 
-  s = mkmsg("Configuration parameters\n");
+  s = mkmsg2("Configuration parameters\n");
   size = strlen(s) + 1;
   
   strncat(t,s,strlen(s));
-  s = mkmsg("\twsconf.command: %d\n", wsconf.command);
+  s = mkmsg2("\twsconf.command: %d\n", wsconf.command);
   strncat(t,s, strlen(s));
 
-  s = mkmsg("\twsconf.argcmd: %d\n",wsconf.argcmd);
+  s = mkmsg2("\twsconf.argcmd: %d\n",wsconf.argcmd);
   strncat(t,s, strlen(s));
 
-  s = mkmsg("\twsconf.netflg: %d\n",wsconf.netflg);
+  s = mkmsg2("\twsconf.netflg: %d\n",wsconf.netflg);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.verbose: %d\n",wsconf.verbose);
+  s = mkmsg2("\twsconf.verbose: %d\n",wsconf.verbose);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.timeout: %d\n",wsconf.timeout);
+  s = mkmsg2("\twsconf.timeout: %d\n",wsconf.timeout);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.logfacility: %d\n",wsconf.logfacility);
+  s = mkmsg2("\twsconf.logfacility: %d\n",wsconf.logfacility);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.hostname: %s\n",wsconf.hostname);
+  s = mkmsg2("\twsconf.hostname: %s\n",wsconf.hostname);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.port: %s\n",wsconf.port);
+  s = mkmsg2("\twsconf.port: %s\n",wsconf.port);
   strncat(t,s, strlen(s));
-  s = mkmsg("\twsconf.tnport: %s\n",wsconf.tnport);
+  s = mkmsg2("\twsconf.tnport: %s\n",wsconf.tnport);
   strncat(t,s, strlen(s)); 
-  s = mkmsg("\twsconf.xmlport: %s\n--\n",wsconf.xmlport);
+  s = mkmsg2("\twsconf.xmlport: %s\n--\n",wsconf.xmlport);
   strncat(t,s, strlen(s)); 
-  s = mkmsg("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
+  s = mkmsg2("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
   strncat(t,s, strlen(s));
-  s = mkmsg("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
+  s = mkmsg2("\tws2000station.config.dbfile:\t%s\n",ws2000station.config.dbfile);
   strncat(t,s, strlen(s));
-  s = mkmsg("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
+  s = mkmsg2("\tpcwsrstation.config.device:\t%s\n",pcwsrstation.config.device);
   strncat(t,s, strlen(s));
-  s = mkmsg("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
+  s = mkmsg2("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
   strncat(t,s, strlen(s));
-
-
 
   return(t);
 }

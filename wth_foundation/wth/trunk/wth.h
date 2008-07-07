@@ -201,6 +201,8 @@ typedef struct ws2000stat {
 typedef struct wsconf {
   char *dbfile;
   char *device;
+  char *dbpath;
+  char *rrdpath; 
 } wsconf_t;
 
 typedef struct ws2000 {
@@ -250,7 +252,7 @@ char *mkmsg2( const char *, ...);
 int usage (int exitcode, char *error, char *addl);
 char *tnusage (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
-char *readconfig();
+int readconfig();
 char *echoconfig();
 Sigfunc *signal(int signo, Sigfunc *func);
 void *signal_hd( void *arg);
