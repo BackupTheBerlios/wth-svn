@@ -1,3 +1,6 @@
+General
+-------
+
 wth is a free software solution to read weatherstation data
 of the Lacrosse Technology WS2010 or Conrad resp. ELV WS2000 PC 
 interface, which stores data of 16 temperature, humidity and 
@@ -20,37 +23,34 @@ Pressure plots range from 970 - 1040 (Seewetter), 945 - 1055 (Barograph
 in Malberg, Meteorologie und Klimatologie)
 
 
+Compiling
+---------
+Compiling wth uses GNU make
+Simply type
+
+gmake wthd
+
+
+Running
+-------
+To start wthd type
+
+sudo ./wthd
+
+wthd will set itself in background (run as daemon).
+Configuration is done in wth.conf which must be in directory
+/etc/wth
+/usr/local/etc/wth
+
+
 Troubleshooting
 ---------------
-
-FreeBSD
--------
-Upgrading to FreeBSD 4.5 caused wthc to exit with timeout:
-
-wthc -c0 -s -v
-
-The following syslog messages occured:
-
-Mar 19 21:50:58 pegasus wthc[40810]: experimental test release 0.4.2 - December 2001 
-Mar 19 21:50:58 pegasus wthc[40810]: wcmd: called for command request: 0 
-Mar 19 21:50:58 pegasus wthc[40810]: initserial: error fcntl: Inappropriate ioctl for device
-
-Problem was that /dev hasn't been upgraded. Remake of device files
-in /dev
-
-sh MAKEDEV all
-
-solved the issue.
-
-wthc had been compiled with GNU build chain.
-./generate_build
-./configure 
-gmake wthc
+Start wthd in debugging mode
+sudo ./wthd -d
 
 
 gcc-4.2 issue
 -------------
-
 Compiling wthc with gcc-4.2 will issue some warnings about incompatible pointers
 Running wthc will cause a segmentation fault
 Compile wthc using gcc-3.4, no errors at compile time, running smoothly
