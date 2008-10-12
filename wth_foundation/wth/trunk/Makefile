@@ -5,8 +5,9 @@
 #
 objects = wthd.o ws2000.o pcwsr.o util.o net.o
 
-wthdb.o:
+wthdb.o: wthdb.c
 	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c wthdb.c
+
 $(objects): %.o: %.c
 	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c $< -o $@
 

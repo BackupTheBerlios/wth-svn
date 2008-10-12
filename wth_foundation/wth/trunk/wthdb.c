@@ -152,6 +152,9 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
     return(-1);
 
+  if (( tmpstr = malloc(MAXMSGLEN)) == NULL )
+    return(-1);
+
   if (( template = malloc(MAXMSGLEN)) == NULL)
     return(-1);
 
@@ -188,12 +191,8 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   }
 
   snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
-  snprintf( tmpstr, MAXMSGLEN, "%s.rrd", 
-	    spar.sensor_name);
-  printf("rrdfile: \"%s\"\n", rrdfile);
+  snprintf( tmpstr, MAXMSGLEN, "%s.rrd", spar.sensor_name);
   strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
-  printf("rrdfile: \"%s\"\n", rrdfile);
-
   syslog(LOG_DEBUG, "writedb: rrdfile: %s: update string: %s\n", 
 	 rrdfile, tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
@@ -201,7 +200,8 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
   if ( ( err = rrd_test_error())) {
-    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n", rrd_test_error());
+    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n",
+            rrd_test_error());
   }
   return(err);
 }

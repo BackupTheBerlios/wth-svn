@@ -26,7 +26,7 @@
 #define DATAWAIT 300
 
 char *lockfile = WS2000LOCK;
-sqlite3 *ws2000db;
+//sqlite3 *ws2000db;
 
 /*
   wloghandler
@@ -45,7 +45,8 @@ ws2000_hd( ) {
       lfd = open( lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
       if ( lfd == -1 ) {
         syslog(LOG_CRIT,"ws2000_hd: %s\n", strerror(errno));
-        syslog(LOG_CRIT, "ws2000_hd: lockfile already locked\n");
+        syslog(LOG_CRIT, "ws2000_hd: lockfile \"%s\" already locked\n",
+               lockfile);
 	sleep(5);
       } else {
 	/* sending command to weather station */

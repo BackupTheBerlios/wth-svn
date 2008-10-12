@@ -243,6 +243,7 @@ typedef struct key {
 
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
+sqlite3 *ws2000db;
 
 int wthd_init();
 int echodata( unsigned char *data, int mdat);
