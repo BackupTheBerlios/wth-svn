@@ -53,19 +53,19 @@ wthd_init( ) {
   wsconf.outfmt      = "old";
   
   ws2000station.config.dbfile        = "ws2000.db";
-  ws2000station.config.device        = "/dev/ttyd1";
-  ws2000station.config.dbpath        = ".";
+  strncpy(ws2000station.config.device, "/dev/ttyd1", MAXMSGLEN);
   ws2000station.config.rrdpath       = ".";
   ws2000station.status.interval      = 300;  
 
   pcwsrstation.config.dbfile         = "pcwsr.db";
-  pcwsrstation.config.device         = "n.a.";
- 
+  strncpy( pcwsrstation.config.device, "n.a.", MAXMSGLEN);
   err = readconfig();
+  printf("wthd_init: readconfig done\n");
+  /*
   rbuf = malloc(2*MAXMSGLEN*sizeof(char *));
   strncpy( rbuf, echoconfig(), MAXMSGLEN);
   printf("Configuration:\n%s", rbuf);
-
+  */
   return(0);
 }
 
@@ -218,12 +218,14 @@ readconfig( ) {
 
   if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
     cfgfile = "/etc/wth/wth.conf";
+    printf("Reading config file /etc/wth/wth.conf\n");
   }
   else if ( ( cfg = fopen("/usr/local/etc/wth/wth.conf","r")) != NULL ) {
     cfgfile = "/usr/local/etc/wth.conf";
+    printf("Reading config file /usr/local/etc/wth/wth.conf\n");
   }
   else {
-    perror("No config file found");
+    printf("No config file found, using default parameters\n");
     return(-1);
   }
 
@@ -252,35 +254,38 @@ readconfig( ) {
         if ( strcasecmp( name, "timeout" ) == 0 ) {
 		  wsconf.timeout = atoi(value);
         } else if ( strcasecmp( name, "logfacility" ) == 0 ) {
-		    if ( strcasecmp( value, "local0") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL0;
-		    else if ( strcasecmp( value, "local1") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL1;
-		    else if ( strcasecmp( value, "local2") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL2;
-		    else if ( strcasecmp( value, "local3") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL3;
-		    else if ( strcasecmp( value, "local4") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL4;
-		    else if ( strcasecmp( value, "local5") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL5;
-		    else if ( strcasecmp( value, "local6") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL6;
-		    else if ( strcasecmp( value, "local7") == 0 ) 
-			  wsconf.logfacility = LOG_LOCAL7;
+	  if ( strcasecmp( value, "local0") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL0;
+	  else if ( strcasecmp( value, "local1") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL1;
+	  else if ( strcasecmp( value, "local2") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL2;
+	  else if ( strcasecmp( value, "local3") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL3;
+	  else if ( strcasecmp( value, "local4") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL4;
+	  else if ( strcasecmp( value, "local5") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL5;
+	  else if ( strcasecmp( value, "local6") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL6;
+	  else if ( strcasecmp( value, "local7") == 0 ) 
+	    wsconf.logfacility = LOG_LOCAL7;
         } else if ( strcasecmp( name, "port" ) == 0 ) {
-		  wsconf.port = strdup(value);
+	  wsconf.port = strdup(value);
         } else if ( strcasecmp( name, "tnport" ) == 0 ) {
-		  wsconf.tnport = strdup(value);
+	  wsconf.tnport = strdup(value);
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
-		  ws2000station.config.device = strdup(value);
-        } else if ( strcasecmp( name, "ws2000.dbpath" ) == 0 ) {
-		  ws2000station.config.dbpath = strdup(value);
+	  printf("ws2000.device: \"%s\"\n", value);
+	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
+	  ws2000station.config.dbfile = strdup(value);
+	  printf("ws2000.dbfile: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
-		  ws2000station.config.rrdpath = strdup(value);
-                  /* this is not complete and 
-                     has to be changed
-		  */
+	  ws2000station.config.rrdpath = strdup(value);
+	  printf("ws2000.rrdpath: \"%s\"\n", value);
+	  /* this is not complete and 
+	     has to be changed
+	  */
         } else {
 	  printf("unknown option '%s' inf configuration file\n", name );
           return(-1);
@@ -299,7 +304,7 @@ char *
 echoconfig ( ) {
   int size;
   char *s;
-  static char t[MAXMSGLEN];
+  static char t[MAXLINE];
 
   s = mkmsg2("Configuration parameters\n");
   size = strlen(s) + 1;
@@ -326,16 +331,18 @@ echoconfig ( ) {
   s = mkmsg2("\twsconf.tnport: %s\n",wsconf.tnport);
   strncat(t,s, strlen(s)); 
   s = mkmsg2("\twsconf.xmlport: %s\n--\n",wsconf.xmlport);
-  strncat(t,s, strlen(s)); 
+  strncat(t,s, strlen(s));
+  
   s = mkmsg2("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
   strncat(t,s, strlen(s));
+ 
   s = mkmsg2("\tws2000station.config.dbfile:\t%s\n",ws2000station.config.dbfile);
   strncat(t,s, strlen(s));
   s = mkmsg2("\tpcwsrstation.config.device:\t%s\n",pcwsrstation.config.device);
   strncat(t,s, strlen(s));
   s = mkmsg2("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
   strncat(t,s, strlen(s));
-
+  
   return(t);
 }
 

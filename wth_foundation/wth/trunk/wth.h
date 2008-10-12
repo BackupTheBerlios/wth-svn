@@ -1,5 +1,5 @@
 /* 
-   wthnew.h
+   wth.h
 
    global header file for serial weatherstation communication
    for use of 
@@ -8,7 +8,7 @@
      PC weathersensor receiver
      1-wire weatherstation
  
-   $Id: wthnew.h 177 2008-06-10 15:19:08Z vjahns $
+   $Id: wth.h 177 2008-06-10 15:19:08Z vjahns $
    $Revision: 177 $
 
    Copyright (C) 2000-2001,2005,2007 Volker Jahns <Volker.Jahns@thalreit.de>
@@ -200,7 +200,7 @@ typedef struct ws2000stat {
 
 typedef struct wsconf {
   char *dbfile;
-  char *device;
+  char device[MAXMSGLEN];
   char *dbpath;
   char *rrdpath; 
 } wsconf_t;

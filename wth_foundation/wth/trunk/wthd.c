@@ -26,9 +26,6 @@ main ( int argc, char **argv )
 
   char *ws2000lck = WS2000LOCK;
 
-  if  (( ret = wthd_init()) != 0 ) {
-    printf("wthd: can't initialize. Exit!\n");
-  }
 
   nobg = 0;
   /* parse commandline */
@@ -46,6 +43,11 @@ main ( int argc, char **argv )
     default:
       usaged(0, "", "");
     }
+  }
+
+  /* reading config file and default parameters */
+  if  (( ret = wthd_init()) != 0 ) {
+    printf("wthd: can't initialize. Exit!\n");
   }
 
 
@@ -83,6 +85,8 @@ main ( int argc, char **argv )
   }
 
   /* WS2000 thread */
+  printf("wthd: ws2000station.config.device: \"%s\"\n", 
+    ws2000station.config.device);
   if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
     if ( ( ret = pthread_create( &wtid, NULL, ws2000_hd, NULL) == 0)) {
       syslog(LOG_DEBUG, "wthd: creating WS2000 thread: success");
@@ -91,7 +95,7 @@ main ( int argc, char **argv )
     } 
     syslog(LOG_DEBUG, "wthd: ws2000station.config.device: %s\n", 
       ws2000station.config.device);
-  }
+  } else { printf("wthd: no device configured\n"); }
   /* handling interactive commands */
   //pthread_create( &ctid, NULL, cmd_hd, NULL);
   //pthread_join( &tid_telnet_hd, NULL);
