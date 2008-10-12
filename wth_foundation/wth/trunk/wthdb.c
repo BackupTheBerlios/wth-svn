@@ -143,6 +143,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   int i, err;
   char tstrg[MAXMSGLEN];
   char *rrdfile;
+  char *tmpstr;
   char *template;
   char **ustrg;
   senspar_t spar;
@@ -186,12 +187,12 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
     strncat(tstrg, template, strlen(template));
   }
 
-  /*
-  snprintf( rrdfile, MAXMSGLEN, "%s%d.rrd", 
-	    spar.sensor_name, spar.sensor_no);
-  */
-  snprintf( rrdfile, MAXMSGLEN, "%s.rrd", 
+  snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
+  snprintf( tmpstr, MAXMSGLEN, "%s.rrd", 
 	    spar.sensor_name);
+  printf("rrdfile: \"%s\"\n", rrdfile);
+  strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
+  printf("rrdfile: \"%s\"\n", rrdfile);
 
   syslog(LOG_DEBUG, "writedb: rrdfile: %s: update string: %s\n", 
 	 rrdfile, tstrg);
