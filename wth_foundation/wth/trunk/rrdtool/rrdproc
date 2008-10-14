@@ -33,17 +33,6 @@ my $time;
 my $val;
 my $name;
 
-#my %createopts;
-#my %fetchopts;
-#my %graphopts;
-#my %extraopts;
-
-#my %createdefs;
-#my %graphdefs;
-
-#my @Sensors;
-#my @Datasource;
-
 #
 #
 #
@@ -63,15 +52,14 @@ usage {
 #
 sub
 getlast {
-    my $Val;
     my $rrdok;
     my $dsname;
     my $lasttim;
     my $lastval;
     my @retlist;
 
-    my $rrd = shift(@_);
-    print "fetch (getlast)\t: rrd: $rrd\n" if ( $DEBUG);
+    my ( $rrd, $gds)  = @_;
+    print "getlast: rrd: $rrd dsname: $gds\n" if ( $DEBUG);
 
     foreach $sensor ( keys %fetchopts ) {
         if ( $rrd eq $sensor ) {
@@ -86,44 +74,51 @@ getlast {
        push ( @fetchstr, $extraopts{$rrd}->{rrdfile} );
        foreach my $fopt ( keys %{ $fetchopts{$rrd}} ) {
             push ( @fetchstr, $fopt);
-            if ( $fetchopts{$rrd}{$fopt} ) {
-                push ( @fetchstr, $fetchopts{$rrd}{$fopt});
-	    }
+            push ( @fetchstr, $fetchopts{$rrd}{$fopt});
        }
 
+       $#fetchstr = $#fetchstr -1;
        print "fetch (getlast)\t: fetchstr: @fetchstr\n" if ( $DEBUG);
 
-       my ($start,$step,$names,$array) =
+       my ($sstart,$step,$names,$array) =
            RRDs::fetch @fetchstr;
 
        $ERROR = RRDs::error;
        print "ERROR: < $ERROR >\n" if ( $ERROR);
 
-       foreach $Val (@$names) {
-           $dsname = $Val if ($Val ne "");
-	   print "fetch (getlast)\t: dsname : $dsname\n" if ( $DEBUG);
+       my $dsiter = 0;
+       my $dsnum  = 0;
+       foreach $dsrrd (@$names) {
+         print "getlast: DS found: $dsrrd\n" if ( $DEBUG);
+         if ( $dsrrd eq $gds) {
+           $dsnum = $dsiter;
+           $dsname = $dsrrd;
+         }
+         $dsiter++;
        }
 
        #
        # get last entry in rrd and store to $lastval
        #
        foreach my $line (@$array){
-         foreach $Val (@$line) {
-           if ($Val) {
-             $lasttim = $start;
-             $lastval = $Val;
-             push (@retlist, $start);
-             push (@retlist, $Val);
+         $dsiter = 0;
+         foreach $dsval (@$line) {
+           if ( ( defined $dsval) && ($dsval ne "") && ( $dsiter == $dsnum)) {
+             $lasttim = $sstart;
+             $lastval = $dsval;
+             push (@retlist, $sstart);
+             push (@retlist, $dsval);
            }
+           $dsiter++;
          }
-         $start += $step;
+         $sstart += $step;
        }
 
        #
        # no data found
        #
-       if ( ! $lastval) {
-         $lasttim= $start;
+       if ( $lastval eq "") {
+         $lasttim= $sstart;
          $lastval = "NA";
          push(@retlist, $lasttim);
          push(@retlist, $lastval);
@@ -133,9 +128,10 @@ getlast {
     } else {
         printf "fetch (getlast)\t: Can't find sensor : \"$rrd\"!\n" 
             if ( $DEBUG);
-        $Val = "NA";
-        push(@retlist, $Val);
+        $dsval = "NA";
+        push(@retlist, $dsval);
     }
+    print "getlast: \@retlist: @retlist\n";
     return wantarray ? @retlist : $retlist[0];
 }
 
@@ -424,8 +420,10 @@ if ( $fetch) {
     foreach $sensor ( @Sensors) {
         print "fetch (main)\t: Fetching rrd last data: $sensor\n" 
             if ( $DEBUG);
-        ($time, $val, $name) = getlast($sensor);
-        print "\t$sensor : $val at " . scalar localtime($time) . "\n";
+        foreach $fds ( keys %{ $graphopts{$sensor}}) {
+          ($time, $val, $name) = getlast($sensor, $fds);
+          print "\t$sensor : $val at " . scalar localtime($time) . "\n";
+        }
     }
 }
 

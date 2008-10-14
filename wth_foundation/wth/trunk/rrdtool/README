@@ -1,7 +1,10 @@
 Using wth with rrdtool
 
 rrdproc
-perl script to create rrd files of all attached sensors
+perl script to 
+create rrd files of all attached sensors
+graph images of sensor data
+
 
 
 In order to monitor the reception errors of the wireless sensors 
