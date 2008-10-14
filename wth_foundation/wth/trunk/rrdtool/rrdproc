@@ -7,12 +7,9 @@
 use RRDs;
 use Getopt::Long;
 use Image::Magick;
-
 use Tk;
 use Tk::PNG;
-
 use Data::Dumper;
-
 use Env qw(DEBUG);
 
 my $version = "RRD processing tool - Version 0.0.1\n";
@@ -42,9 +39,10 @@ my $name;
 #my %extraopts;
 
 #my %createdefs;
-my %graphdefs;
+#my %graphdefs;
 
 #my @Sensors;
+#my @Datasource;
 
 #
 #
@@ -146,9 +144,8 @@ getlast {
 #
 sub
 graphrrd {
-
-    my $rrd = shift(@_);
-
+    my ( $rrd, $ds) = @_;
+    print "graphrrd: RRD: $rrd Datasource: $ds\n" if ( $DEBUG);
     my $DAY   = 86400;
     my $WEEK  = 604800;
     my $MONTH = 18144000;
@@ -158,7 +155,7 @@ graphrrd {
 
     my $Logtime;
     my @graphstr;
-    my $imagefile;
+    my $imagefile = $rrd . "_" . $ds . ".png";
     my $gopt;
 
     my $rrdok     = 0;
@@ -172,34 +169,54 @@ graphrrd {
             $rrdok = 1;
         }
     }
+
+    # check if $ds is a valid datasource
+    foreach my $dsname ( keys %{ $graphopts{$rrd}} ) {
+        print "graphrrd: dsname: $dsname\n" if ($DEBUG);
+        if ( $ds eq $dsname ) {
+            print "graphrrd: datasource matches: $ds: OK\n" if ($DEBUG);
+            $rrdok = 1;
+        }
+    }   
+
+
     if ( $rrdok) {
-        print "graph (graphrrd)\t: sensor: $rrd\n" if ( $DEBUG);
-        $imagefile = $extraopts{$rrd}->{imgfile};
+        print "graphrrd: sensor: $rrd\n" if ( $DEBUG);
         @graphstr = ();
         push( @graphstr, $imagefile);
-        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG);
+        print "graphrrd: graphstr: @graphstr\n" if ( $DEBUG);
 
-        foreach $gopt ( keys %{ $graphopts{$rrd}} ) {
-            push ( @graphstr, $gopt);
-            push ( @graphstr, $graphopts{$rrd}{$gopt});
+        foreach my $gopt ( keys %{ $graphopts{$rrd}{$ds}} ) {
+            print "graphrrd: gopt: $gopt\n" if ( $DEBUG);
+            if ( "$gopt" eq "graphdefs" ) {
+                print "graphrrd: pushing graphdefs\n" if ( $DEBUG);
+		print "graphrrd: graphdefs: @{ $graphopts{$rrd}{$ds}{graphdefs}}\n" if ( $DEBUG);
+		push @graphstr, @{ $graphopts{$rrd}{$ds}{"graphdefs"}};
+	    } else {
+		push ( @graphstr, $gopt);
+		push ( @graphstr, $graphopts{$rrd}{$ds}{$gopt});
+	    }
+            
         }
 
-        push ( @graphstr, @{ $graphdefs{$rrd}});
+        #print "graphrrd: graphdefs: $graphdefs{Pressure}[0]\n" if ( $DEBUG);
+        #push ( @graphstr, @{ $graphdefs{$ds}});
 
-        print "graph (graphrrd)\t: graphstr: @graphstr\n" if ( $DEBUG);
+        print "graphrrd: graphstr: @graphstr\n" if ( $DEBUG);
         RRDs::graph @graphstr;
 
         if ($ERROR = RRDs::error) {
             $errortext = "RRDs ERROR:\n$ERROR";
             print "ERROR: $ERROR\n";
         } else {
-
             open(FH,"<$imagefile");
-            undef $/;
             my $file = <FH>;
+            close FH;
         }
     } else {
         $errortext = "Can't find sensor : \"$rrd\"!";
+        print "graphrrd: errortext: $errortext\n" if ( $DEBUG);
+        return(-1);
     }
 
     # return image containing error text
@@ -214,8 +231,9 @@ graphrrd {
         open(FH,"<$imagefile");
         undef $/;
         my $file = <FH>;
-        unlink ($imagefile);
+        #unlink ($imagefile);
     }
+    return(0);
 }
 
 #
@@ -245,7 +263,7 @@ unless ($ret = do $cfgfile) {
     exit -1;
 }
 
-print "Sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
+print "Configured sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
 
 if ( $ENV{DEBUG} ) {
     if ( $ENV{DEBUG} == 1) {
@@ -416,33 +434,52 @@ if ( $fetch) {
 #
 if ( $graph) {
     print "Creating RRD image files\n";
+    my @sensorok = ();
     foreach $sensor ( @Sensors) {
-        print "\t$sensor: $extraopts{$sensor}->{imgfile}\n";
-        graphrrd($sensor);
+        $serr = 0;
+        foreach $gds ( keys %{ $graphopts{$sensor}}) {
+          print "main: sensor: $sensor: ds: $gds\n";
+          if ( ( my $err = graphrrd($sensor, $gds)) != 0 ) {
+	      print "Some problems processing images on sensor $sensor\n";
+	      $serr = 1;
+	  } 
+        }
+	if ( $serr != 1 ) {
+	    push(@sensorok, $sensor);
+	}
     }
 
-    print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
-    if ( $ENV{DISPLAY}) {
-        print "Got DISPLAY: Displaying\n";
-        my $main = new MainWindow;
-        my $quit_command = sub{exit};
-        $main ->Label(-text => 'Main')->pack;
-        $main->bind('<Control-Key-q>' => $quit_command);
-
-        foreach $sensor ( @Sensors) {
-           print "\t$sensor: $extraopts{$sensor}->{imgfile}\n";
-            $main ->Photo("$sensor", 
-                   -file => $extraopts{$sensor}->{imgfile});
-            $main->Label('-image' => "$sensor")->pack;
-        }
-        $main->Button(
-            -text    => 'Quit',
-            -underline => 0,
-            -command => $quit_command,
-        )->pack(-side => 'left');
-        MainLoop;
+    print "sensornok: $#sensorok\n";
+    print Dumper(@sensorok);
+    if ( $#sensorok != 0) {
+	print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
+	if ( $ENV{DISPLAY}) {
+	    print "Got DISPLAY: Displaying\n";
+	    my $main = new MainWindow;
+	    my $quit_command = sub{exit};
+	    $main ->Label(-text => 'Main')->pack;
+	    $main->bind('<Control-Key-q>' => $quit_command);
+	    
+	    foreach $sensor ( @sensorok) {
+		foreach $gds ( keys %{ $graphdefs{$sensor}}) {
+		    $imagefile = $sensor . "_" . $gds . ".png";
+		    print "Display: imagefile: $imagefile\n";
+		    my $rrdimage = $main ->Photo('-format' => 'png', 
+						 '-file' => $imagefile);
+		    $main->Label('-image' => $rrdimage)->pack;
+		}
+	    }
+	    $main->Button(
+		-text    => 'Quit',
+		-underline => 0,
+		-command => $quit_command,
+		)->pack(-side => 'left');
+	    MainLoop;
+	} else {
+	    print "DISPLAY is not set. Cannot run in terminal!\n";
+	}
     } else {
-        print "DISPLAY is not set. Cannot run in terminal!\n";
+	print "No images created. Nothing to display\n";
     }
 }
 
