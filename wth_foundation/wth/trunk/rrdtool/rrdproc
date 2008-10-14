@@ -461,7 +461,7 @@ if ( $graph) {
 	    $main->bind('<Control-Key-q>' => $quit_command);
 	    
 	    foreach $sensor ( @sensorok) {
-		foreach $gds ( keys %{ $graphdefs{$sensor}}) {
+		foreach $gds ( keys %{ $graphopts{$sensor}}) {
 		    $imagefile = $sensor . "_" . $gds . ".png";
 		    print "Display: imagefile: $imagefile\n";
 		    my $rrdimage = $main ->Photo('-format' => 'png', 
