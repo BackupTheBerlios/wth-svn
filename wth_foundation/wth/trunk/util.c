@@ -37,7 +37,6 @@
 int 
 wthd_init( ) {
   int err;
-  char * rbuf;
   /* default parameters valid for all stations */
   wsconf.timeout     = 30;
   wsconf.logfacility = LOG_LOCAL5;
@@ -55,6 +54,7 @@ wthd_init( ) {
   ws2000station.config.dbfile        = "ws2000.db";
   strncpy(ws2000station.config.device, "/dev/ttyd1", MAXMSGLEN);
   ws2000station.config.rrdpath       = ".";
+  ws2000station.config.monitor       = "Sensormonitor.rrd";
   ws2000station.status.interval      = 300;  
 
   pcwsrstation.config.dbfile         = "pcwsr.db";
@@ -213,7 +213,6 @@ readconfig( ) {
   char *name;
   char *value;
   char *cp, *cp2;
-  char *rbuf;
   char *cfgfile;
 
   if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
@@ -280,6 +279,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
 	  ws2000station.config.dbfile = strdup(value);
 	  printf("ws2000.dbfile: \"%s\"\n", value);
+        } else if ( strcasecmp( name, "ws2000.monitor" ) == 0 ) {
+	  ws2000station.config.monitor = strdup(value);
+	  printf("ws2000.monitor: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
 	  ws2000station.config.rrdpath = strdup(value);
 	  printf("ws2000.rrdpath: \"%s\"\n", value);

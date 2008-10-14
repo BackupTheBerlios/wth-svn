@@ -203,6 +203,7 @@ typedef struct wsconf {
   char device[MAXMSGLEN];
   char *dbpath;
   char *rrdpath; 
+  char *monitor;
 } wsconf_t;
 
 typedef struct ws2000 {
@@ -301,7 +302,7 @@ conf_t   wsconf;
 
 int datadb( long dataset_date, int sensor_param, float meas_value, 
             sqlite3 *wthdb) ;
-int statdb( long statusset_date, int sensor_no, int sensor_status, 
+int statdb( int sensor_status[], time_t statusset_date, 
             sqlite3 *wthdb);
 int newdb( long statusset_date, int sensor_no, int new_flag, 
             sqlite3 *wthdb);

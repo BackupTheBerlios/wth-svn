@@ -3,6 +3,8 @@
 # 
 # Volker Jahns, volker@thalreit.de
 #
+CFLAGS=-Wall
+
 objects = wthd.o ws2000.o pcwsr.o util.o net.o
 
 wthdb.o: wthdb.c

@@ -640,6 +640,7 @@ commandword is 5
 char *
 wstat(unsigned char *data, int mdat ) {
   int i, err;
+  int sdata[MAXSENSORS];
   time_t statusset_date;
   char frame[MAXMSGLEN] = ""; 
   char sf[3] = "";
@@ -671,15 +672,13 @@ wstat(unsigned char *data, int mdat ) {
     strncat( t, s, strlen(s));
     return(t);
   }
+
   /* insert statusdata */
-  for ( i = 1; i <= 18; i++) {
-    if ( data[i-1] != 0 ) {
-      statdb( statusset_date, i, data[i-1], ws2000db);
-    }
-  }
+  for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
+  statdb( sdata, statusset_date, ws2000db);
+
   /* cleanup and close */
   sqlite3_close( ws2000db);
-  
 
   /* status of first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
@@ -882,7 +881,7 @@ dcftime(unsigned char *data, int ndat) {
     /* 7th byte : year (BCD) : low nibble units, high nibble tens */
     tmp1 = getbits(data[6], 3,4);
     tmp2 = getbits(data[6], 7,4);
-    syslog(LOG_DEBUG, "dcftime : year : %d %d\n", tmp2, tmp1);
+    syslog(LOG_DEBUG, "dcftime : year : %d %d", tmp2, tmp1);
 
     t.tm_year = tmp1 + 10*tmp2 + 100;
     t.tm_isdst = -1;
@@ -890,12 +889,12 @@ dcftime(unsigned char *data, int ndat) {
 
     err = time(&ltim);
     clk = ctime(&ltim);
-    syslog(LOG_DEBUG, "dcftime : local clk : %s\n", clk);
+    syslog(LOG_DEBUG, "dcftime : local clk : %s", clk);
     
     dtim = mktime(&t);
     clk = ctime(&dtim);
-    syslog(LOG_DEBUG, "dcftime : dtim : %lu\n", (long unsigned int)dtim);
-    syslog(LOG_DEBUG, "dcftime : DCF clk : %s\n", clk);
+    syslog(LOG_DEBUG, "dcftime : dtim : %lu", (long unsigned int)dtim);
+    syslog(LOG_DEBUG, "dcftime : DCF clk : %s", clk);
 
     return(dtim);
 }

@@ -45,24 +45,55 @@ datadb( long dataset_date, int sensor_param, float meas_value,
 
 */
 int
-statdb( long statusset_date, int sensor_no, int sensor_status, sqlite3 *wthdb) 
+statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb) 
 {
-  int err;
+  int i, err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
+  char tstrg[MAXMSGLEN];
+  char *rrdfile;
+  char *tmpstr;
+  char *template;
+  char **ustrg;
 
-  snprintf(query, querylen, 
-	   "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
-	   statusset_date, sensor_no, sensor_status); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
-  if ( err) { 
-    syslog(LOG_DEBUG,
-	   "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
-	   err, sqlite3_errmsg(wthdb));
-  } else {
-    return(-1);
+  err = 0;
+  if (( rrdfile = malloc(MAXMSGLEN)) == NULL ) return(-1);
+  if (( tmpstr = malloc(MAXMSGLEN)) == NULL ) return(-1);
+  if (( template = malloc(MAXMSGLEN)) == NULL) return(-1);
+
+  ustrg = (char **)malloc(sizeof(char *));
+  ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
+  snprintf(tstrg,MAXMSGLEN, "%d", statusset_date);
+
+  for ( i = 1; i <= 18; i++) {
+    snprintf(query, querylen, 
+     "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
+     (long unsigned int) statusset_date, i, sensor_status[i]); 
+    err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
+    if ( err) { 
+      syslog(LOG_DEBUG,
+        "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(wthdb));
+    } 
+    snprintf(template,MAXMSGLEN,"%d", sensor_status[i]);
+    strncat(tstrg, ":", 1);
+    strncat(tstrg, template, strlen(template));
   }
-  return(0);
+  snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
+  snprintf( tmpstr, MAXMSGLEN, "%s", ws2000station.config.monitor);
+  strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
+  syslog(LOG_DEBUG, "writedb: rrdfile: %s: update string: %s\n", 
+	 rrdfile, tstrg);
+  snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
+  rrd_clear_error();
+  rrd_get_context();
+  rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
+  if ( ( err = rrd_test_error())) {
+    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n",
+            rrd_test_error());
+  }
+  return(err);
+
 }
 
 
@@ -189,7 +220,6 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
     strncat(tstrg, ":", 1);
     strncat(tstrg, template, strlen(template));
   }
-
   snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
   snprintf( tmpstr, MAXMSGLEN, "%s.rrd", spar.sensor_name);
   strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
