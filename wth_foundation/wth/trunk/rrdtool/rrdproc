@@ -431,12 +431,11 @@ if ( $fetch) {
 # Creating RRD image
 #
 if ( $graph) {
-    print "Creating RRD image files\n";
+    print "Imaging RRD\n";
     my @sensorok = ();
     foreach $sensor ( @Sensors) {
         $serr = 0;
         foreach $gds ( keys %{ $graphopts{$sensor}}) {
-          print "main: sensor: $sensor: ds: $gds\n";
           if ( ( my $err = graphrrd($sensor, $gds)) != 0 ) {
 	      print "Some problems processing images on sensor $sensor\n";
 	      $serr = 1;
@@ -447,8 +446,6 @@ if ( $graph) {
 	}
     }
 
-    print "sensornok: $#sensorok\n";
-    print Dumper(@sensorok);
     if ( $#sensorok != 0) {
 	print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
 	if ( $ENV{DISPLAY}) {
