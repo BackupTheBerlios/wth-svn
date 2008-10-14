@@ -14,24 +14,9 @@ use Env qw(DEBUG);
 
 my $version = "RRD processing tool - Version 0.0.1\n";
 
-my $cfgfile;
-my $ret;
-
-my $create;
-my $info;
-my $fetch;
-my $graph;
-my $fill;
-my $help;
-
-my $sensor;
-my @creatstr;
-my $copt;
-my $ERROR;
-
-my $time;
-my $val;
-my $name;
+my ( $create, $info, $fetch, $graph, $fill, $help);
+my ( $sensor, $creatstr, $copt, $ERROR);
+my ( $cfgfile, $ret, $time, $val, $name);
 
 #
 #
@@ -131,7 +116,6 @@ getlast {
         $dsval = "NA";
         push(@retlist, $dsval);
     }
-    print "getlast: \@retlist: @retlist\n";
     return wantarray ? @retlist : $retlist[0];
 }
 
@@ -422,7 +406,7 @@ if ( $fetch) {
             if ( $DEBUG);
         foreach $fds ( keys %{ $graphopts{$sensor}}) {
           ($time, $val, $name) = getlast($sensor, $fds);
-          print "\t$sensor : $val at " . scalar localtime($time) . "\n";
+          print "$sensor\t$fds:\t$val\tat " . scalar localtime($time) . "\n";
         }
     }
 }
@@ -454,15 +438,21 @@ if ( $graph) {
 	    my $quit_command = sub{exit};
 	    $main ->Label(-text => 'Main')->pack;
 	    $main->bind('<Control-Key-q>' => $quit_command);
-	    
+	   
+            $sx=0; 
 	    foreach $sensor ( @sensorok) {
+                $sy=0;
 		foreach $gds ( keys %{ $graphopts{$sensor}}) {
 		    $imagefile = $sensor . "_" . $gds . ".png";
 		    print "Display: imagefile: $imagefile\n";
 		    my $rrdimage = $main ->Photo('-format' => 'png', 
 						 '-file' => $imagefile);
-		    $main->Label('-image' => $rrdimage)->pack;
+                    $sxpos = $sx *200;
+                    $sypos = $sy *200;
+		    $main->Label('-image' => $rrdimage)->place(-x => $sxpos, -y => $sypos);
+                    $sy++;
 		}
+                $sx++;
 	    }
 	    $main->Button(
 		-text    => 'Quit',
