@@ -21,11 +21,11 @@ int
 main ( int argc, char **argv ) 
 {
   int op, ret, nobg;
-  pthread_t ptid, wtid, stoptid;
+  pthread_t ctid, ptid, wtid, stoptid;
   sigset_t signals_to_block;
 
-  char *ws2000lck = WS2000LOCK;
-
+  char *lockfile = WS2000LOCK;
+  //char *ws2000lck = WS2000LOCK;
 
   nobg = 0;
   /* parse commandline */
@@ -59,7 +59,8 @@ main ( int argc, char **argv )
   }
   syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
 
-  unlink( ws2000lck);
+  //unlink( ws2000lck);
+  unlink( lockfile);
   tzset();
 
   /* block signals in main */
@@ -96,9 +97,10 @@ main ( int argc, char **argv )
     syslog(LOG_DEBUG, "wthd: ws2000station.config.device: %s\n", 
       ws2000station.config.device);
   } else { printf("wthd: no device configured\n"); }
+
   /* handling interactive commands */
-  //pthread_create( &ctid, NULL, cmd_hd, NULL);
-  //pthread_join( &tid_telnet_hd, NULL);
+  pthread_create( &ctid, NULL, cmd_hd, NULL);
+  pthread_join( ctid, NULL);
 
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
     pthread_join( ptid, NULL);

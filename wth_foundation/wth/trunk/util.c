@@ -44,9 +44,7 @@ wthd_init( ) {
   wsconf.debug       = 1;
   wsconf.netflg      = 0;
   wsconf.hostname    = "localhost";
-  wsconf.port        = "5001";
-  wsconf.tnport      = "5002";
-  wsconf.xmlport     = "8001";
+  wsconf.port        = "2000";
   wsconf.wwwport     = "8880";
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
@@ -172,25 +170,6 @@ usage (int exitcode, char *error, char *addl) {
   exit(exitcode);
 }
 
-/* tnusage : print handling instructions for telnet access wthd */
-char *
-tnusage (int exitcode, char *error, char *addl) {
-  char *s;
-
-  s = mkmsg2("Available commands include:\n"
-                     "\t0\t\tPoll DCF Time\n"
-                     "\t1\t\tRequest dataset\n"
-                     "\t2\t\tSelect next dataset\n"
-                     "\t3\t\tActivate 9 temperature sensors\n"
-                     "\t4\t\tActivate 16 temperature sensors\n"
-                     "\t5\t\tRequest status\n"
-                     "\t6 <interval>\tSet <interval> time, " 
-                     "requires extra parameter\n"
-		     "\t\t\tpermissible values for <interval> lie\n"
-		     "\t\t\twithin the range from <1> to <60> minutes\n");
-
-      return(s);
-}
 
 /* usaged : print handling instructions of wthd */
 int
@@ -271,8 +250,6 @@ readconfig( ) {
 	    wsconf.logfacility = LOG_LOCAL7;
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 	  wsconf.port = strdup(value);
-        } else if ( strcasecmp( name, "tnport" ) == 0 ) {
-	  wsconf.tnport = strdup(value);
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
@@ -329,10 +306,6 @@ echoconfig ( ) {
   s = mkmsg2("\twsconf.hostname: %s\n",wsconf.hostname);
   strncat(t,s, strlen(s));
   s = mkmsg2("\twsconf.port: %s\n",wsconf.port);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\twsconf.tnport: %s\n",wsconf.tnport);
-  strncat(t,s, strlen(s)); 
-  s = mkmsg2("\twsconf.xmlport: %s\n--\n",wsconf.xmlport);
   strncat(t,s, strlen(s));
   
   s = mkmsg2("\tws2000station.config.device:\t%s\n",ws2000station.config.device);

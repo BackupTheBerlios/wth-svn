@@ -26,8 +26,6 @@
 #define DATAWAIT 300
 
 char *lockfile = WS2000LOCK;
-//sqlite3 *ws2000db;
-
 /*
   wloghandler
   logging WS2000 data to rrd and sqlite DB
@@ -64,49 +62,6 @@ ws2000_hd( ) {
   }
   return(0);
 }
-
-
-
-/*
-  cmdhandler
-  interactive commands
-*/
-
-void *
-cmd_hd( ) {
-  int cfd;
-  //char *rbuf;
-  int waitmax = 0;
-  int loopno  = 0;
-
-  for ( ;; ) {
-    printf("ws2000_cmdhandler awakening: %d\n", loopno);
-    while ( waitmax < MAXWAIT ) {
-      printf("ws2000_cmdhandler: waitmax: %d\n", waitmax);
-      cfd = open(lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
-      if ( cfd == -1 ) {
-        printf("ws2000_cmdhandler: %s\n", strerror(errno));
-        printf("ws2000_cmdhandler: lockfile already locked\n");
-	sleep(5);
-      } else {
-	/* sending command to weather station */
-        wsconf.command = 0;
-        printf("ws2000_cmdhandler: sending command: %d\n", wsconf.command);
-	printf("ws2000_cmdhandler: wcmd: %s\n",(char *)wcmd()); 
-	//printf("ws2000_cmdhandler: %s", rbuf);
-        close(cfd);
-        unlink(lockfile);
-        waitmax = 0;
-        break;
-      }
-      waitmax++; 
-    }
-    loopno++;
-    sleep(600);
-  }
-  return((void *) &success);
-}
-
 
 
 /* 

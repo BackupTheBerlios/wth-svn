@@ -116,6 +116,7 @@ enum {
   ENET    = -6,
   ESIG    = -7,
   ECMD    = -8,
+  EODB    = -9
 };
 
 /* sensor parameter assignment */
@@ -227,8 +228,6 @@ typedef struct conf {
   int logfacility;
   char *hostname;
   char *port;
-  char *tnport;
-  char *xmlport;
   char *wwwport;
   char *units;
   char *outfmt;
@@ -253,6 +252,7 @@ char *mkmsg( const char *, ...);
 char *mkmsg2( const char *, ...);
 int usage (int exitcode, char *error, char *addl);
 char *tnusage (int exitcode, char *error, char *addl);
+char *helpread (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
 char *echoconfig();
@@ -272,9 +272,6 @@ int Writen(int, void *, size_t);
 const char *inet_ntop(int, const void *, char *, size_t);
 int inet_pton(int, const char *, void *); 
 int daemon_init( );
-int chklockf( const char *lockfile);
-int setlck( const char *lockfile);
-int unlck( const char *lockfile, int fd);
 
 void *pcwsr_hd();
 void *ws2000_hd();
@@ -309,3 +306,4 @@ int newdb( long statusset_date, int sensor_no, int new_flag,
 int writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
          float meas_value[], sqlite3 *wthdb );
 int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
+int readdb ( time_t startdate, time_t enddate, int sensor_no[], time_t  dataset_date[], float meas_value[], char * wstation);

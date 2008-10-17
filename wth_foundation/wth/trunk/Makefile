@@ -5,7 +5,7 @@
 #
 CFLAGS=-Wall
 
-objects = wthd.o ws2000.o pcwsr.o util.o net.o
+objects = wthd.o ws2000.o pcwsr.o util.o net.o wthcmd.o
 
 wthdb.o: wthdb.c
 	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c wthdb.c
