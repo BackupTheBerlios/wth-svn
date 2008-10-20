@@ -17,9 +17,11 @@ my $version = "RRD processing tool - Version 0.0.1\n";
 my ( $create, $info, $fetch, $graph, $fill, $help);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
+my $rwidth = 200;
+my $rheight = 200;
 
 #
-#
+# subroutines
 #
 sub
 usage {
@@ -434,12 +436,12 @@ if ( $graph) {
 	print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
 	if ( $ENV{DISPLAY}) {
 	    print "Got DISPLAY: Displaying\n";
-	    my $main = new MainWindow;
+	    my $main = new MainWindow();
 	    my $quit_command = sub{exit};
-	    $main ->Label(-text => 'Main')->pack;
+	    #$main ->Label(-text => 'Main')->place( -x => 0, -y =>0);
 	    $main->bind('<Control-Key-q>' => $quit_command);
 	   
-            $sx=0; 
+            $sx=0; $sxmax = 0; $symax = 0;
 	    foreach $sensor ( @sensorok) {
                 $sy=0;
 		foreach $gds ( keys %{ $graphopts{$sensor}}) {
@@ -447,18 +449,25 @@ if ( $graph) {
 		    print "Display: imagefile: $imagefile\n";
 		    my $rrdimage = $main ->Photo('-format' => 'png', 
 						 '-file' => $imagefile);
-                    $sxpos = $sx *200;
-                    $sypos = $sy *200;
-		    $main->Label('-image' => $rrdimage)->place(-x => $sxpos, -y => $sypos);
+                    $sxpos = $sx * $rwidth;
+                    $sypos = $sy * $rheight;
+		    $main->Label('-image' => $rrdimage)->place( -x => $sxpos, -y => $sypos);
                     $sy++;
+                    if ( $sy >= $symax ) { $symax = $sy};
 		}
                 $sx++;
+                if ( $sx >= $sxmax ) { $sxmax = $sx};
 	    }
+            $sxmax = $sxmax * $rwidth;
+            $symax = $symax * $rheight + 50;
+            $maingeom = "$sxmax" . "x" . "$symax";
+
 	    $main->Button(
 		-text    => 'Quit',
 		-underline => 0,
 		-command => $quit_command,
-		)->pack(-side => 'left');
+		)->place(-x => 0, -y => 600);
+            $main->geometry("$maingeom");
 	    MainLoop;
 	} else {
 	    print "DISPLAY is not set. Cannot run in terminal!\n";
