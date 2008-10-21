@@ -189,6 +189,7 @@ typedef struct senspar {
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval of WS2000 PC interface */
+  time_t lastread;  /* last status read date */
   int version;      /* internal version number */
   int DCFstat;      /* status of DCF receiver */
   int DCFsync;      /* sync bit of DCF receiver */
@@ -197,7 +198,14 @@ typedef struct ws2000stat {
   int Battstat;     /* battery status */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
+  int is_present;
 } ws2000stat_t;
+
+typedef struct pcwsrstat {
+  time_t lastread;  /* last status read date */
+  int ndats;        /* number of datasets retrieved */
+  int is_present;
+} pcwsrstat_t;
 
 typedef struct wsconf {
   char *dbfile;
@@ -214,6 +222,7 @@ typedef struct ws2000 {
 } ws2000_t;
 
 typedef struct pcwsr {
+  pcwsrstat_t status;
   wsconf_t config;
   sensor_t sensor[MAXSENSORS];
 } pcwsr_t;
@@ -252,6 +261,7 @@ char *mkmsg( const char *, ...);
 char *mkmsg2( const char *, ...);
 int usage (int exitcode, char *error, char *addl);
 char *tnusage (int exitcode, char *error, char *addl);
+char *tnstat( char *stationname);
 char *helpread (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
@@ -303,7 +313,10 @@ int statdb( int sensor_status[], time_t statusset_date,
             sqlite3 *wthdb);
 int newdb( long statusset_date, int sensor_no, int new_flag, 
             sqlite3 *wthdb);
-int writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
-         float meas_value[], sqlite3 *wthdb );
+int writedb( int sensor_no, int nval, int sensor_meas_no[], 
+      time_t dataset_date,
+      float meas_value[], sqlite3 *wthdb );
 int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
-int readdb ( time_t startdate, time_t enddate, int sensor_no[], time_t  dataset_date[], float meas_value[], char * wstation);
+int readdb ( time_t startdate, time_t enddate, int sensor_no[], 
+      time_t  dataset_date[], float meas_value[], char * wstation);
+int readstat( char *wstation);

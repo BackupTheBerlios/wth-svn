@@ -59,6 +59,52 @@ wthd_init( ) {
   strncpy( pcwsrstation.config.device, "n.a.", MAXMSGLEN);
   err = readconfig();
   printf("wthd_init: readconfig done\n");
+
+  /* allocate sensornames WS2000 */
+  if (( ws2000station.sensor[1].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[1].sensorname, "Sensor1", MAXMSGLEN);
+
+  if (( ws2000station.sensor[2].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[2].sensorname, "Sensor2", MAXMSGLEN);
+
+  if (( ws2000station.sensor[3].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[3].sensorname, "Sensor3", MAXMSGLEN);
+
+  if (( ws2000station.sensor[4].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[4].sensorname, "Sensor4", MAXMSGLEN);
+
+  if (( ws2000station.sensor[5].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[5].sensorname, "Sensor5", MAXMSGLEN);
+
+  if (( ws2000station.sensor[6].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[6].sensorname, "Sensor6", MAXMSGLEN);
+
+  if (( ws2000station.sensor[7].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[7].sensorname, "Sensor7", MAXMSGLEN);
+
+  if (( ws2000station.sensor[8].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[8].sensorname, "Sensor8", MAXMSGLEN);
+
+  if (( ws2000station.sensor[9].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", MAXMSGLEN);
+
+  if (( ws2000station.sensor[10].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[10].sensorname, "Windsensor", MAXMSGLEN);
+
+  if (( ws2000station.sensor[11].sensorname = malloc(MAXMSGLEN)) == NULL)
+    return(-1);
+  strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", MAXMSGLEN);
+
   /*
   rbuf = malloc(2*MAXMSGLEN*sizeof(char *));
   strncpy( rbuf, echoconfig(), MAXMSGLEN);

@@ -134,10 +134,10 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
   sqlite3_stmt *qcomp;
 
   query = mkmsg2("SELECT sp.sensor_no, sn.sensorname, pn.parameter_name "
-		 "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
-		 "AS pn WHERE sp.parameter_no = pn.parameter_no "
-		 "AND sp.sensor_no = sn.sensor_no AND sp.sensor_meas_no = %d", 
-		 sensor_meas_no);
+	 "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
+	 "AS pn WHERE sp.parameter_no = pn.parameter_no "
+	 "AND sp.sensor_no = sn.sensor_no AND sp.sensor_meas_no = %d", 
+	 sensor_meas_no);
 
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
@@ -236,6 +236,9 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   return(err);
 }
 
+/*
+  read sensor data
+*/
 int readdb ( time_t startdate, time_t enddate, 
              int sensor_no[], time_t  dataset_date[], float meas_value[], 
              char *wstation) {
@@ -267,3 +270,67 @@ int readdb ( time_t startdate, time_t enddate,
 
   return(err);
 }
+
+/*
+  read sensor status data
+*/
+int readstat ( char *wstation) {
+  int err, sensor_no;
+  char *errmsg;
+  const char *query;
+  sqlite3_stmt *qcomp;
+
+  /* WS2000 weatherstation handling */
+  if ( ( err = strncmp( wstation,"ws2000",6)) == 0) {
+    err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+    syslog(LOG_DEBUG, 
+      "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+      ws2000station.config.dbfile,
+       err, sqlite3_errmsg(ws2000db));
+    if ( err) {
+      syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
+	ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+      free( errmsg);
+      return -1;
+    } else {
+      syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
+    }
+
+    query = mkmsg2("select sensor_no, max(statusset_date), sensor_status "
+                   "from sensorstatus group by sensor_no");
+
+    err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT,
+        "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
+       return(1);
+    }
+
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      syslog(LOG_DEBUG, "readstat  : sensor_no: %d : lastseen: %d : "
+           "status: %d\n",
+	   sqlite3_column_int(qcomp, 0),
+	   sqlite3_column_int(qcomp, 1),
+	   sqlite3_column_int(qcomp, 2));
+      sensor_no   = sqlite3_column_int(qcomp,0);  
+      ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
+      ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  
+    }
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT,
+	    "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	    err, sqlite3_errmsg(ws2000db));
+      return(1);
+    }
+
+    /* cleanup and close */
+    sqlite3_close( ws2000db);
+    syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000db done\n");
+  } else {
+    return(err);
+  }
+  return(err);
+}
+

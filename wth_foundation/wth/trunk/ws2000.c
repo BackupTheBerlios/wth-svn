@@ -91,10 +91,12 @@ wcmd ( ) {
   wsconf.command = 0;
   if ( ( err = getcd( data, &ndat)) == -1) {
     syslog(LOG_CRIT, "wcmd: error data reception");
+    ws2000station.status.is_present = -1;
     return(1);
   }
   wsconf.command = command;
 
+  ws2000station.status.is_present = 1;
   ws2000station.status.DCFtime  = dcftime(data, ndat);
   if ( ws2000station.status.DCFtime == -1) {
     syslog( LOG_INFO, "wcmd: DCF not synchronized\n");
@@ -637,13 +639,19 @@ wstat(unsigned char *data, int mdat ) {
 
   /* status of first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
+    ws2000station.sensor[i].lastseen   = statusset_date;
     ws2000station.sensor[i].status   = data[i-1];
   }
+
+  ws2000station.sensor[9].lastseen   = statusset_date;
   ws2000station.sensor[9].status   = data[8];  // rain
+  ws2000station.sensor[10].lastseen   = statusset_date;
   ws2000station.sensor[10].status  = data[9];  // wind
+  ws2000station.sensor[11].lastseen   = statusset_date;
   ws2000station.sensor[11].status  = data[10]; // indoor
   /* status of temperature/humidity sensor 9 to 15 */
   for ( i = 12; i <= 18; i++) {
+    ws2000station.sensor[i].lastseen   = statusset_date;
     ws2000station.sensor[i].status   = data[i-1];
   }
 
@@ -754,15 +762,15 @@ wstat(unsigned char *data, int mdat ) {
 	     ws2000station.status.numsens);
   strcat(t,s);
 
-  for ( i = 0; i < ws2000station.status.numsens; i++ ) {
+  for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
     s = mkmsg2("%2d|", i);
     strcat(t,s);  
   }
   strcat(t,"\n");
     
   
-  for ( i = 0; i < ws2000station.status.numsens; i++ ) {
-    s= mkmsg2("%2x|", ws2000station.sensor[i].status);
+  for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
+    s= mkmsg2("%2d|", ws2000station.sensor[i].status);
     strcat(t,s);
   } 
   strcat(t,"\n");

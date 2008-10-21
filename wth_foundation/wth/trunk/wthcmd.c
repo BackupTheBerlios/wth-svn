@@ -14,20 +14,15 @@
 
 char *lckfile;
 
-
-
+/* remove trailing eol character */
 void chomp(char *s) {
-while(*s && *s != '\n' && *s != '\r') s++;
-
-*s = 0;
+  while(*s && *s != '\n' && *s != '\r') s++;
+  *s = 0;
 }
-
-
 
 /*
   cmd_hd
   interactive commands
-  old version
 */
 void *
 cmd_hd( ) {
@@ -92,6 +87,10 @@ cmd_hd( ) {
         else if ( ( err = strncmp(readline, "read", 3)) == 0) {
           ocmd = atoi(readline);
           is_command = 1;
+        }
+        else if ( ( err = strncmp(readline, "status", 4)) == 0) {
+          snprintf(response, sizeof(response) , tnstat("ws2000"));
+          Write(connfd, response, strlen(response));
         }
         else if ( ( err = strncmp(readline, "1", 1)) == 0) {
           ocmd = atoi(readline);
@@ -165,6 +164,97 @@ old_cmd_hd( ) {
     sleep(600);
   }
   return((void *) &success);
+}
+
+
+/* tnstat: weatherstation status */
+char *
+tnstat ( char *station) {
+  int i, err;
+  static char t[MAXBUFF] = "";
+  char buf[MAXMSGLEN];
+  char *s;
+  struct tm *tm;
+  time_t lastread, statread;
+
+  printf("tnstat: station: %s\n", station);
+
+  if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
+    if ( ws2000station.status.is_present == 1) {
+      s = mkmsg2("WS2000 weatherstation status\n"
+            "version\t\t:\t%x\nmeasure interval:\t%lu (min)\n",
+            ws2000station.status.version,
+            ws2000station.status.interval
+                );
+      strncat( t, s, strlen(s));
+
+      if ( ws2000station.status.DCFstat == 1 ) {
+        s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n",
+               ws2000station.status.DCFstat);
+      }
+      else {
+        s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n",
+               ws2000station.status.DCFstat);
+      }
+      strncat( t, s, strlen(s));
+      if ( ws2000station.status.DCFsync == 1 ) {
+        s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n",
+               ws2000station.status.DCFsync);
+      }
+      else {
+        s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n",
+               ws2000station.status.DCFsync);
+      }
+      strncat( t, s, strlen(s));
+      if ( ws2000station.status.HFstat == 1 ) {
+        s = mkmsg2("HF status\t:\t%d (with HF)\n",
+               ws2000station.status.HFstat);
+      }
+      else {
+        s = mkmsg2("HF status\t:\t%d (without HF)\n",
+               ws2000station.status.HFstat);
+      }
+      strncat(t,s,strlen(s));
+      s = mkmsg2("battery status\t:\t%d\n",
+             ws2000station.status.Battstat);
+      strncat(t,s,strlen(s));
+  
+      s = mkmsg2("sensor number\t:\t%d (sensors)\n",
+             ws2000station.status.numsens);
+      strncat(t,s,strlen(s));
+
+      s = mkmsg2("sensorname\tsensorstatus\tlastseen\n"
+            "------------\t------------\t----------\n"
+            );
+      strncat(t,s,strlen(s));
+      time(&statread);
+      lastread = statread - ws2000station.status.lastread;
+
+      if ( lastread > 600 ) {
+        ws2000station.status.lastread = statread;
+        readstat( station);
+      }
+      for ( i = 1; i <=ws2000station.status.numsens; i++) {
+        tm = gmtime(&ws2000station.sensor[i].lastseen);
+        strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
+        s = mkmsg2("%12s\t%d\t\t%s\n",
+          ws2000station.sensor[i].sensorname,
+          ws2000station.sensor[i].status,
+          buf
+          );
+        strncat(t,s,strlen(s));
+      }
+    } else { 
+     s = mkmsg2("No WS2000 weatherstation attached."
+                "Please check line, if this should not be so");
+     strncat(t, s, strlen(s)); 
+    }
+  } else if ( ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) 
+           && ( pcwsrstation.status.is_present == 1)) {
+      s = mkmsg2("Pcwsr weatherstation status\n");
+      strncat( t, s, strlen(s));
+  }
+  return(t);
 }
 
 /* tnusage : print handling instructions for telnet access wthd */
