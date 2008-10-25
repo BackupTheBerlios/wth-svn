@@ -73,12 +73,12 @@ cmd_hd( ) {
 	printf("cmd_hd: inputstring: \"%s\"\n", rbuf);
 	ntok=0; token = strtok_r(rbuf, sep, &sbuf);
 	if ( ( err = strncmp( token,"help",4)) == 0) {
-          snprintf(response, sizeof(response), "cmd_hd: %s\n", tnhelp( sbuf));
+          snprintf(response, sizeof(response), "%s\n", tnhelp( sbuf));
           Write(connfd, response, strlen(response));
 	} else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
 	  printf("cmd_hd: %s\n\n", execmd( sbuf)); 
 	} else if ( ( err = strncmp( token, "show",4)) == 0 ) {
-          snprintf(response, sizeof(response), "cmd_hd: %s\n", showcmd(sbuf));
+          snprintf(response, sizeof(response), "%s\n", showcmd(sbuf));
           Write(connfd, response, strlen(response));
 	} else if ( ( err = strncmp( token, "reload",4)) == 0 ) {
 	  printf("cmd_hd: %s\n\n", initcmd(token)); 
@@ -93,59 +93,6 @@ cmd_hd( ) {
 	} else {
 	  printf("cmd_hd: provide HELP (unknown command)\n");
 	}
-
-
-        /*
-        ntok=0;
-        for ( token = strtok_r(rbuf, sep, &brkt); 
-                token; token=strtok_r(NULL, sep, &brkt)) {
-	  printf("wthcmd: ntok: %d token: \"%s\"\n", ntok, token);
-          ntok++;
-          if ( ( err = strncmp(token, "help", 4)) == 0) {
-            token = strtok_r(NULL, sep, &brkt);
-            printf("wthcmd: help token found: next token: %s\n", token);
-            if ( ( err = strncmp(token, "read", 4)) == 0 ) {
-              snprintf(response, sizeof(response), helpread(0,"",""));
-              Write(connfd, response, strlen(response));
-            } else {
-              snprintf(response, sizeof(response), tnusage(0,"",""));
-              Write(connfd, response, strlen(response));
-            }
-          }
-	}
- 
-        if ( ( err = strncmp(readline, "read", 3)) == 0) {
-          ocmd = atoi(readline);
-          is_command = 1;
-        }
-        else if ( ( err = strncmp(readline, "status", 4)) == 0) {
-          snprintf(response, sizeof(response) , tnstat("ws2000"));
-          Write(connfd, response, strlen(response));
-        }
-        else if ( ( err = strncmp(readline, "1", 1)) == 0) {
-          ocmd = atoi(readline);
-          is_command = 1;
-        }
-        else if ( ( err = strncmp(readline, "q", 1)) == 0)
-          break;
-        else if ( ( err = strncmp(readline, "quit", 4)) == 0)
-          break;
-
-	*/
-
-        //else {
-        //  snprintf(response, sizeof(response), tnusage(0,"",""));
-        //  Write(connfd, response, strlen(response));
-        //}
-        
-        /*                
-        if ( is_command == 1 ) {
-          snprintf(rbuf, sizeof(response), "wth called with command: %d\n", ocmd);
-          snprintf(response, sizeof(response), rbuf);
-          Write(connfd, response, strlen(response));
-          is_command = 0;
-        }
-        */
                 
         snprintf(response, sizeof(response), ">");
         Write(connfd, response, strlen(response));
@@ -163,7 +110,7 @@ char *
 tnstat ( char *station) {
   int i, err;
   static char t[MAXBUFF] = "";
-  char buf[MAXMSGLEN];
+  char buf[MAXLINE];
   char *s;
   struct tm *tm;
   time_t lastread, statread;
@@ -237,7 +184,7 @@ tnstat ( char *station) {
       }
     } else { 
      s = mkmsg2("No WS2000 weatherstation attached."
-                "Please check line, if this should not be so");
+                "Please check line, if you do not expect this correct");
      strncat(t, s, strlen(s)); 
     }
   } else if ( ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) 
@@ -266,17 +213,16 @@ tnusage (int exitcode, char *error, char *addl) {
   return(s);
 }
 
-/* helpread : print handling instructions for wthd data read */
+/* helpshow : print handling instructions for wthd data read */
 char *
-helpread (int exitcode, char *error, char *addl) {
+helpshow (int exitcode, char *error, char *addl) {
   char *s;
 
-  s = mkmsg2("read wthd data:\n"
-             "\t\tread <station>\n"
-             "\t\tread <station> LAST\n"
-             "\t\tread <station> start <timestart>\n"
-             "\t\tread <station> start <timestart> end <timeend>\n"
-             "where <station> can be ws2000, pcwsr or 1wire\n");
+  s = mkmsg2("To show weatherstation data, type:\n"
+             "\t\tshow data <station>\n"
+             "\t\tshow data <station> at <time>\n"
+             "where\n\t<station> can be ws2000, pcwsr or 1wire\n"
+             "\t<time> is requested timestamp in format DD-MM-YYYY\n");
   return(s);
 }
 
@@ -444,7 +390,8 @@ showcmd( char *args) {
 
   if ( is_data == 1) {
     if ( is_ws2000 == 1 ) { 
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000");
+      /* snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000"); */
+      snprintf(rbuf, MAXLINE, readdb("ws2000"));
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, MAXMSGLEN, "showcmd: show data pcwsr");
     } else if ( is_1wire == 1) {
@@ -454,7 +401,8 @@ showcmd( char *args) {
     }
   } else if ( is_stat == 1) { 
     if ( is_ws2000 == 1 ) { 
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000");
+      /* snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000"); */
+      snprintf(rbuf, MAXLINE, tnstat("ws2000"));
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, MAXMSGLEN, "showcmd: show status pcwsr");
     } else if ( is_1wire == 1) {

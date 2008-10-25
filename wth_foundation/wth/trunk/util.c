@@ -163,9 +163,9 @@ char *
 mkmsg2( const char *fmt, ...) {
   int size;
   va_list ap;
-  static char buff[MAXMSGLEN+1];
+  static char buff[MAXLINE+1];
   
-  size = MAXMSGLEN;
+  size = MAXLINE;
   va_start(ap, fmt);
   vsnprintf(buff, size, fmt, ap);
   va_end(ap);

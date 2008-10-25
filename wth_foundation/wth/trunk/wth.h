@@ -322,5 +322,5 @@ int writedb( int sensor_no, int nval, int sensor_meas_no[],
       time_t dataset_date,
       float meas_value[], sqlite3 *wthdb );
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
-int readdb( char *wstation);
+char *readdb( char *wstation);
 int readstat( char *wstation);

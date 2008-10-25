@@ -239,12 +239,21 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 /*
   read sensor data
 */
-int readdb( char *wstation) {
-  int err = 0;
+char *
+readdb( char *wstation) {
+  int err;
   char *errmsg;
+  char *rbuf, *s;
+  const char *query;
+  sqlite3_stmt *qcomp;
 
-  /* open sqlite db file */
-  if ( strncmp( wstation,"ws2000",6)) {
+  if ( ( rbuf = malloc( MAXBUFF+1)) == NULL )
+    return NULL;
+  //rbuf = mkmsg2("readdb called to show data");
+  /* handle ws2000 weatherstation */
+  if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
+    printf("readdb: ws2000 : %s\n", wstation);
+    /* open sqlite db file */
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG, 
 	 "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
@@ -254,9 +263,55 @@ int readdb( char *wstation) {
       syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
 	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
       free( errmsg);
-      return err;
+      return (NULL);
     } else {
-      syslog(LOG_DEBUG, "raeddb: sqlite3_open: no error: OK\n");
+      syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+    }
+
+    query = mkmsg2(
+      "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
+      "sensorupdate.last_update, sensordata.meas_value, "
+      "parameternames.parameter_unit "
+      "FROM " 
+        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
+      "WHERE sensorupdate.last_update = sensordata.dataset_date "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
+      "AND "
+        "sensornames.sensor_no = sensorparameters.sensor_no "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
+      "AND "
+        "parameternames.parameter_no = sensorparameters.parameter_no"
+      );
+    err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      rbuf = mkmsg2(
+        "Error: readdb: select ws2000 data: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
+      syslog( LOG_ALERT, rbuf);
+      rbuf = mkmsg2("database error: please check installation");
+      return(rbuf);
+    }
+
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      s = mkmsg2("%12s\t%15s\t%12lu\t%5.2f\t%8s\n",
+	     (char *)sqlite3_column_text( qcomp, 0),
+	     (char *)sqlite3_column_text( qcomp, 1),
+	     (long int)sqlite3_column_int( qcomp, 2),
+	     (float)sqlite3_column_double( qcomp, 3),
+	     (char *)sqlite3_column_text( qcomp, 4)
+      );
+      strncat(rbuf,s,strlen(s));
+    }
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      rbuf = mkmsg2(
+        "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	err, sqlite3_errmsg(ws2000db));
+      syslog( LOG_ALERT, rbuf);
+      rbuf = mkmsg2("database error: please check installation");
+      return(rbuf);
     }
 
     /* cleanup and close */
@@ -264,10 +319,9 @@ int readdb( char *wstation) {
     syslog(LOG_DEBUG,"readdb: sqlite3_close ws2000db done\n");
       
   } else {
-      return(err);
+      return(rbuf);
   }
-
-  return(err);
+  return(rbuf);
 }
 
 /*
