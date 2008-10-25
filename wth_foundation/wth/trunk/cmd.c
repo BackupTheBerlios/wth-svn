@@ -1,6 +1,6 @@
 /*
 
-  wthcmd.c
+  cmd.c
   wth command handler
 
   $Id$
