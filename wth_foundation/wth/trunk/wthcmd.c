@@ -26,13 +26,12 @@ void chomp(char *s) {
 */
 void *
 cmd_hd( ) {
-  int ocmd, err, telnetfd, connfd, maxfdp1, nready;
-  int is_command, *ptr;
+  int err, telnetfd, connfd, maxfdp1, nready, ntok;
   struct sockaddr_in tnservaddr;
   char readline[MAXLINE], response[MAXLINE];
-  char *rbuf;
-  char *token, *cmdtok, *statok, *initok, *endtok;
-  char *brkt, *sep = "\\/:;=- ";
+  char *rbuf, *sbuf;
+  char *token;
+  char *sep = "\\/:;=- ";
   fd_set rset;
   const int on = 1;
 
@@ -70,21 +69,52 @@ cmd_hd( ) {
         Read(connfd, readline, MAXLINE);
         chomp(readline);
         rbuf = strdup(readline);
-        
-        for ( token = strtok_r(readline, " ", &brkt); 
-                token; token=strtok_r(NULL, sep, &brkt)) {
-	  printf("wthcmd: token: \"%s\"\n", token);
+
+	printf("cmd_hd: inputstring: \"%s\"\n", rbuf);
+	ntok=0; token = strtok_r(rbuf, sep, &sbuf);
+	if ( ( err = strncmp( token,"help",4)) == 0) {
+          snprintf(response, sizeof(response), "cmd_hd: %s\n", tnhelp( sbuf));
+          Write(connfd, response, strlen(response));
+	} else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
+	  printf("cmd_hd: %s\n\n", execmd( sbuf)); 
+	} else if ( ( err = strncmp( token, "show",4)) == 0 ) {
+          snprintf(response, sizeof(response), "cmd_hd: %s\n", showcmd(sbuf));
+          Write(connfd, response, strlen(response));
+	} else if ( ( err = strncmp( token, "reload",4)) == 0 ) {
+	  printf("cmd_hd: %s\n\n", initcmd(token)); 
+	} else if ( ( err = strncmp( token, "restart",4)) == 0 ) {
+	  printf("cmd_hd: %s\n\n", initcmd(token));
+	  initcmd(sbuf);
+	} else if ( ( err = strncmp(readline, "quit", 1)) == 0) {
+          break;
+	} else if ( token == NULL) {
+	  printf("cmd_hd: token NULL\n");
+	  tnusage(0, "", ""); 
+	} else {
+	  printf("cmd_hd: provide HELP (unknown command)\n");
 	}
-    
-        if ( ( err = strncmp(readline, "help read", 9)) == 0 ) {
-          snprintf(response, sizeof(response), helpread(0,"",""));
-          Write(connfd, response, strlen(response));
-        }
-        else if ( ( err = strncmp(readline, "help", 1)) == 0 ) {
-          snprintf(response, sizeof(response), tnusage(0,"",""));
-          Write(connfd, response, strlen(response));
-        }
-        else if ( ( err = strncmp(readline, "read", 3)) == 0) {
+
+
+        /*
+        ntok=0;
+        for ( token = strtok_r(rbuf, sep, &brkt); 
+                token; token=strtok_r(NULL, sep, &brkt)) {
+	  printf("wthcmd: ntok: %d token: \"%s\"\n", ntok, token);
+          ntok++;
+          if ( ( err = strncmp(token, "help", 4)) == 0) {
+            token = strtok_r(NULL, sep, &brkt);
+            printf("wthcmd: help token found: next token: %s\n", token);
+            if ( ( err = strncmp(token, "read", 4)) == 0 ) {
+              snprintf(response, sizeof(response), helpread(0,"",""));
+              Write(connfd, response, strlen(response));
+            } else {
+              snprintf(response, sizeof(response), tnusage(0,"",""));
+              Write(connfd, response, strlen(response));
+            }
+          }
+	}
+ 
+        if ( ( err = strncmp(readline, "read", 3)) == 0) {
           ocmd = atoi(readline);
           is_command = 1;
         }
@@ -100,21 +130,23 @@ cmd_hd( ) {
           break;
         else if ( ( err = strncmp(readline, "quit", 4)) == 0)
           break;
-        else {
-          snprintf(response, sizeof(response), tnusage(0,"",""));
-          Write(connfd, response, strlen(response));
-        }
-                        
+
+	*/
+
+        //else {
+        //  snprintf(response, sizeof(response), tnusage(0,"",""));
+        //  Write(connfd, response, strlen(response));
+        //}
+        
+        /*                
         if ( is_command == 1 ) {
-          /*
-             at this place command handling code
-          */
           snprintf(rbuf, sizeof(response), "wth called with command: %d\n", ocmd);
           snprintf(response, sizeof(response), rbuf);
           Write(connfd, response, strlen(response));
           is_command = 0;
         }
-                        
+        */
+                
         snprintf(response, sizeof(response), ">");
         Write(connfd, response, strlen(response));
       }
@@ -123,47 +155,6 @@ cmd_hd( ) {
                 
   }
   return(0);
-}
-
-/*
-  cmdhandler
-  interactive commands
-  old version
-*/
-
-void *
-old_cmd_hd( ) {
-  int cfd;
-  //char *rbuf;
-  int waitmax = 0;
-  int loopno  = 0;
-
-  for ( ;; ) {
-    printf("ws2000_cmdhandler awakening: %d\n", loopno);
-    while ( waitmax < MAXWAIT ) {
-      printf("ws2000_cmdhandler: waitmax: %d\n", waitmax);
-      cfd = open(lckfile, O_RDWR | O_CREAT | O_EXCL, 0444);
-      if ( cfd == -1 ) {
-        printf("ws2000_cmdhandler: %s\n", strerror(errno));
-        printf("ws2000_cmdhandler: lockfile already locked\n");
-	sleep(5);
-      } else {
-	/* sending command to weather station */
-        wsconf.command = 0;
-        printf("ws2000_cmdhandler: sending command: %d\n", wsconf.command);
-	printf("ws2000_cmdhandler: wcmd: %s\n",(char *)wcmd()); 
-	//printf("ws2000_cmdhandler: %s", rbuf);
-        close(cfd);
-        unlink(lckfile);
-        waitmax = 0;
-        break;
-      }
-      waitmax++; 
-    }
-    loopno++;
-    sleep(600);
-  }
-  return((void *) &success);
 }
 
 
@@ -257,6 +248,8 @@ tnstat ( char *station) {
   return(t);
 }
 
+
+
 /* tnusage : print handling instructions for telnet access wthd */
 char *
 tnusage (int exitcode, char *error, char *addl) {
@@ -285,5 +278,233 @@ helpread (int exitcode, char *error, char *addl) {
              "\t\tread <station> start <timestart> end <timeend>\n"
              "where <station> can be ws2000, pcwsr or 1wire\n");
   return(s);
+}
+
+
+char *
+tnhelp( char *args) {
+  int err, ntok;
+  int is_show, is_init, is_exec;
+  int is_conf, is_data, is_stat;
+  char *rbuf;
+  char *sbuf;
+  char *sep = "\\/:;=- ";
+  char *token;
+
+  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
+    return NULL;
+
+  //printf("tnhelp: input string: \"%s\"\n", args);
+  if ( args == NULL ) {
+    snprintf(rbuf,MAXMSGLEN, "tnhelp: provide general HELP\n");
+    return(rbuf);
+  }
+
+  ntok=0; 
+  token = strtok_r(args, sep, &sbuf);
+
+  do {
+    ntok++;
+    if ( ( err = strncmp(token, "show", 4) == 0 )) {
+      is_show = 1;
+    } else if ( ( err = strncmp(token, "reload", 4) == 0 )) {
+      is_init = 1;
+    } else if ( ( err = strncmp(token, "restart", 4) == 0 )) {
+      is_init = 1;
+    } else if ( ( err = strncmp(token, "exec", 4) == 0 )) {
+      is_exec = 1;
+    } else if ( ( err = strncmp(token, "exec", 4) == 0 )) {
+      is_exec = 1;
+    } else if ( ( err = strncmp(token, "config", 4) == 0 )) {
+      is_conf = 1;
+    } else if ( ( err = strncmp(token, "data", 4) == 0 )) {
+      is_data = 1;
+    } else if ( ( err = strncmp(token, "stat", 4) == 0 )) {
+      is_stat = 1;
+    }
+  } while ( ( token = strtok_r( NULL, sep, &sbuf)) != NULL );
+
+  if ( is_show == 1) {
+    if ( is_data == 1) {
+      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW DATA");
+    } else if ( is_stat == 1) {
+      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW STATUS");
+    } else if ( is_conf == 1) {
+      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW CONFIG");
+    } else {
+      snprintf(rbuf, MAXMSGLEN, "thhelp: provide general help on SHOW");
+    }
+  } else if ( is_init == 1 ) {
+    snprintf(rbuf, MAXMSGLEN, "tnhelp: provide help on RESTART/RELOAD");
+  } else if ( is_exec == 1) {
+    snprintf(rbuf, MAXMSGLEN, "tnhelp: provide help on EXEC");
+  } else {  // catch all 
+    snprintf(rbuf, MAXMSGLEN, "thhelp: provide general HELP");
+  }
+  return(rbuf);
+}
+
+
+char *
+execmd( char *args) {
+  int err, ntok;
+  int is_ws2000;
+  int ncmd;
+  char *rbuf;
+  char *sbuf;
+  char *sep = "\\/:;=- ";
+  char *token;
+
+  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
+    return NULL;
+
+  if ( args == NULL ) {
+    snprintf(rbuf,MAXMSGLEN, "execmd: provide HELP (called w/o all args)");
+    return(rbuf);
+  }
+
+  ntok=0; 
+  token = strtok_r(args, sep, &sbuf);
+  do {
+    ntok++;
+    if ( ( err = strncmp(token, "ws2000", 4) == 0 )) {
+      is_ws2000 = 1;
+    } else if ( ( err = strncmp(token, "polldcftime", 4) == 0 )) {
+      ncmd = 0;
+    } else if ( ( err = strncmp(token, "requestdataset", 4) == 0 )) {
+      ncmd = 1;
+    } else if ( ( err = strncmp(token, "selectnextdataset", 4) == 0 )) {
+      ncmd = 2;
+    } else if ( ( err = strncmp(token, "set9sensor", 4) == 0 )) {
+      ncmd = 3;
+    } else if ( ( err = strncmp(token, "set16sensor", 5) == 0 )) {
+      ncmd = 4;
+    } else if ( ( err = strncmp(token, "pollstatus", 4) == 0 )) {
+      ncmd = 5;
+    } else if ( ( err = strncmp(token, "setintervaltime", 4) == 0 )) {
+      ncmd = 6;
+    } else if ( token == NULL ) {
+      ncmd = 100;
+    } else { /* no command in arguments */
+      ncmd = 100;
+    }
+  } while ( ( token = strtok_r( NULL, sep, &sbuf)) != NULL );
+
+  if ( is_ws2000 == 1) {
+    if ( ntok > 1 ) { 
+      snprintf(rbuf, MAXMSGLEN, "execmd: ws2000: execute cmd %d", ncmd);
+    } else if ( ncmd == 100) {
+      snprintf(rbuf, MAXMSGLEN, "execmd: provide HELP (ws2000 called w/o command)");
+    } else {
+      snprintf(rbuf, MAXMSGLEN, "execmd: provide HELP (ws2000 command unknown)");
+    }
+  } else {  // catch all 
+    snprintf(rbuf, MAXMSGLEN, 
+      "execmd: provide general HELP (only ws2000 supported)");
+  }
+  return(rbuf);
+}
+
+char *
+showcmd( char *args) {
+  int err, ntok;
+  int is_ws2000, is_pcwsr, is_1wire;
+  int is_data, is_stat, is_conf;
+  char *rbuf;
+  char *sbuf;
+  char *sep = "\\/:;=- ";
+  char *token;
+
+  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
+    return NULL;
+
+  if ( args == NULL ) {
+    snprintf(rbuf,MAXMSGLEN, "showcmd: provide HELP (called w/o all args");
+    return(rbuf);
+  }
+
+  ntok=0; 
+  token = strtok_r(args, sep, &sbuf);
+  do {
+    ntok++;
+    if ( ( err = strncmp(token, "data", 4) == 0 )) {
+      is_data = 1;
+    } else if ( ( err = strncmp(token, "status", 4) == 0 )) {
+      is_stat = 1;
+    } else if ( ( err = strncmp(token, "config", 4) == 0 )) {
+      is_conf = 1;
+    } else if ( ( err = strncmp(token, "ws2000", 4) == 0 )) {
+      is_ws2000 = 1;
+    } else if ( ( err = strncmp(token, "pcwsr", 4) == 0 )) {
+      is_pcwsr = 1;
+    } else if ( ( err = strncmp(token, "1wire", 5) == 0 )) {
+      is_1wire = 1;
+    }
+  } while ( ( token = strtok_r( NULL, sep, &sbuf)) != NULL );
+
+  if ( is_data == 1) {
+    if ( is_ws2000 == 1 ) { 
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000");
+    } else if ( is_pcwsr == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show data pcwsr");
+    } else if ( is_1wire == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show data 1wire)");
+    } else {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
+    }
+  } else if ( is_stat == 1) { 
+    if ( is_ws2000 == 1 ) { 
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000");
+    } else if ( is_pcwsr == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show status pcwsr");
+    } else if ( is_1wire == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show status 1wire)");
+    } else {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
+    }
+  } else if ( is_conf == 1) { 
+    if ( is_ws2000 == 1 ) { 
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show config ws2000");
+    } else if ( is_pcwsr == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show config pcwsr");
+    } else if ( is_1wire == 1) {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: show config 1wire)");
+    } else {
+      snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
+    }
+  } else {  // catch all 
+    snprintf(rbuf, MAXMSGLEN, 
+      "execmd: provide general HELP (only ws2000 supported)");
+  }
+  return(rbuf);
+}
+
+char *
+initcmd( char *args) {
+  int err;
+  int is_reload, is_restart;
+  char *rbuf;
+
+  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
+    return NULL;
+
+  if ( args == NULL ) {
+    snprintf(rbuf,MAXMSGLEN, "initcmd: provide HELP (called w/o all args)");
+  } else if ( ( err = strncmp(args, "reload", 4)) == 0 ) {
+    is_reload = 1;
+  } else if ( ( err = strncmp(args, "restart", 4)) == 0 ) {
+    is_restart = 1;
+  }
+
+  
+  if ( is_reload == 1) {
+    snprintf(rbuf, MAXMSGLEN, "initcmd: reload"); 
+  } else if ( is_restart == 1) { 
+    snprintf(rbuf, MAXMSGLEN, "initcmd: restart"); 
+  } else { 
+    snprintf(rbuf, MAXMSGLEN, "initcmd: provide HELP"); 
+  }
+  return(rbuf);
+
 }
 

@@ -239,11 +239,10 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 /*
   read sensor data
 */
-int readdb ( time_t startdate, time_t enddate, 
-             int sensor_no[], time_t  dataset_date[], float meas_value[], 
-             char *wstation) {
+int readdb( char *wstation) {
   int err = 0;
   char *errmsg;
+
   /* open sqlite db file */
   if ( strncmp( wstation,"ws2000",6)) {
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
@@ -255,7 +254,7 @@ int readdb ( time_t startdate, time_t enddate,
       syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
 	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
       free( errmsg);
-      return -1;
+      return err;
     } else {
       syslog(LOG_DEBUG, "raeddb: sqlite3_open: no error: OK\n");
     }

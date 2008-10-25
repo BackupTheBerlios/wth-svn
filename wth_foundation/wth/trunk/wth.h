@@ -260,9 +260,6 @@ unsigned char getbits( unsigned char x, int p, int n);
 char *mkmsg( const char *, ...);
 char *mkmsg2( const char *, ...);
 int usage (int exitcode, char *error, char *addl);
-char *tnusage (int exitcode, char *error, char *addl);
-char *tnstat( char *stationname);
-char *helpread (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
 char *echoconfig();
@@ -307,16 +304,23 @@ ws2000_t ws2000station;
 pcwsr_t  pcwsrstation;
 conf_t   wsconf;
 
+char *tnstat( char *station);
+char *tnusage (int exitcode, char *error, char *addl);
+char *helpread (int exitcode, char *error, char *addl);
+char *tnhelp( char *args);
+char *execmd( char *args);
+char *showcmd( char *args);
+char *initcmd (char *args);
+
 int datadb( long dataset_date, int sensor_param, float meas_value, 
-            sqlite3 *wthdb) ;
+      sqlite3 *wthdb) ;
 int statdb( int sensor_status[], time_t statusset_date, 
-            sqlite3 *wthdb);
+      sqlite3 *wthdb);
 int newdb( long statusset_date, int sensor_no, int new_flag, 
-            sqlite3 *wthdb);
+      sqlite3 *wthdb);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *wthdb );
-int senspardb ( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
-int readdb ( time_t startdate, time_t enddate, int sensor_no[], 
-      time_t  dataset_date[], float meas_value[], char * wstation);
+int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
+int readdb( char *wstation);
 int readstat( char *wstation);
