@@ -246,6 +246,9 @@ readdb( char *wstation) {
   char *rbuf, *s;
   const char *query;
   sqlite3_stmt *qcomp;
+  char buf[MAXLINE];
+  struct tm *tm;
+  time_t meastim;
 
   if ( ( rbuf = malloc( MAXBUFF+1)) == NULL )
     return NULL;
@@ -295,12 +298,15 @@ readdb( char *wstation) {
     }
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      s = mkmsg2("%-12s\t%-18s\t%12lu\t%8.2f\t%-8s\n",
+      meastim = (time_t )sqlite3_column_int( qcomp, 2); 
+      tm = gmtime(&meastim);
+      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
+      s = mkmsg2("%-12s %-18s %8.2f %-8s %-12s\n",
 	     (char *)sqlite3_column_text( qcomp, 0),
 	     (char *)sqlite3_column_text( qcomp, 1),
-	     (long int)sqlite3_column_int( qcomp, 2),
 	     (float)sqlite3_column_double( qcomp, 3),
-	     (char *)sqlite3_column_text( qcomp, 4)
+	     (char *)sqlite3_column_text( qcomp, 4),
+	     buf
       );
       strncat(rbuf,s,strlen(s));
     }

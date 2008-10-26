@@ -72,7 +72,17 @@ cmd_hd( ) {
 
 	printf("cmd_hd: inputstring: \"%s\"\n", rbuf);
 	ntok=0; token = strtok_r(rbuf, sep, &sbuf);
-	if ( ( err = strncmp( token,"help",4)) == 0) {
+	printf("cmd_hd: token done\n");
+
+        if ( token == NULL) {
+	  printf("cmd_hd: token\n");
+	}
+
+        if ( token == NULL) {
+	  printf("cmd_hd: token NULL\n");
+	  snprintf(response, sizeof(response), tnusage(0, "", "")); 
+          Write(connfd, response, strlen(response));
+	} else if ( ( err = strncmp( token,"help",4)) == 0) {
           snprintf(response, sizeof(response), "%s\n", tnhelp( sbuf));
           Write(connfd, response, strlen(response));
 	} else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
@@ -87,9 +97,6 @@ cmd_hd( ) {
 	  initcmd(sbuf);
 	} else if ( ( err = strncmp(readline, "quit", 1)) == 0) {
           break;
-	} else if ( token == NULL) {
-	  printf("cmd_hd: token NULL\n");
-	  tnusage(0, "", ""); 
 	} else {
 	  printf("cmd_hd: provide HELP (unknown command)\n");
 	}
