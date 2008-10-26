@@ -23,6 +23,25 @@ Pressure plots range from 970 - 1040 (Seewetter), 945 - 1055 (Barograph
 in Malberg, Meteorologie und Klimatologie)
 
 
+Units of meteorological observations
+------------------------------------
+Atmospheric pressure, p, [hPa]
+Temperature, t, [deg C] or T [Kelvin]
+Wind speed, metres per second [ m  s^-1 ]
+Wind direction, degrees clockwise from or on the scale 0-36, wehre 36 is the wind from the north and 09 is wind from east [deg]
+Relative humidity, U, [%]
+Precipitation (total amount), [mm  m^-2] or [kg  m^-2]
+Precipitation intensity, R_i, [ mm  h^-1 ] or [kg m^-2 s-1]
+
+Visibility, [m]
+Irradiance [ W m^-2] and Radiant exposure, [ J m^-2]
+Duration of sunshine, [h]
+Cloud height [m]
+Cloud amount [okta]
+
+Reference: Guide to Meterological Instruments and Methods of Observation, 7th edition, WMO-No.8, World Meterological Organization, Geneva, Switzerland, 2006
+
+
 Compiling
 ---------
 Compiling wth uses GNU make

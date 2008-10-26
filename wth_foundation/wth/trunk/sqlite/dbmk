@@ -171,10 +171,10 @@ if ( $options{w} ) {
   # table parameternames will not change (WS2000 can't do more)
   #
   $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('2','Humidity','% rel.hum.') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('3','Rain','mm') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m^-2') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s^-1') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddir. variance','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
 
@@ -413,10 +413,10 @@ elsif ( $options{p} ) {
   # table parameternames will not change (PCWSR can't do more)
   #
   $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('2','Humidity','% rel.hum.') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('3','Rain','mm') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m/s') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddirection Variation','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m^-2') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s^-1') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddir. Variation','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('8','Brightness','klx') ");

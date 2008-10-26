@@ -295,7 +295,7 @@ readdb( char *wstation) {
     }
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      s = mkmsg2("%12s\t%15s\t%12lu\t%5.2f\t%8s\n",
+      s = mkmsg2("%-12s\t%-18s\t%12lu\t%8.2f\t%-8s\n",
 	     (char *)sqlite3_column_text( qcomp, 0),
 	     (char *)sqlite3_column_text( qcomp, 1),
 	     (long int)sqlite3_column_int( qcomp, 2),
