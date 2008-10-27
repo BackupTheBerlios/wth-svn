@@ -283,6 +283,7 @@ int daemon_init( );
 void *pcwsr_hd();
 void *ws2000_hd();
 void *cmd_hd();
+int docmd( int sockfd);
 
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);

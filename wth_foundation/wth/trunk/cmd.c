@@ -15,42 +15,63 @@
 char *lckfile;
 
 /* remove trailing eol character */
-void chomp(char *s) {
+void 
+chomp( char *s) {
   while(*s && *s != '\n' && *s != '\r') s++;
   *s = 0;
 }
 
+
+/* sig_chld handler handles waidpid */
+void
+sig_chld( int signo) {
+
+  pid_t pid;
+  int stat;
+
+  while ( ( pid = waitpid(-1, &stat, WNOHANG)) > 0 )
+    syslog(LOG_INFO, "child %d terminated", pid);
+
+  return;  
+}
+
 /*
-  cmd_hd
-  interactive commands
+  cmd_hd  interactive commands
+
+  based on udpservselect01.c by R.W.Stephans, UNIX Network Programming
+
 */
 void *
 cmd_hd( ) {
-  int err, telnetfd, connfd, maxfdp1, nready, ntok;
-  struct sockaddr_in tnservaddr;
-  char readline[MAXLINE], response[MAXLINE];
-  char *rbuf, *sbuf;
-  char *token;
-  char *sep = "\\/:;=- ";
+  int listenfd, connfd, maxfdp1, nready;
+  struct sockaddr_in cliaddr, tnservaddr;
+  socklen_t clilen;
   fd_set rset;
   const int on = 1;
+  pid_t childpid;
+  void sig_chld(int);
 
   /* create telnet TCP socket */
-  telnetfd = Socket(AF_INET, SOCK_STREAM, 0);
+  listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+
   bzero(&tnservaddr, sizeof(tnservaddr));
   tnservaddr.sin_family      = AF_INET;
   tnservaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   tnservaddr.sin_port        = htons(atoi(wsconf.port));
 
-  Setsockopt(telnetfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-  Bind(telnetfd, (SA *) &tnservaddr, sizeof(tnservaddr));
-  Listen(telnetfd, LISTENQ);
+  Setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
+  Bind(listenfd, (SA *) &tnservaddr, sizeof(tnservaddr));
+
+  Listen(listenfd, LISTENQ);
+
+  signal(SIGCHLD, sig_chld);
   FD_ZERO(&rset);
-  maxfdp1 = telnetfd + 1;
+  maxfdp1 = listenfd + 1;
 
   for ( ; ; ) {
-    FD_SET(telnetfd, &rset);
+    
+    FD_SET(listenfd, &rset);
 
     if ( ( nready = select(maxfdp1, &rset, NULL, NULL, NULL)) < 0 ) {
       if ( errno == EINTR )
@@ -59,58 +80,78 @@ cmd_hd( ) {
         syslog(LOG_INFO, "select error");
     }
                 
-    if ( FD_ISSET(telnetfd, &rset)) {
-      connfd = Accept(telnetfd, (SA *) NULL, NULL);
-      snprintf(response, sizeof(response), "\n\n%s\n%s\n>",
-               "Welcome to wth service","Type help for help");
-      Write(connfd, response, strlen(response));
-      for ( ; ; ) {
-        snprintf(readline,1," ");
-        Read(connfd, readline, MAXLINE);
-        chomp(readline);
-        rbuf = strdup(readline);
+    if ( FD_ISSET(listenfd, &rset)) {
+      clilen = sizeof( cliaddr);
+      connfd = Accept(listenfd, (SA *) &cliaddr, &clilen);
 
-	printf("cmd_hd: inputstring: \"%s\"\n", rbuf);
-	ntok=0; token = strtok_r(rbuf, sep, &sbuf);
-	printf("cmd_hd: token done\n");
-
-        if ( token == NULL) {
-	  printf("cmd_hd: token\n");
-	}
-
-        if ( token == NULL) {
-	  printf("cmd_hd: token NULL\n");
-	  snprintf(response, sizeof(response), tnusage(0, "", "")); 
-          Write(connfd, response, strlen(response));
-	} else if ( ( err = strncmp( token,"help",4)) == 0) {
-          snprintf(response, sizeof(response), "%s\n", tnhelp( sbuf));
-          Write(connfd, response, strlen(response));
-	} else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
-	  printf("cmd_hd: %s\n\n", execmd( sbuf)); 
-	} else if ( ( err = strncmp( token, "show",4)) == 0 ) {
-          snprintf(response, sizeof(response), "%s\n", showcmd(sbuf));
-          Write(connfd, response, strlen(response));
-	} else if ( ( err = strncmp( token, "reload",4)) == 0 ) {
-	  printf("cmd_hd: %s\n\n", initcmd(token)); 
-	} else if ( ( err = strncmp( token, "restart",4)) == 0 ) {
-	  printf("cmd_hd: %s\n\n", initcmd(token));
-	  initcmd(sbuf);
-	} else if ( ( err = strncmp(readline, "quit", 1)) == 0) {
-          break;
-	} else {
-	  printf("cmd_hd: provide HELP (unknown command)\n");
-	}
-                
-        snprintf(response, sizeof(response), ">");
-        Write(connfd, response, strlen(response));
+      if ( ( childpid = Fork()) == 0) { /* child process */
+	Close(listenfd);
+	docmd( connfd);
+	exit(0);
       }
-      Close(connfd);
+      Close(connfd); /* parent process closes connected socket */
+     
     }
                 
   }
   return(0);
 }
 
+
+/* docmd: command processing wth telnet */
+int
+docmd( int sockfd) {
+  int err, ntok;
+  char readline[MAXLINE], response[MAXLINE];
+  char *rbuf, *sbuf;
+  char *token;
+  char *sep = "\\/:;=- ";
+
+  snprintf(response, sizeof(response), "\n\n%s\n%s\n>",
+	   "Welcome to wth service","Type help for help");
+  Write(sockfd, response, strlen(response));
+
+  for ( ; ; ) {
+    snprintf(readline,1," ");
+    Read(sockfd, readline, MAXLINE);
+    chomp(readline);
+    rbuf = strdup(readline);
+
+    printf("docmd: inputstring: \"%s\"\n", rbuf);
+    ntok=0; token = strtok_r(rbuf, sep, &sbuf);
+    printf("docmd: token done\n");
+
+    if ( token == NULL) {
+      printf("docmd: token\n");
+    }
+
+    if ( token == NULL) {
+      printf("docmd: token NULL\n");
+      snprintf(response, sizeof(response), tnusage(0, "", "")); 
+      Write(sockfd, response, strlen(response));
+    } else if ( ( err = strncmp( token,"help",4)) == 0) {
+      snprintf(response, sizeof(response), "%s\n", tnhelp( sbuf));
+      Write(sockfd, response, strlen(response));
+    } else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
+      printf("docmd: %s\n\n", execmd( sbuf)); 
+    } else if ( ( err = strncmp( token, "show",4)) == 0 ) {
+      snprintf(response, sizeof(response), "%s\n", showcmd(sbuf));
+      Write(sockfd, response, strlen(response));
+    } else if ( ( err = strncmp( token, "reload",4)) == 0 ) {
+      printf("docmd: %s\n\n", initcmd(token)); 
+    } else if ( ( err = strncmp( token, "restart",4)) == 0 ) {
+      printf("docmd: %s\n\n", initcmd(token));
+      initcmd(sbuf);
+    } else if ( ( err = strncmp(readline, "quit", 1)) == 0) {
+      break;
+    } else {
+      printf("docmd: provide HELP (unknown command)\n");
+    }
+    snprintf(response, sizeof(response), ">");
+    Write(sockfd, response, strlen(response));
+  }
+  return(err);
+}
 
 /* tnstat: weatherstation status */
 char *
