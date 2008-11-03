@@ -894,6 +894,8 @@ settime ( ) {
 int 
 datex ( unsigned char *data, int ndat) {
   int i, j, err, mbit, nbit, nval, sensor_no, sensor_meas_no[3];
+  time_t omtim;
+  float omval;
   int Hi, Lo, new;
   time_t dataset_date;
   long age;
@@ -1083,6 +1085,8 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,
 	   "datex: sensor #9 rain:\t\tdataset_date: %lu meas_value: %f new: %d\n", 
 	   (long int)dataset_date, meas_value[0], new);
+    readpar( &omtim, &omval, 9, 17, 3600, "ws2000");
+    printf("datex: omtim: %d omval: %f\n", omtim, omval);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #9 rain not found\n");
   }

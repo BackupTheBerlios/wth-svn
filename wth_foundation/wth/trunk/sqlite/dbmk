@@ -83,6 +83,11 @@ if ( $options{w} ) {
     )
   ");
 
+  # create index to speed up request
+  $dbh->do("
+    CREATE INDEX ssidx ON sensorstatus(sensor_no, statusset_date,sensor_status)
+  ");
+
   #
   # sensor status
   #
@@ -172,11 +177,12 @@ if ( $options{w} ) {
   #
   $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m^-2') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s^-1') ");
-  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddir. variance','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m-2') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s-1') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddrct Variance','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
   $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm h-1') ");
 
   #
   # table sensornames will not change (WS2000 can't do more)
@@ -236,6 +242,7 @@ if ( $options{w} ) {
   $dbh->do(" INSERT INTO sensorparameters VALUES ('16','8','2') ");
   # Regensensor
   $dbh->do(" INSERT INTO sensorparameters VALUES ('17','9','3') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('38','9','8') "); # precipitation intensity
   # Windsensor
   $dbh->do(" INSERT INTO sensorparameters VALUES ('18','10','4') ");
   $dbh->do(" INSERT INTO sensorparameters VALUES ('19','10','5') ");
@@ -289,7 +296,8 @@ if ( $options{w} ) {
   $dbh->do(" INSERT INTO sensorupdate VALUES ('15','0') ");
   $dbh->do(" INSERT INTO sensorupdate VALUES ('16','0') ");
   # Rainsensor
-  $dbh->do(" INSERT INTO sensorupdate VALUES ('17','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('17','0') "); # precipitation
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('38','0') "); # precipitation intensity
   # Windsensor
   $dbh->do(" INSERT INTO sensorupdate VALUES ('18','0') ");
   $dbh->do(" INSERT INTO sensorupdate VALUES ('19','0') ");

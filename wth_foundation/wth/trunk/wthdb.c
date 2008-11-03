@@ -72,7 +72,7 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
     err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
     if ( err) { 
       syslog(LOG_DEBUG,
-        "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
+        "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s", 
         err, sqlite3_errmsg(wthdb));
     } 
     snprintf(template,MAXMSGLEN,"%d", sensor_status[i]);
@@ -82,14 +82,14 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
   snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
   snprintf( tmpstr, MAXMSGLEN, "%s", ws2000station.config.monitor);
   strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
-  syslog(LOG_DEBUG, "writedb: rrdfile: %s: update string: %s\n", 
-	 rrdfile, tstrg);
+  syslog(LOG_DEBUG, "statdb: rrdfile: %s", rrdfile);
+  syslog(LOG_DEBUG, "statdb: rrd update string: %s", tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
   if ( ( err = rrd_test_error())) {
-    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n",
+    syslog( LOG_ALERT, "statdb: RRD return code: %d\n",
             rrd_test_error());
   }
   return(err);
@@ -148,12 +148,10 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
   }
 
   while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d : "
-           "sensorname: %s : parametername: %s\n",
-	   sensor_meas_no,
-	   sqlite3_column_int(qcomp, 0),
-	   sqlite3_column_text(qcomp, 1),
-	   sqlite3_column_text(qcomp, 2));
+    syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d",
+	   sensor_meas_no, sqlite3_column_int(qcomp, 0));
+    syslog(LOG_DEBUG, "senspardb  : sensorname: %s : parametername: %s",
+	   sqlite3_column_text(qcomp, 1), sqlite3_column_text(qcomp, 2));
     sspar->sensor_no   = sqlite3_column_int(qcomp,0);  
     sspar->sensor_name = (char *)sqlite3_column_text(qcomp,1);  
     sspar->par_name    = (char *)sqlite3_column_text(qcomp,2);  
@@ -208,12 +206,13 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
       break;
     }
     syslog(LOG_DEBUG, 
-	   "writedb: sensor_meas_no: %d : spar.sensor_no: %d: "
-	   "spar.sensor_name: %s: spar.par_name: %s\n", 
-	   sensor_meas_no[i], spar.sensor_no, spar.sensor_name,
-	   spar.par_name);
+	   "writedb: sensor_meas_no: %d : spar.sensor_no: %d",
+	   sensor_meas_no[i], spar.sensor_no);
     syslog(LOG_DEBUG, 
-	   "writedb: %lu : sensor: %s : parameter: %s: %f\n",
+	   "writedb: spar.sensor_name: %s: spar.par_name: %s", 
+	   spar.sensor_name, spar.par_name);
+    syslog(LOG_DEBUG, 
+	   "writedb: %lu : sensor: %s : parameter: %s: %f",
 	   (long int)dataset_date, spar.sensor_name, 
 	   spar.par_name, meas_value[i]);
     snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
@@ -223,14 +222,14 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
   snprintf( tmpstr, MAXMSGLEN, "%s.rrd", spar.sensor_name);
   strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
-  syslog(LOG_DEBUG, "writedb: rrdfile: %s: update string: %s\n", 
-	 rrdfile, tstrg);
+  syslog(LOG_DEBUG, "writedb: rrdfile: %s", rrdfile);
+  syslog(LOG_DEBUG, "writedb: update string: %s", tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
   if ( ( err = rrd_test_error())) {
-    syslog( LOG_ALERT, "writedb: RRD error return code: %d\n",
+    syslog( LOG_ALERT, "writedb: RRD return code: %d\n",
             rrd_test_error());
   }
   return(err);
@@ -328,6 +327,64 @@ readdb( char *wstation) {
       return(rbuf);
   }
   return(rbuf);
+}
+
+/*
+  read 1hr old data 
+*/
+int 
+readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, time_t timedif, char *wstation)
+{
+  int err, num;
+  const char *query;
+  sqlite3_stmt *qcomp;
+
+  /* handle ws2000 weatherstation */
+  if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
+    /* open sqlite db file must be done in calling function */
+
+    query = mkmsg2(
+      "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
+      "sensordata.dataset_date, sensordata.meas_value, "
+      "parameternames.parameter_unit "
+      "FROM " 
+        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
+      "WHERE sensordata.dataset_date >= sensorupdate.last_update - 3600 "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
+      "AND "
+        "sensornames.sensor_no = sensorparameters.sensor_no "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
+      "AND "
+        "parameternames.parameter_no = sensorparameters.parameter_no "
+      "AND "
+        "sensornames.sensor_no = %d "
+      "AND "
+        "sensordata.sensor_meas_no = %d",
+      sensor_no, sensor_meas_no
+      );
+    err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT, 
+        "Error: readpar: select ws2000 data: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
+      return(err);
+    }
+
+    num=0;
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      if ( num == 0 ) {
+        *meastim = (time_t )sqlite3_column_int( qcomp, 2); 
+        *measval = (float )sqlite3_column_double( qcomp, 3); 
+        printf("readpar: meastim: %d measval %f\n", *meastim, *measval);
+        num++;
+      }
+    }
+  } else {
+      return(err);
+  }
+  return(err);
 }
 
 /*

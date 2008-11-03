@@ -17,4 +17,4 @@ wthd : $(objects) wthdb.o wth.h
 	cc -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th -o wthd $(objects) wthdb.o
 
 clean:
-	rm -fr *.o *~
+	rm -fr wthd *.o *~

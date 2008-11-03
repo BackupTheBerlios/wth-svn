@@ -2,8 +2,12 @@ General
 -------
 
 wth is a free software solution to read weatherstation data
-of the Lacrosse Technology WS2010 or Conrad resp. ELV WS2000 PC 
-interface, which stores data of 16 temperature, humidity and 
+of the 
+- Lacrosse Technology WS2010 or 
+- WS2000 PC interface by Conrad (www.conrad.de) or ELV (www.elv.de) 
+- PC weatherstation receiver made by ELV (ELV)
+
+which store data of 16 temperature, humidity and 
 pressure sensors, 1 wind sensor and 1 rainfall sensor. 
 
 A DCF77 receiver is built into the interface. The interface connects 
@@ -21,6 +25,59 @@ Munich   HEIGHT = 530m
 
 Pressure plots range from 970 - 1040 (Seewetter), 945 - 1055 (Barograph
 in Malberg, Meteorologie und Klimatologie)
+
+
+Compiling
+---------
+Compiling wth uses GNU make
+Simply type
+
+gmake wthd
+
+
+Running
+-------
+To start wthd type
+
+sudo ./wthd
+
+wthd will set itself in background (run as daemon). Measurement data are 
+logged to rrd and sqlite database. A TCP server is started listening at
+port 2000, which provides telnet access.
+
+Weatherstation configuration is done in wth.conf which must be in directory
+/etc/wth
+/usr/local/etc/wth
+
+
+Telnet commands
+---------------
+Connecting
+use telnet command to connect to wthd
+telnet localhost 2000
+
+available commands are
+
+show data <weatherstation>
+show status <weatherstation>
+show config <weatherstation>
+exec <weatherstation> <command>
+restart
+reload <weatherstation>
+
+
+
+Troubleshooting
+---------------
+Start wthd in debugging mode
+sudo ./wthd -d
+
+
+gcc-4.2 issue
+-------------
+Compiling wthc with gcc-4.2 will issue some warnings about incompatible pointers
+Running wthc will cause a segmentation fault
+Compile wthc using gcc-3.4, no errors at compile time, running smoothly
 
 
 Units of meteorological observations
@@ -42,34 +99,3 @@ Cloud amount [okta]
 Reference: Guide to Meterological Instruments and Methods of Observation, 7th edition, WMO-No.8, World Meterological Organization, Geneva, Switzerland, 2006
 
 
-Compiling
----------
-Compiling wth uses GNU make
-Simply type
-
-gmake wthd
-
-
-Running
--------
-To start wthd type
-
-sudo ./wthd
-
-wthd will set itself in background (run as daemon).
-Configuration is done in wth.conf which must be in directory
-/etc/wth
-/usr/local/etc/wth
-
-
-Troubleshooting
----------------
-Start wthd in debugging mode
-sudo ./wthd -d
-
-
-gcc-4.2 issue
--------------
-Compiling wthc with gcc-4.2 will issue some warnings about incompatible pointers
-Running wthc will cause a segmentation fault
-Compile wthc using gcc-3.4, no errors at compile time, running smoothly
