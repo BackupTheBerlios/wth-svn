@@ -1,8 +1,10 @@
 #
 # Makefile wth
 #
+# multiple architecture build
 #
-
+# Volker Jahns, <volker@thalreit.de>, November 2008
+#
 VPATH=src
 
 ifndef ARCH
@@ -39,7 +41,7 @@ all: $(WTHAPP)
 $(WTHAPP): $(OBJS)
 	$(CC) -g $(LDFLAGS) $(OBJS) -o $@ 
 
-$(OBJDIR)/%.o: %.c
+$(OBJDIR)/%.o: %.c wth.h
 	@mkdir -p build_$(ARCH)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
