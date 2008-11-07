@@ -1,20 +1,48 @@
 #
-# wthd Makefile
-# 
-# Volker Jahns, volker@thalreit.de
+# Makefile wth
 #
-CFLAGS=-Wall
+#
 
-objects = wthd.o ws2000.o pcwsr.o util.o net.o cmd.o
+VPATH=src
 
-wthdb.o: wthdb.c
-	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c wthdb.c
+ifndef ARCH
+  ARCH := $(shell ./print_arch)
+  export ARCH
+endif
 
-$(objects): %.o: %.c
-	$(CC) -I. -I/usr/local/include -I/usr/include $(CFLAGS) -c $< -o $@
+OBJDIR  = build_$(ARCH)
+SRCS    = wthd.c ws2000.c pcwsr.c util.c net.c cmd.c wthdb.c
+OBJS    = $(patsubst %c, $(OBJDIR)/%o, $(SRCS))
+WTHAPP  = $(OBJDIR)/wthd
+$(info $(OBJS))
 
-wthd : $(objects) wthdb.o wth.h
-	cc -L/usr/local/lib -lpthread -lsqlite3 -lrrd_th -o wthd $(objects) wthdb.o
+CFLAGS  = -Wall
+CC = gcc
+
+ifneq (,$(findstring Darwin,$(ARCH)))
+  $(info This is Darwin)
+  include_flags = -I./src -I/usr/local/include -I/opt/local/include -I/usr/include
+  ld_flags = -L/usr/local/lib -L/opt/local/lib -lpthread -lrrd_th 
+endif
+
+ifneq (,$(findstring FreeBSD,$(ARCH)))
+  $(info This is FreeBSD)
+  include_flags = -I./src -I/usr/local/include -I/usr/include
+  ld_flags = -L/usr/local/lib -lpthread -lrrd_th -lsqlite3
+endif
+
+INCLUDE = $(include_flags)
+LDFLAGS = $(ld_flags)
+
+all: $(WTHAPP)
+
+$(WTHAPP): $(OBJS)
+	$(CC) -g $(LDFLAGS) $(OBJS) -o $@ 
+
+$(OBJDIR)/%.o: %.c
+	@mkdir -p build_$(ARCH)
+	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -fr wthd *.o *~
+	@rm -fr $(WTHAPP) $(OBJDIR) *~
+
