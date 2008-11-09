@@ -403,6 +403,10 @@ execmd( char *args) {
   if ( is_ws2000 == 1) {
     if ( ntok > 1 ) { 
       snprintf(rbuf, MAXMSGLEN, "execmd: ws2000: execute cmd %d", ncmd);
+      wsconf.command = ncmd;
+      if ( ( err = wcmd()) == 0 ) {
+        snprintf(rbuf, MAXMSGLEN, ws2000station.status.message); 
+      } else { snprintf(rbuf, MAXMSGLEN, "error: no response of WS2000"); }
     } else if ( ncmd == 100) {
       snprintf(rbuf, MAXMSGLEN, "execmd: provide HELP (ws2000 called w/o command)");
     } else {

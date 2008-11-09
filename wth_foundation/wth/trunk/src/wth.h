@@ -198,7 +198,8 @@ typedef struct ws2000stat {
   int Battstat;     /* battery status */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;
+  int is_present;   /* flag if station is present */
+  char message[MAXMSGLEN]; /* holds ws2000 response message */
 } ws2000stat_t;
 
 typedef struct pcwsrstat {

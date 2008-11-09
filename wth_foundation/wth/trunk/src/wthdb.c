@@ -61,10 +61,10 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
   if (( tmpstr = malloc(MAXMSGLEN)) == NULL ) return(-1);
   if (( template = malloc(MAXMSGLEN)) == NULL) return(-1);
 
-  ustrg = (char **)malloc(sizeof(char *));
-  ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
+  ustrg = malloc(sizeof(char)*MAXMSGLEN);
+  ustrg[2] = malloc(sizeof(char)*MAXBUFF);
   snprintf(tstrg,MAXMSGLEN, "%d", statusset_date);
-
+ 
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
      "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
@@ -85,6 +85,7 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
   syslog(LOG_DEBUG, "statdb: rrdfile: %s", rrdfile);
   syslog(LOG_DEBUG, "statdb: rrd update string: %s", tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
+
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
@@ -187,8 +188,8 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   if (( template = malloc(MAXMSGLEN)) == NULL)
     return(-1);
 
-  ustrg = (char **)malloc(sizeof(char *));
-  ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
+  ustrg = malloc(sizeof(char)*MAXMSGLEN);
+  ustrg[2] = malloc(sizeof(char)*MAXBUFF);
 
   snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
   /* database and rrd handling */
@@ -225,6 +226,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   syslog(LOG_DEBUG, "writedb: rrdfile: %s", rrdfile);
   syslog(LOG_DEBUG, "writedb: update string: %s", tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
+  printf("snprintf ustrg done \n");
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));

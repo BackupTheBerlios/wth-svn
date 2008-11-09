@@ -50,7 +50,7 @@ wthd_init( ) {
   wsconf.outfmt      = "old";
   
   ws2000station.config.dbfile        = "ws2000.db";
-  strncpy(ws2000station.config.device, "/dev/ttyd1", MAXMSGLEN);
+  strncpy(ws2000station.config.device, "n.a.", MAXMSGLEN);
   ws2000station.config.rrdpath       = ".";
   ws2000station.config.monitor       = "Sensormonitor.rrd";
   ws2000station.status.interval      = 300;  
@@ -122,22 +122,22 @@ wthd_init( ) {
 int
 echodata(unsigned char *data, int mdat) {
     int i;
-    char frame[MAXMSGLEN] = "";
+    char frame[MAXBUFF] = "";
     char sf[3] = "";
 
     syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);
 
     /* for better readability label each byte in frame */    
     for ( i = 0; i < mdat; i++ ) {
-	  sprintf(sf, "%2d:",i);
-      strcat(frame, sf);
+      snprintf(sf, 4, "%2d:",i);
+      strncat(frame, sf, 4);
     }
     syslog(LOG_DEBUG, "echodata : %s\n", frame);    
     strcpy(frame, "");
 
     for ( i = 0; i < mdat; i++ ) {
-	  sprintf(sf, "%2x:",data[i]);
-      strcat(frame, sf);
+      snprintf(sf, 4, "%2x:",data[i]);
+      strncat(frame, sf, 4);
     }
 
     syslog(LOG_DEBUG, "echodata : %s\n", frame);   
@@ -308,6 +308,18 @@ readconfig( ) {
         } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
 	  ws2000station.config.rrdpath = strdup(value);
 	  printf("ws2000.rrdpath: \"%s\"\n", value);
+        } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
+	  printf("pcwsr.device: \"%s\"\n", value);
+	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "pcwsr.dbfile" ) == 0 ) {
+	  pcwsrstation.config.dbfile = strdup(value);
+	  printf("pcwsr.dbfile: \"%s\"\n", value);
+        } else if ( strcasecmp( name, "pcwsr.monitor" ) == 0 ) {
+	  pcwsrstation.config.monitor = strdup(value);
+	  printf("pcwsr.monitor: \"%s\"\n", value);
+        } else if ( strcasecmp( name, "pcwsr.rrdpath" ) == 0 ) {
+	  pcwsrstation.config.rrdpath = strdup(value);
+	  printf("pcwsr.rrdpath: \"%s\"\n", value);
 	  /* this is not complete and 
 	     has to be changed
 	  */
