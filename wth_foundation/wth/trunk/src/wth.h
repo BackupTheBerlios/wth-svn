@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>	/* for convenience */
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
@@ -64,6 +64,9 @@
 #define	BUFFSIZE    8192
 #define MAXFD       64
 #define MAXBUFF     131072
+#define NBUFF       8192
+#define SBUFF       1024
+#define TBUFF       256
 #define MAXSENSORS  42
 #define MAXPARAM    8
 #define MAXDATA     256
@@ -254,6 +257,8 @@ typedef struct key {
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
 sqlite3 *ws2000db;
+sqlite3 *pcwsrdb;
+sqlite3 *onewiredb;
 
 int wthd_init();
 int echodata( unsigned char *data, int mdat);

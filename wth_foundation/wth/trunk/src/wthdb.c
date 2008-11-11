@@ -253,7 +253,7 @@ readdb( char *wstation) {
 
   if ( ( rbuf = malloc( MAXBUFF+1)) == NULL )
     return NULL;
-  //rbuf = mkmsg2("readdb called to show data");
+
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
     printf("readdb: ws2000 : %s\n", wstation);
@@ -324,9 +324,83 @@ readdb( char *wstation) {
     /* cleanup and close */
     sqlite3_close( ws2000db);
     syslog(LOG_DEBUG,"readdb: sqlite3_close ws2000db done\n");
-      
-  } else {
+    /* handle pcwst weatherstation */      
+  } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0 ) {
+    printf("readdb: pcwsr : %s\n", wstation);
+    /* open sqlite db file */
+    err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
+    syslog(LOG_DEBUG, 
+	 "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+	 pcwsrstation.config.dbfile,
+	 err, sqlite3_errmsg(pcwsrdb));
+    if ( err) {
+      syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
+	    pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
+      free( errmsg);
+      return (NULL);
+    } else {
+      syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+    }
+
+    query = mkmsg2(
+      "SELECT DISTINCT sensornames.sensorname, sensornames.sensor_no, "
+      "parameternames.parameter_name, "
+      "sensorupdate.last_update, sensordata.meas_value, "
+      "parameternames.parameter_unit "
+      "FROM " 
+        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
+      "WHERE sensorupdate.last_update = sensordata.dataset_date "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
+      "AND "
+        "sensornames.sensor_no = sensorparameters.sensor_no "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
+      "AND "
+        "parameternames.parameter_no = sensorparameters.parameter_no"
+      );
+    err = sqlite3_prepare( pcwsrdb, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      rbuf = mkmsg2(
+        "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(pcwsrdb));
+      syslog( LOG_ALERT, rbuf);
+      rbuf = mkmsg2("database error: please check installation");
       return(rbuf);
+    }
+
+    s = mkmsg2("    sensorname parameter             value unit     dataset date\n"
+               "-------------- -----------   ------------- -------- -------------------------\n");
+    strncat(rbuf, s, strlen(s));
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      meastim = (time_t )sqlite3_column_int( qcomp, 3); 
+      tm = gmtime(&meastim);
+      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
+      s = mkmsg2("%12s%d %-18s %8.2f %-8s %-12s\n",
+	     (char *)sqlite3_column_text( qcomp, 0),
+		 (int)sqlite3_column_int( qcomp, 1),
+	     (char *)sqlite3_column_text( qcomp, 2),
+	     (float)sqlite3_column_double( qcomp, 4),
+	     (char *)sqlite3_column_text( qcomp, 5),
+	     buf
+      );
+      strncat(rbuf,s,strlen(s));
+    }
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      rbuf = mkmsg2(
+        "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	err, sqlite3_errmsg(pcwsrdb));
+      syslog( LOG_ALERT, rbuf);
+      rbuf = mkmsg2("database error: please check installation");
+      return(rbuf);
+    }
+
+    /* cleanup and close */
+    sqlite3_close( pcwsrdb);
+    syslog(LOG_DEBUG,"readdb: sqlite3_close pcwsrdb done\n");      
+  } else {
+      return(NULL);
   }
   return(rbuf);
 }
@@ -344,7 +418,6 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
     /* open sqlite db file must be done in calling function */
-
     query = mkmsg2(
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensordata.dataset_date, sensordata.meas_value, "
@@ -383,6 +456,48 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
         num++;
       }
     }
+
+  } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0 ) {
+    query = mkmsg2(
+      "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
+      "sensordata.dataset_date, sensordata.meas_value, "
+      "parameternames.parameter_unit "
+      "FROM " 
+        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
+      "WHERE sensordata.dataset_date >= sensorupdate.last_update - 3600 "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
+      "AND "
+        "sensornames.sensor_no = sensorparameters.sensor_no "
+      "AND "
+        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
+      "AND "
+        "parameternames.parameter_no = sensorparameters.parameter_no "
+      "AND "
+        "sensornames.sensor_no = %d "
+      "AND "
+        "sensordata.sensor_meas_no = %d",
+      sensor_no, sensor_meas_no
+      );
+    err = sqlite3_prepare( pcwsrdb, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT, 
+        "Error: readpar: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(pcwsrdb));
+      return(err);
+    }
+
+    num=0;
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      if ( num == 0 ) {
+        *meastim = (time_t )sqlite3_column_int( qcomp, 2); 
+        *measval = (float )sqlite3_column_double( qcomp, 3); 
+        printf("readpar: meastim: %d measval %f\n", *meastim, *measval);
+        num++;
+      }
+    }
+  } else if ( ( err = strncmp( wstation,"1wire",5)) == 0 ) {
+     return(err);
   } else {
       return(err);
   }
@@ -426,11 +541,6 @@ int readstat ( char *wstation) {
     }
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      syslog(LOG_DEBUG, "readstat  : sensor_no: %d : lastseen: %d : "
-           "status: %d\n",
-	   sqlite3_column_int(qcomp, 0),
-	   sqlite3_column_int(qcomp, 1),
-	   sqlite3_column_int(qcomp, 2));
       sensor_no   = sqlite3_column_int(qcomp,0);  
       ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
       ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  

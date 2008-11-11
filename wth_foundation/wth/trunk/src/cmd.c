@@ -102,7 +102,7 @@ cmd_hd( ) {
 int
 docmd( int sockfd) {
   int err, ntok;
-  char readline[MAXLINE], response[MAXLINE];
+  char readline[MAXLINE+1], response[MAXLINE+1];
   char *rbuf, *sbuf;
   char *token;
   char *sep = "\\/:;=- ";
@@ -130,12 +130,13 @@ docmd( int sockfd) {
       snprintf(response, sizeof(response), tnusage(0, "", "")); 
       Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token,"help",4)) == 0) {
-      snprintf(response, sizeof(response), "%s\n", tnhelp( sbuf));
+      snprintf(response, sizeof(response), "%s", tnhelp( sbuf));
       Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
-      printf("docmd: %s\n\n", execmd( sbuf)); 
+      snprintf(response, sizeof(response), "%s", execmd( sbuf));
+      Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token, "show",4)) == 0 ) {
-      snprintf(response, sizeof(response), "%s\n", showcmd(sbuf));
+      snprintf(response, sizeof(response), "%s", showcmd(sbuf));
       Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token, "reload",4)) == 0 ) {
       printf("docmd: %s\n\n", initcmd(token)); 
@@ -159,8 +160,8 @@ docmd( int sockfd) {
 char *
 tnstat ( char *station) {
   int i, err;
-  static char t[MAXBUFF] = "";
-  char buf[MAXLINE];
+  static char t[NBUFF+1] = "";
+  char buf[TBUFF+1];
   char *s;
   struct tm *tm;
   time_t lastread, statread;
@@ -250,29 +251,33 @@ tnstat ( char *station) {
 /* tnusage : print handling instructions for telnet access wthd */
 char *
 tnusage (int exitcode, char *error, char *addl) {
-  char *s;
+  char s[SBUFF+1];
 
-  if ( exitcode == 0 ) {
-    s = mkmsg2("wthd commands:\n"
-             "\t\tread\n"
+  if ( exitcode == 0 ) {  /* general help */
+    snprintf(s, SBUFF, "wthd commands:\n"
              "\t\tshow\n"
+             "\t\texec\n"
              "\t\treload\n"
              "\t\trestart\n"
-             "\t\texec\n"
              "\t\thelp\n"
              "type help <command> to get more help\n");
-  } else if ( exitcode == 1 ) {
-    s = mkmsg2("wthd show commands:\n"
+  } else if ( exitcode == 1 ) { /* help on show */
+    snprintf( s, SBUFF, "wthd show commands:\n"
              "\tshow data <station>\t show last measurement values\n"
              "\tshow status <station>\t show sensor status\n"
              "\tshow config <station>\t show configuration parameters\n"
 	     "where <station> is ws2000, pcwsr or 1wire\n");
-  } else if ( exitcode == 2 ) {
-    s = mkmsg2("wthd exec commands:\n"
-             "\texec ws2000 \t show last measurement values\n"
-             "\tshow status <station>\t show sensor status\n"
-             "\tshow config <station>\t show configuration parameters\n"
-	     "where <station> is ws2000, pcwsr or 1wire\n");
+  } else if ( exitcode == 2 ) { /* help on exec */
+    snprintf(s, SBUFF, "wthd exec commands:\n"
+      "\texec ws2000 polldcftime\task ws2000 for current CDF time\n"
+      "\texec ws2000 requestdataset\tretrieve first dataset record\n"
+      "\texec ws2000 selectnextdataset\tset cursor to next dataset record\n"
+      "\texec ws2000 set9sensor\tset ws2000 to receive data of 9 sensors\n"
+      "\texec ws2000 set16sensor\tset ws2000 to receive data of 16 sensors\n"
+      "\texec ws2000 pollstatus\tretrieve station and sensor status\n"
+      "\texec ws2000 setintervaltime\tset measurement time interval\n"
+      "only WS2000 executes commands\n"
+     );
   }
   return(s);
 }
@@ -280,9 +285,9 @@ tnusage (int exitcode, char *error, char *addl) {
 /* helpshow : print handling instructions for wthd data read */
 char *
 helpshow (int exitcode, char *error, char *addl) {
-  char *s;
+  char s[TBUFF+1];
 
-  s = mkmsg2("To show weatherstation data, type:\n"
+  snprintf(s, TBUFF, "To show weatherstation data, type:\n"
              "\t\tshow data <station>\n"
              "\t\tshow data <station> at <time>\n"
              "where\n\t<station> can be ws2000, pcwsr or 1wire\n"
@@ -347,9 +352,9 @@ tnhelp( char *args) {
   } else if ( is_init == 1 ) {
     snprintf(rbuf, MAXMSGLEN, "tnhelp: provide help on RESTART/RELOAD");
   } else if ( is_exec == 1) {
-    snprintf(rbuf, MAXMSGLEN, "tnhelp: provide help on EXEC");
+    snprintf(rbuf, MAXMSGLEN, tnusage( 2, "", ""));
   } else {  // catch all 
-    snprintf(rbuf, MAXMSGLEN, tnusage(0,"",""));
+    snprintf(rbuf, MAXMSGLEN, tnusage( 0,"",""));
   }
   return(rbuf);
 }
@@ -369,8 +374,7 @@ execmd( char *args) {
     return NULL;
 
   if ( args == NULL ) {
-    snprintf(rbuf,MAXMSGLEN, "execmd: provide HELP (called w/o all args)");
-    return(rbuf);
+    return(tnusage(2, "", ""));
   }
 
   ntok=0; 
@@ -405,18 +409,17 @@ execmd( char *args) {
       snprintf(rbuf, MAXMSGLEN, "execmd: ws2000: execute cmd %d", ncmd);
       wsconf.command = ncmd;
       if ( ( err = wcmd()) == 0 ) {
-        snprintf(rbuf, MAXMSGLEN, ws2000station.status.message); 
+        snprintf(rbuf, MAXMSGLEN, ws2000station.status.message); return(rbuf);
       } else { snprintf(rbuf, MAXMSGLEN, "error: no response of WS2000"); }
     } else if ( ncmd == 100) {
-      snprintf(rbuf, MAXMSGLEN, "execmd: provide HELP (ws2000 called w/o command)");
+      return( tnusage( 2, "WS2000 called without command", ""));
     } else {
-      snprintf(rbuf, MAXMSGLEN, "execmd: provide HELP (ws2000 command unknown)");
+      return( tnusage( 2, "WS2000 command unknown", ""));
     }
   } else {  // catch all 
-    snprintf(rbuf, MAXMSGLEN, 
-      "execmd: provide general HELP (only ws2000 supported)");
+    return(tnusage( 2, "Only WS2000 supported", ""));
   }
-  return(rbuf);
+  return(NULL);
 }
 
 char *
@@ -429,12 +432,12 @@ showcmd( char *args) {
   char *sep = "\\/:;=- ";
   char *token;
 
-  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
+  if ( ( rbuf = malloc(MAXBUFF+1)) == NULL )
     return NULL;
 
   if ( args == NULL ) {
     //snprintf(rbuf,MAXMSGLEN, "showcmd: provide HELP (called w/o all args");
-    snprintf(rbuf, MAXMSGLEN, tnusage(1,"",""));
+    snprintf(rbuf, MAXBUFF, tnusage(1,"",""));
     return(rbuf);
   }
 
@@ -460,44 +463,44 @@ showcmd( char *args) {
   if ( is_data == 1) {
     if ( is_ws2000 == 1 ) { 
       /* snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000"); */
-      snprintf(rbuf, MAXLINE, readdb("ws2000"));
+      snprintf(rbuf, MAXBUFF, readdb("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show data pcwsr");
+      snprintf(rbuf, MAXBUFF, readdb("pcwsr"));
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show data 1wire)");
+      snprintf(rbuf, MAXBUFF, "showcmd: show data 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
-      snprintf(rbuf, MAXMSGLEN, tnusage(1,"","")); 
+      snprintf(rbuf, MAXBUFF, tnusage(1,"","")); 
     }
   } else if ( is_stat == 1) { 
     if ( is_ws2000 == 1 ) { 
       /* snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000"); */
-      snprintf(rbuf, MAXLINE, tnstat("ws2000"));
+      snprintf(rbuf, MAXBUFF, tnstat("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show status pcwsr");
+      snprintf(rbuf, MAXBUFF, "showcmd: show status pcwsr");
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show status 1wire)");
+      snprintf(rbuf, MAXBUFF, "showcmd: show status 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, MAXMSGLEN, tnusage(1,"","")); 
     }
   } else if ( is_conf == 1) { 
     if ( is_ws2000 == 1 ) { 
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show config ws2000");
+      snprintf(rbuf, MAXBUFF, "showcmd: show config ws2000");
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show config pcwsr");
+      snprintf(rbuf, MAXBUFF, "showcmd: show config pcwsr");
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXMSGLEN, "showcmd: show config 1wire)");
+      snprintf(rbuf, MAXBUFF, "showcmd: show config 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
-      snprintf(rbuf, MAXMSGLEN, tnusage(1,"","")); 
+      snprintf(rbuf, MAXBUFF, tnusage(1,"","")); 
     }
   } else {  // catch all 
     /*
     snprintf(rbuf, MAXMSGLEN, 
       "execmd: provide general HELP (only ws2000 supported)");
     */
-    snprintf(rbuf, MAXMSGLEN, tnusage(1,"",""));
+    snprintf(rbuf, MAXBUFF, tnusage(1,"",""));
   }
   return(rbuf);
 }

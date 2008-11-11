@@ -99,7 +99,7 @@ wcmd ( ) {
   ws2000station.status.is_present = 1;
   ws2000station.status.DCFtime  = dcftime(data, ndat);
   if ( ws2000station.status.DCFtime == -1) {
-    snprintf(ws2000station.status.message, MAXMSGLEN, "DCF not synchronized");
+    snprintf(ws2000station.status.message, MAXMSGLEN, "DCF not synchronized\n");
     syslog( LOG_INFO, "wcmd: DCF not synchronized\n");
   }
 
@@ -122,7 +122,7 @@ wcmd ( ) {
     syslog(LOG_CRIT, "wcmd: error in subroutine wstat");
     return(1);
   }
-  
+
   /* command 0 : poll DCF time */
   if (command == 0) {
     tzset();
@@ -137,7 +137,7 @@ wcmd ( ) {
     ws2000station.status.DCFtime  = dcftime(data, ndat);
     if ( ws2000station.status.DCFtime == -1) {
       syslog(LOG_NOTICE, "DCF not synchronized");
-      snprintf(ws2000station.status.message, MAXMSGLEN, "DCF not synchronized");
+      snprintf(ws2000station.status.message, MAXMSGLEN, "DCF not synchronized\n");
       return(0);
     }
     else {
@@ -154,7 +154,7 @@ wcmd ( ) {
     wsconf.command = 0;
     if ( ( err = getcd( data, &ndat)) == -1) {
       syslog(LOG_CRIT, "wcmd: error data reception");
-      snprintf( ws2000station.status.message, MAXMSGLEN, "error: data reception");
+      snprintf( ws2000station.status.message, MAXMSGLEN, "error: data reception\n");
       return(1);
     }
     wsconf.command = command;
@@ -165,14 +165,14 @@ wcmd ( ) {
     /* write command and retrieve data */
     if ( ( err = getcd( data, &ndat)) == -1) {
       syslog(LOG_CRIT, "wcmd: error data reception");
-      snprintf( ws2000station.status.message, MAXMSGLEN, "error: data reception");
+      snprintf( ws2000station.status.message, MAXMSGLEN, "error: data reception\n");
       return(1);
     }
 
     /* weather station response : no data available: <DLE> */
     if ( ( ndat == 1 ) && ( data[0] == DLE ) ) {
       syslog(LOG_INFO, "no data available (<DLE> received)");
-      snprintf( ws2000station.status.message, MAXMSGLEN, "no data available");
+      snprintf( ws2000station.status.message, MAXMSGLEN, "no data available\n");
       return(0);
     }
     /* fill data structure sens */
@@ -235,7 +235,7 @@ wcmd ( ) {
       syslog(LOG_CRIT, "wcmd: error data reception");
       return(1);
     }
-    if ( ( wstat(data, ndat)) == NULL) {
+    if ( ( rbuf = wstat(data, ndat)) == NULL) {
       syslog(LOG_CRIT, "wcmd: error in subroutine wstat");
       return(1);
     }	  
@@ -264,9 +264,9 @@ wcmd ( ) {
       syslog(LOG_CRIT, "wcmd: error data reception");
       return(1);
     }
-    if ( ( wstat(data, ndat)) == NULL) {
+    if ( ( rbuf = wstat(data, ndat)) == NULL) {
       syslog(LOG_CRIT, "wcmd: error in subroutine wstat");
-    return(1);
+      return(1);
     }	  
   } 
 
@@ -605,10 +605,9 @@ wstat(unsigned char *data, int mdat ) {
   int i, err;
   int sdata[MAXSENSORS];
   time_t statusset_date;
-  char frame[MAXMSGLEN] = ""; 
-  char sf[3] = "";
-  static char t[MAXBUFF] = "no status available";
-  char *s;
+  char frame[MAXMSGLEN+1] = ""; 
+  static char t[NBUFF+1] = "no status available";
+  char s[TBUFF+1];
 
   t[0] = '\0';
 
@@ -630,8 +629,12 @@ wstat(unsigned char *data, int mdat ) {
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
+    snprintf( s, TBUFF, "Failed to open database %s. Error: %s\n", 
+      ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    /*
     s = mkmsg2("Failed to open database %s. Error: %s\n", 
 	     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    */
     strncat( t, s, strlen(s));
     return(t);
   }
@@ -662,16 +665,16 @@ wstat(unsigned char *data, int mdat ) {
   }
 
   for ( i = 0; i < 18; i++ ) {
-    snprintf(sf, 4, "%2d:",i);
-    strncat(frame, sf, 4);
+    snprintf(s, 4, "%2d:",i);
+    strncat(frame, s, 4);
   }
 
   syslog(LOG_DEBUG, "wstat : %s\n", frame);    
   strcpy(frame, "");
 
   for ( i = 1; i <= 18; i++ ) {
-    snprintf(sf, 4, "%2x:",ws2000station.sensor[i].status);
-    strncat(frame, sf, 4);
+    snprintf(s, 4, "%2x:",ws2000station.sensor[i].status);
+    strncat(frame, s, 4);
   }
   syslog(LOG_DEBUG, "wstat : %s\n", frame);   
 
@@ -723,60 +726,95 @@ wstat(unsigned char *data, int mdat ) {
   syslog(LOG_DEBUG, "wstat: version : %x\n", ws2000station.status.version);
 
   /* fill return buffer */
-  s = mkmsg2(
+  snprintf( s, TBUFF,
 	     "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
 	     ws2000station.status.version, 
 	     ws2000station.status.interval);
   strncat( t, s, strlen(s));   
 
   if ( ws2000station.status.DCFstat == 1 ) {
+
+    snprintf( s, TBUFF, "DCF status\t:\t%d (DCF receiver present)\n", 
+	       ws2000station.status.DCFstat);
+    /*
     s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n", 
 	       ws2000station.status.DCFstat);
+    */
   }
   else {
+    snprintf( s, TBUFF, "DCF status\t:\t%d (no DCF receiver found)\n", 
+	       ws2000station.status.DCFstat);
+    /*
     s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n", 
 	       ws2000station.status.DCFstat);
+    */
   }
 
   strncat(t, s, strlen(s));
 	
   if ( ws2000station.status.DCFsync == 1 ) {
+    snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF synchronized)\n", 
+	       ws2000station.status.DCFsync);
+    /*
     s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n", 
 	       ws2000station.status.DCFsync);
+    */
   }
   else {
+    snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
+	       ws2000station.status.DCFsync);
+    /*
     s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
 	       ws2000station.status.DCFsync);
+    */
   }
   strcat(t,s);
 
   if ( ws2000station.status.HFstat == 1 ) {
+    snprintf( s, TBUFF, "HF status\t:\t%d (with HF)\n", 
+	       ws2000station.status.HFstat);
+    /*
     s = mkmsg2("HF status\t:\t%d (with HF)\n", 
 	       ws2000station.status.HFstat);
+    */
   }
   else {
+    snprintf (s , TBUFF, "HF status\t:\t%d (without HF)\n", 
+	       ws2000station.status.HFstat);
+    /*
     s = mkmsg2("HF status\t:\t%d (without HF)\n", 
 	       ws2000station.status.HFstat);
+    */
   }
   strcat(t,s);
 
+  snprintf(s, TBUFF, "Battery status\t:\t%d\n", 
+	     ws2000station.status.Battstat);
+  /*
   s = mkmsg2("Battery status\t:\t%d\n", 
 	     ws2000station.status.Battstat);
+  */
   strcat(t,s);
    
+  snprintf(s, TBUFF, "Sensor status\t:\t( %d sensors)\n", 
+	     ws2000station.status.numsens);
+  /*
   s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
 	     ws2000station.status.numsens);
+  */
   strcat(t,s);
 
   for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
-    s = mkmsg2("%2d|", i);
+    snprintf(s, TBUFF,"%2d|", i);
+    //s = mkmsg2("%2d|", i);
     strcat(t,s);  
   }
   strcat(t,"\n");
     
   
   for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
-    s= mkmsg2("%2d|", ws2000station.sensor[i].status);
+    snprintf(s, TBUFF, "%2d|", ws2000station.sensor[i].status);
+    //s= mkmsg2("%2d|", ws2000station.sensor[i].status);
     strcat(t,s);
   } 
   strcat(t,"\n");

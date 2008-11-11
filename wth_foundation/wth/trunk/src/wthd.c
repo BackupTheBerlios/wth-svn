@@ -5,7 +5,9 @@
   $Id: wthd.c 207 2008-10-17 18:43:08Z vjahns $
   $Revision: 207 $
 
-  server to read WS2000 weatherstation and pcwsr weathersensor receiver
+  server to read 
+  - WS2000 weatherstation 
+  - pcwsr weathersensor receiver
   
   threaded version
   each thread handles the serial data read,
@@ -98,7 +100,7 @@ main ( int argc, char **argv )
       ws2000station.config.device);
   } else { printf("wthd: no device configured\n"); }
 
-  /* handling interactive commands */
+  /* thread to handle interactive commands */
   pthread_create( &ctid, NULL, cmd_hd, NULL);
   pthread_join( ctid, NULL);
 
