@@ -432,12 +432,12 @@ showcmd( char *args) {
   char *sep = "\\/:;=- ";
   char *token;
 
-  if ( ( rbuf = malloc(MAXBUFF+1)) == NULL )
+  if ( ( rbuf = malloc(NBUFF+1)) == NULL )
     return NULL;
 
   if ( args == NULL ) {
     //snprintf(rbuf,MAXMSGLEN, "showcmd: provide HELP (called w/o all args");
-    snprintf(rbuf, MAXBUFF, tnusage(1,"",""));
+    snprintf(rbuf, NBUFF, tnusage(1,"",""));
     return(rbuf);
   }
 
@@ -463,44 +463,44 @@ showcmd( char *args) {
   if ( is_data == 1) {
     if ( is_ws2000 == 1 ) { 
       /* snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000"); */
-      snprintf(rbuf, MAXBUFF, readdb("ws2000"));
+      snprintf(rbuf, NBUFF, readdb("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXBUFF, readdb("pcwsr"));
+      snprintf(rbuf, NBUFF, readdb("pcwsr"));
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXBUFF, "showcmd: show data 1wire)");
+      snprintf(rbuf, NBUFF, "showcmd: show data 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
-      snprintf(rbuf, MAXBUFF, tnusage(1,"","")); 
+      snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }
   } else if ( is_stat == 1) { 
     if ( is_ws2000 == 1 ) { 
       /* snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000"); */
-      snprintf(rbuf, MAXBUFF, tnstat("ws2000"));
+      snprintf(rbuf, NBUFF, tnstat("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXBUFF, "showcmd: show status pcwsr");
+      snprintf(rbuf, NBUFF, "showcmd: show status pcwsr");
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXBUFF, "showcmd: show status 1wire)");
+      snprintf(rbuf, NBUFF, "showcmd: show status 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, MAXMSGLEN, tnusage(1,"","")); 
     }
   } else if ( is_conf == 1) { 
     if ( is_ws2000 == 1 ) { 
-      snprintf(rbuf, MAXBUFF, "showcmd: show config ws2000");
+      snprintf(rbuf, NBUFF, "showcmd: show config ws2000");
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, MAXBUFF, "showcmd: show config pcwsr");
+      snprintf(rbuf, NBUFF, "showcmd: show config pcwsr");
     } else if ( is_1wire == 1) {
-      snprintf(rbuf, MAXBUFF, "showcmd: show config 1wire)");
+      snprintf(rbuf, NBUFF, "showcmd: show config 1wire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
-      snprintf(rbuf, MAXBUFF, tnusage(1,"","")); 
+      snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }
   } else {  // catch all 
     /*
     snprintf(rbuf, MAXMSGLEN, 
       "execmd: provide general HELP (only ws2000 supported)");
     */
-    snprintf(rbuf, MAXBUFF, tnusage(1,"",""));
+    snprintf(rbuf, NBUFF, tnusage(1,"",""));
   }
   return(rbuf);
 }

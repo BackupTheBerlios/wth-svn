@@ -42,7 +42,6 @@ wthd_init( ) {
   wsconf.logfacility = LOG_LOCAL5;
   wsconf.verbose     = 1;
   wsconf.debug       = 1;
-  wsconf.netflg      = 0;
   wsconf.hostname    = "localhost";
   wsconf.port        = "2000";
   wsconf.wwwport     = "8880";
@@ -122,7 +121,7 @@ wthd_init( ) {
 int
 echodata(unsigned char *data, int mdat) {
     int i;
-    char frame[MAXBUFF] = "";
+    char frame[NBUFF] = "";
     char sf[3] = "";
 
     syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);
@@ -353,8 +352,6 @@ echoconfig ( ) {
   s = mkmsg2("\twsconf.argcmd: %d\n",wsconf.argcmd);
   strncat(t,s, strlen(s));
 
-  s = mkmsg2("\twsconf.netflg: %d\n",wsconf.netflg);
-  strncat(t,s, strlen(s));
   s = mkmsg2("\twsconf.verbose: %d\n",wsconf.verbose);
   strncat(t,s, strlen(s));
   s = mkmsg2("\twsconf.timeout: %d\n",wsconf.timeout);

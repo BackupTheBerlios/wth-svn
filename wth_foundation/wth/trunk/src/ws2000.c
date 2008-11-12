@@ -451,18 +451,11 @@ demasq(unsigned char *data, int *mdat) {
 int getrd ( unsigned char *data, int *mdat) {
     int err;
 
-    if ( wsconf.netflg == 0 ) /* read serial interface */ {
-	  if ( ( err = getsrd( data, mdat)) == -1)
-		return(-1);
-    }
-    else if ( wsconf.netflg == 1 ) /* read network interface */ {
-	  if ( ( err = getnrd( data, mdat)) == -1)
-		return(-1);
-    } else {
-      syslog(LOG_DEBUG, "getrd : netflag undefined : %d\n", wsconf.netflg);
-      return(-1);
-    }
-    return(0);
+  if ( ( err = getsrd( data, mdat)) == -1) {
+    syslog(LOG_DEBUG, "getrd : call to getsrd failed");
+    return(-1);
+  } 
+  return(0);
 }
 
 

@@ -63,7 +63,7 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
 
   ustrg = malloc(sizeof(char)*MAXMSGLEN);
   ustrg[2] = malloc(sizeof(char)*MAXBUFF);
-  snprintf(tstrg,MAXMSGLEN, "%d", statusset_date);
+  snprintf(tstrg,MAXMSGLEN, "%lu", (long int) statusset_date);
  
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
@@ -191,7 +191,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   ustrg = malloc(sizeof(char)*MAXMSGLEN);
   ustrg[2] = malloc(sizeof(char)*MAXBUFF);
 
-  snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
+  snprintf(tstrg,MAXMSGLEN, "%lu", (long int)dataset_date);
   /* database and rrd handling */
   for ( i = 0; i < nval; i++) {
     datadb( dataset_date, sensor_meas_no[i], meas_value[i], wthdb);
@@ -452,7 +452,7 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
       if ( num == 0 ) {
         *meastim = (time_t )sqlite3_column_int( qcomp, 2); 
         *measval = (float )sqlite3_column_double( qcomp, 3); 
-        printf("readpar: meastim: %d measval %f\n", *meastim, *measval);
+        printf("readpar: meastim: %lu measval %f\n", (long int)*meastim, *measval);
         num++;
       }
     }
@@ -492,7 +492,8 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
       if ( num == 0 ) {
         *meastim = (time_t )sqlite3_column_int( qcomp, 2); 
         *measval = (float )sqlite3_column_double( qcomp, 3); 
-        printf("readpar: meastim: %d measval %f\n", *meastim, *measval);
+        printf("readpar: meastim: %lu measval %f\n", 
+          (long int)*meastim, *measval);
         num++;
       }
     }

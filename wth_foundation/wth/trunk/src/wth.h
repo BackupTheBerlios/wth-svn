@@ -74,15 +74,6 @@
 #define MAXMSGLEN   256
 #define MAXQUERYLEN 1024
 
-/* Serial port devices */
-#if defined(LINUX)
-# define SER_DEVICE "/dev/ttyS0"
-#elif defined(FREEBSD)
-# define SER_DEVICE "/dev/ttyd0"
-#else // default
-# define SER_DEVICE ""
-#endif
-
 /* from unp.h */
 #define LISTENQ     1024    /* 2nd argument to listen() */
 
@@ -234,7 +225,6 @@ typedef struct pcwsr {
 typedef struct conf {
   int command;
   int argcmd;
-  int netflg;
   int debug;
   int verbose;
   int timeout;
@@ -296,7 +286,6 @@ int chkframe( unsigned char *data, int *mdat);
 int datex( unsigned char *data, int ndat);
 int getcd(unsigned char *data, int *mdat);
 int getrd(unsigned char *data, int *mdat);
-int getnrd(unsigned char *data, int *mdat);
 int getsrd(unsigned char *data, int *mdat);
 
 char *wstat(unsigned char *data, int mdat);
