@@ -160,13 +160,14 @@ docmd( int sockfd) {
 char *
 tnstat ( char *station) {
   int i, err;
-  char t[NBUFF+1] = "";
+  static char t[NBUFF+1];
   char buf[TBUFF+1];
   char s[TBUFF+1];
   struct tm *tm;
   time_t lastread, statread;
 
   printf("tnstat: station: %s\n", station);
+  snprintf(t, NBUFF, "");
   if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
     if ( ws2000station.status.is_present == 1) {
       snprintf( s , TBUFF, "WS2000 weatherstation status\n"
@@ -238,36 +239,32 @@ tnstat ( char *station) {
      strncat(t, s, strlen(s)); 
     }
   } else if  ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) { 
-      printf("pcwsrstation.status.is_present: %d\n", 
+      printf("tnstat: pcwsrstation.status.is_present: %d\n", 
         pcwsrstation.status.is_present);
       if ( pcwsrstation.status.is_present == 1) {
+        readstat( "pcwsr");
         snprintf( s, TBUFF, "PCWSR weatherstation status\n");
         strncat( t, s, strlen(s));
 
-        snprintf( s, TBUFF, "sensorname\tsensorstatus\tlastseen\n"
-            "------------\t------------\t----------\n"
+        snprintf( s, TBUFF, "sensorname\tlastseen\n"
+            "------------\t----------\n"
             );
         strncat(t,s,strlen(s));
-        time(&statread);
-        lastread = statread - pcwsrstation.status.lastread;
-
-        if ( lastread > 600 ) {
-          pcwsrstation.status.lastread = statread;
-          readstat( station);
-        }
+        printf("tnstat: pcwsrstation.status.numsens: %d\n",
+          pcwsrstation.status.numsens);
         for ( i = 1; i <=pcwsrstation.status.numsens; i++) {
           tm = gmtime(&pcwsrstation.sensor[i].lastseen);
           strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-          snprintf ( s , TBUFF, "%12s\t%d\t\t%s\n",
+          snprintf ( s , TBUFF, "%12s\t%s\n",
             pcwsrstation.sensor[i].sensorname,
-            pcwsrstation.sensor[i].status,
             buf
           );
           strncat(t,s,strlen(s));
         }
       } else {
         snprintf( s, TBUFF, "No PCWSR weatherstation attached.\n"
-          "Please check hardware, if you do not expect this correct.\n");
+          "Please allow 5-10 minutes for PCWSR data to accumulate. "
+          "Check hardware, if you do not expect this correct.\n");
         strncat(t, s, strlen(s)); 
       }
   }
@@ -279,7 +276,7 @@ tnstat ( char *station) {
 /* tnusage : print handling instructions for telnet access wthd */
 char *
 tnusage (int exitcode, char *error, char *addl) {
-  char s[SBUFF+1];
+  static char s[SBUFF+1];
 
   if ( exitcode == 0 ) {  /* general help */
     snprintf(s, SBUFF, "wthd commands:\n"
@@ -306,6 +303,8 @@ tnusage (int exitcode, char *error, char *addl) {
       "\texec ws2000 setintervaltime\tset measurement time interval\n"
       "only WS2000 executes commands\n"
      );
+  } else {
+    syslog(LOG_INFO,"tnusage: unknown exitcode: %d\n", exitcode);
   }
   return(s);
 }
@@ -313,8 +312,7 @@ tnusage (int exitcode, char *error, char *addl) {
 /* helpshow : print handling instructions for wthd data read */
 char *
 helpshow (int exitcode, char *error, char *addl) {
-  char s[TBUFF+1];
-
+  static char s[TBUFF+1];
   snprintf(s, TBUFF, "To show weatherstation data, type:\n"
              "\t\tshow data <station>\n"
              "\t\tshow data <station> at <time>\n"

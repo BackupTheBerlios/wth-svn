@@ -511,7 +511,7 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
   read sensor status data
 */
 int readstat ( char *wstation) {
-  int err, sensor_no;
+  int err, sensor_no, rows;
   char *errmsg;
   char query[SBUFF+1];
   sqlite3_stmt *qcomp;
@@ -532,7 +532,7 @@ int readstat ( char *wstation) {
       syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
     }
 
-    snprintf ( query , SBUFF, 
+    snprintf( query, SBUFF, 
       "select sensor_no, max(statusset_date), sensor_status "
       "from sensorstatus group by sensor_no");
 
@@ -548,7 +548,9 @@ int readstat ( char *wstation) {
       sensor_no   = sqlite3_column_int(qcomp,0);  
       ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
       ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  
+      rows++;
     }
+   
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
       syslog( LOG_ALERT,
@@ -560,6 +562,56 @@ int readstat ( char *wstation) {
     /* cleanup and close */
     sqlite3_close( ws2000db);
     syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000db done\n");
+  } else if ( ( err = strncmp( wstation,"pcwsr",6)) == 0) {
+    err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
+    syslog(LOG_DEBUG, 
+      "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+      pcwsrstation.config.dbfile,
+       err, sqlite3_errmsg(pcwsrdb));
+    if ( err) {
+      syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
+	pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
+      free( errmsg);
+      return -1;
+    } else {
+      syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
+    }
+
+    snprintf ( query, SBUFF, 
+      "SELECT DISTINCT sensorparameters.sensor_no, sensorupdate.last_update "
+      "FROM sensorupdate,sensorparameters "
+      "WHERE sensorparameters.sensor_meas_no = sensorupdate.sensor_meas_no "
+      "AND last_update > 0");
+
+    err = sqlite3_prepare( pcwsrdb, query, -1, &qcomp, 0); 
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT,
+        "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(pcwsrdb));
+       return(1);
+    }
+
+    rows = 0;
+    while( SQLITE_ROW == sqlite3_step(qcomp)) {
+      sensor_no   = sqlite3_column_int(qcomp,0);  
+      pcwsrstation.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
+      rows++;
+      printf("sensor_no: %d pcwsrstation.sensor[sensor_no].lastseen: %lu\n",
+        sensor_no, (long int)pcwsrstation.sensor[sensor_no].lastseen);
+    }
+    pcwsrstation.status.numsens = rows;
+    printf("readstat: pcwsrstation.status.numsens: %d\n", pcwsrstation.status.numsens);
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      syslog( LOG_ALERT,
+        "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
+      return(1);
+    }
+
+    /* cleanup and close */
+    sqlite3_close( pcwsrdb);
+    syslog(LOG_DEBUG,"readstat: sqlite3_close pcwsrdb done\n");
   } else {
     return(err);
   }

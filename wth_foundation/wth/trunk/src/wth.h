@@ -38,8 +38,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <strings.h>
+#include <string.h> 
+//#include <strings.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
@@ -67,7 +67,7 @@
 #define NBUFF       8192
 #define SBUFF       1024
 #define TBUFF       256
-#define MAXSENSORS  42
+#define MAXSENSORS  128
 #define MAXPARAM    8
 #define MAXDATA     256
 #define PCWSRLEN    8
@@ -198,8 +198,9 @@ typedef struct ws2000stat {
 
 typedef struct pcwsrstat {
   time_t lastread;  /* last status read date */
+  int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;
+  int is_present;   /* flag if station is attached */
 } pcwsrstat_t;
 
 typedef struct wsconf {
