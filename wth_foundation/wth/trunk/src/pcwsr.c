@@ -23,7 +23,6 @@
 
 */
 #include "wth.h"
-sqlite3 *pcwsrdb;
 
 /*  initpcwsr
 
@@ -371,6 +370,11 @@ pcwsr_hd( void *arg) {
 	  "Please report incident to: Volker.Jahns@thalreit.de",
 	  clk, sver, saddr);
       }
+
+      /* set PCWSR present flag */
+      pcwsrstation.status.is_present = 1;
+      printf( "pcwsrstation.status.is_present: %d\n",
+        pcwsrstation.status.is_present); 
 
       /* database and rrd handling */
       snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);

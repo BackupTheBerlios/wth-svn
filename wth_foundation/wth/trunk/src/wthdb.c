@@ -131,14 +131,15 @@ int
 senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
 {
   int err;
-  const char *query;
+  char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
-  query = mkmsg2("SELECT sp.sensor_no, sn.sensorname, pn.parameter_name "
-	 "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
-	 "AS pn WHERE sp.parameter_no = pn.parameter_no "
-	 "AND sp.sensor_no = sn.sensor_no AND sp.sensor_meas_no = %d", 
-	 sensor_meas_no);
+  snprintf(query, SBUFF, 
+    "SELECT sp.sensor_no, sn.sensorname, pn.parameter_name "
+    "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
+    "AS pn WHERE sp.parameter_no = pn.parameter_no "
+    "AND sp.sensor_no = sn.sensor_no AND sp.sensor_meas_no = %d", 
+    sensor_meas_no);
 
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
@@ -244,8 +245,9 @@ char *
 readdb( char *wstation) {
   int err;
   char *errmsg;
-  char *rbuf, *s;
-  const char *query;
+  char *rbuf;
+  char s[TBUFF+1];
+  char query[SBUFF+1];
   sqlite3_stmt *qcomp;
   char buf[MAXLINE];
   struct tm *tm;
@@ -272,7 +274,7 @@ readdb( char *wstation) {
       syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
     }
 
-    query = mkmsg2(
+    snprintf( query, SBUFF, 
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensorupdate.last_update, sensordata.meas_value, "
       "parameternames.parameter_unit "
@@ -290,11 +292,11 @@ readdb( char *wstation) {
       );
     err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
     if ( err != SQLITE_OK ) {
-      rbuf = mkmsg2(
+      snprintf( rbuf, TBUFF, 
         "Error: readdb: select ws2000 data: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(ws2000db));
       syslog( LOG_ALERT, rbuf);
-      rbuf = mkmsg2("database error: please check installation");
+      snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
 
@@ -302,7 +304,7 @@ readdb( char *wstation) {
       meastim = (time_t )sqlite3_column_int( qcomp, 2); 
       tm = gmtime(&meastim);
       strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-      s = mkmsg2("%-12s %-18s %8.2f %-8s %-12s\n",
+      snprintf(s, SBUFF, "%-12s %-18s %8.2f %-8s %-12s\n",
 	     (char *)sqlite3_column_text( qcomp, 0),
 	     (char *)sqlite3_column_text( qcomp, 1),
 	     (float)sqlite3_column_double( qcomp, 3),
@@ -313,11 +315,11 @@ readdb( char *wstation) {
     }
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
-      rbuf = mkmsg2(
+      snprintf(rbuf, TBUFF, 
         "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(ws2000db));
       syslog( LOG_ALERT, rbuf);
-      rbuf = mkmsg2("database error: please check installation");
+      snprintf(rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
 
@@ -342,7 +344,7 @@ readdb( char *wstation) {
       syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
     }
 
-    query = mkmsg2(
+    snprintf( query, SBUFF, 
       "SELECT DISTINCT sensornames.sensorname, sensornames.sensor_no, "
       "parameternames.parameter_name, "
       "sensorupdate.last_update, sensordata.meas_value, "
@@ -361,22 +363,22 @@ readdb( char *wstation) {
       );
     err = sqlite3_prepare( pcwsrdb, query, -1, &qcomp, 0); 
     if ( err != SQLITE_OK ) {
-      rbuf = mkmsg2(
+      snprintf( rbuf, TBUFF,
         "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(pcwsrdb));
       syslog( LOG_ALERT, rbuf);
-      rbuf = mkmsg2("database error: please check installation");
+      snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
 
-    s = mkmsg2("    sensorname parameter             value unit     dataset date\n"
+    snprintf( s, TBUFF, "    sensorname parameter             value unit     dataset date\n"
                "-------------- -----------   ------------- -------- -------------------------\n");
     strncat(rbuf, s, strlen(s));
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
       meastim = (time_t )sqlite3_column_int( qcomp, 3); 
       tm = gmtime(&meastim);
       strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-      s = mkmsg2("%12s%d %-18s %8.2f %-8s %-12s\n",
+      snprintf( s, TBUFF, "%12s%d %-18s %8.2f %-8s %-12s\n",
 	     (char *)sqlite3_column_text( qcomp, 0),
 		 (int)sqlite3_column_int( qcomp, 1),
 	     (char *)sqlite3_column_text( qcomp, 2),
@@ -388,11 +390,11 @@ readdb( char *wstation) {
     }
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
-      rbuf = mkmsg2(
+      snprintf( rbuf, TBUFF, 
         "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(pcwsrdb));
       syslog( LOG_ALERT, rbuf);
-      rbuf = mkmsg2("database error: please check installation");
+      snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
 
@@ -412,13 +414,13 @@ int
 readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, time_t timedif, char *wstation)
 {
   int err, num;
-  const char *query;
+  char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
     /* open sqlite db file must be done in calling function */
-    query = mkmsg2(
+    snprintf ( query, SBUFF,
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensordata.dataset_date, sensordata.meas_value, "
       "parameternames.parameter_unit "
@@ -458,7 +460,7 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
     }
 
   } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0 ) {
-    query = mkmsg2(
+    snprintf( query, SBUFF,
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensordata.dataset_date, sensordata.meas_value, "
       "parameternames.parameter_unit "
@@ -511,7 +513,7 @@ readpar( time_t *meastim, float *measval, int sensor_no, int sensor_meas_no, tim
 int readstat ( char *wstation) {
   int err, sensor_no;
   char *errmsg;
-  const char *query;
+  char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
   /* WS2000 weatherstation handling */
@@ -530,8 +532,9 @@ int readstat ( char *wstation) {
       syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
     }
 
-    query = mkmsg2("select sensor_no, max(statusset_date), sensor_status "
-                   "from sensorstatus group by sensor_no");
+    snprintf ( query , SBUFF, 
+      "select sensor_no, max(statusset_date), sensor_status "
+      "from sensorstatus group by sensor_no");
 
     err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
     if ( err != SQLITE_OK ) {
@@ -549,8 +552,8 @@ int readstat ( char *wstation) {
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
       syslog( LOG_ALERT,
-	    "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	    err, sqlite3_errmsg(ws2000db));
+        "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
+        err, sqlite3_errmsg(ws2000db));
       return(1);
     }
 

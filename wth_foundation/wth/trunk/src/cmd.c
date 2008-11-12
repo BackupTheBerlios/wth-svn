@@ -160,59 +160,58 @@ docmd( int sockfd) {
 char *
 tnstat ( char *station) {
   int i, err;
-  static char t[NBUFF+1] = "";
+  char t[NBUFF+1] = "";
   char buf[TBUFF+1];
-  char *s;
+  char s[TBUFF+1];
   struct tm *tm;
   time_t lastread, statread;
 
   printf("tnstat: station: %s\n", station);
-
   if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
     if ( ws2000station.status.is_present == 1) {
-      s = mkmsg2("WS2000 weatherstation status\n"
+      snprintf( s , TBUFF, "WS2000 weatherstation status\n"
             "version\t\t:\t%x\nmeasure interval:\t%lu (min)\n",
             ws2000station.status.version,
-            ws2000station.status.interval
+            (long int)ws2000station.status.interval
                 );
       strncat( t, s, strlen(s));
 
       if ( ws2000station.status.DCFstat == 1 ) {
-        s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n",
+        snprintf( s, TBUFF, "DCF status\t:\t%d (DCF receiver present)\n",
                ws2000station.status.DCFstat);
       }
       else {
-        s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n",
+        snprintf( s, TBUFF,"DCF status\t:\t%d (no DCF receiver found)\n",
                ws2000station.status.DCFstat);
       }
       strncat( t, s, strlen(s));
       if ( ws2000station.status.DCFsync == 1 ) {
-        s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n",
+        snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF synchronized)\n",
                ws2000station.status.DCFsync);
       }
       else {
-        s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n",
+        snprintf ( s, TBUFF,"DCF sync.\t:\t%d (DCF NOT synchronized)\n",
                ws2000station.status.DCFsync);
       }
       strncat( t, s, strlen(s));
       if ( ws2000station.status.HFstat == 1 ) {
-        s = mkmsg2("HF status\t:\t%d (with HF)\n",
+        snprintf( s, TBUFF, "HF status\t:\t%d (with HF)\n",
                ws2000station.status.HFstat);
       }
       else {
-        s = mkmsg2("HF status\t:\t%d (without HF)\n",
+        snprintf( s, TBUFF, "HF status\t:\t%d (without HF)\n",
                ws2000station.status.HFstat);
       }
       strncat(t,s,strlen(s));
-      s = mkmsg2("battery status\t:\t%d\n",
+      snprintf( s, TBUFF, "battery status\t:\t%d\n",
              ws2000station.status.Battstat);
       strncat(t,s,strlen(s));
   
-      s = mkmsg2("sensor number\t:\t%d (sensors)\n",
+      snprintf ( s, TBUFF, "sensor number\t:\t%d (sensors)\n",
              ws2000station.status.numsens);
       strncat(t,s,strlen(s));
 
-      s = mkmsg2("sensorname\tsensorstatus\tlastseen\n"
+      snprintf( s, TBUFF, "sensorname\tsensorstatus\tlastseen\n"
             "------------\t------------\t----------\n"
             );
       strncat(t,s,strlen(s));
@@ -226,7 +225,7 @@ tnstat ( char *station) {
       for ( i = 1; i <=ws2000station.status.numsens; i++) {
         tm = gmtime(&ws2000station.sensor[i].lastseen);
         strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-        s = mkmsg2("%12s\t%d\t\t%s\n",
+        snprintf ( s , TBUFF, "%12s\t%d\t\t%s\n",
           ws2000station.sensor[i].sensorname,
           ws2000station.sensor[i].status,
           buf
@@ -234,14 +233,43 @@ tnstat ( char *station) {
         strncat(t,s,strlen(s));
       }
     } else { 
-     s = mkmsg2("No WS2000 weatherstation attached."
-                "Please check line, if you do not expect this correct");
+     snprintf( s, TBUFF, "No WS2000 weatherstation attached.\n"
+       "Please check hardware, if you do not expect this correct.\n");
      strncat(t, s, strlen(s)); 
     }
-  } else if ( ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) 
-           && ( pcwsrstation.status.is_present == 1)) {
-      s = mkmsg2("Pcwsr weatherstation status\n");
-      strncat( t, s, strlen(s));
+  } else if  ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) { 
+      printf("pcwsrstation.status.is_present: %d\n", 
+        pcwsrstation.status.is_present);
+      if ( pcwsrstation.status.is_present == 1) {
+        snprintf( s, TBUFF, "PCWSR weatherstation status\n");
+        strncat( t, s, strlen(s));
+
+        snprintf( s, TBUFF, "sensorname\tsensorstatus\tlastseen\n"
+            "------------\t------------\t----------\n"
+            );
+        strncat(t,s,strlen(s));
+        time(&statread);
+        lastread = statread - pcwsrstation.status.lastread;
+
+        if ( lastread > 600 ) {
+          pcwsrstation.status.lastread = statread;
+          readstat( station);
+        }
+        for ( i = 1; i <=pcwsrstation.status.numsens; i++) {
+          tm = gmtime(&pcwsrstation.sensor[i].lastseen);
+          strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
+          snprintf ( s , TBUFF, "%12s\t%d\t\t%s\n",
+            pcwsrstation.sensor[i].sensorname,
+            pcwsrstation.sensor[i].status,
+            buf
+          );
+          strncat(t,s,strlen(s));
+        }
+      } else {
+        snprintf( s, TBUFF, "No PCWSR weatherstation attached.\n"
+          "Please check hardware, if you do not expect this correct.\n");
+        strncat(t, s, strlen(s)); 
+      }
   }
   return(t);
 }
@@ -266,7 +294,7 @@ tnusage (int exitcode, char *error, char *addl) {
              "\tshow data <station>\t show last measurement values\n"
              "\tshow status <station>\t show sensor status\n"
              "\tshow config <station>\t show configuration parameters\n"
-	     "where <station> is ws2000, pcwsr or 1wire\n");
+	     "where <station> is ws2000, pcwsr or onewire\n");
   } else if ( exitcode == 2 ) { /* help on exec */
     snprintf(s, SBUFF, "wthd exec commands:\n"
       "\texec ws2000 polldcftime\task ws2000 for current CDF time\n"
@@ -290,7 +318,7 @@ helpshow (int exitcode, char *error, char *addl) {
   snprintf(s, TBUFF, "To show weatherstation data, type:\n"
              "\t\tshow data <station>\n"
              "\t\tshow data <station> at <time>\n"
-             "where\n\t<station> can be ws2000, pcwsr or 1wire\n"
+             "where\n\t<station> can be ws2000, pcwsr or onewire\n"
              "\t<time> is requested timestamp in format DD-MM-YYYY\n");
   return(s);
 }
@@ -425,7 +453,7 @@ execmd( char *args) {
 char *
 showcmd( char *args) {
   int err, ntok;
-  int is_ws2000, is_pcwsr, is_1wire;
+  int is_ws2000, is_pcwsr, is_onewire, is_unknown;
   int is_data, is_stat, is_conf;
   char *rbuf;
   char *sbuf;
@@ -455,8 +483,10 @@ showcmd( char *args) {
       is_ws2000 = 1;
     } else if ( ( err = strncmp(token, "pcwsr", 4) == 0 )) {
       is_pcwsr = 1;
-    } else if ( ( err = strncmp(token, "1wire", 5) == 0 )) {
-      is_1wire = 1;
+    } else if ( ( err = strncmp(token, "onewire", 5) == 0 )) {
+      is_onewire = 1;
+    } else {
+      is_unknown = 1;
     }
   } while ( ( token = strtok_r( NULL, sep, &sbuf)) != NULL );
 
@@ -466,22 +496,21 @@ showcmd( char *args) {
       snprintf(rbuf, NBUFF, readdb("ws2000"));
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, NBUFF, readdb("pcwsr"));
-    } else if ( is_1wire == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show data 1wire)");
+    } else if ( is_onewire == 1) {
+      snprintf(rbuf, NBUFF, "showcmd: show data onewire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }
   } else if ( is_stat == 1) { 
     if ( is_ws2000 == 1 ) { 
-      /* snprintf(rbuf, MAXMSGLEN, "showcmd: show status ws2000"); */
       snprintf(rbuf, NBUFF, tnstat("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show status pcwsr");
-    } else if ( is_1wire == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show status 1wire)");
+      snprintf(rbuf, NBUFF, tnstat("pcwsr"));
+    } else if ( is_onewire == 1) {
+      printf("showcmd: is_onewire : %d\n", is_onewire);
+      snprintf(rbuf, NBUFF, tnstat("onewire"));
     } else {
-      //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, MAXMSGLEN, tnusage(1,"","")); 
     }
   } else if ( is_conf == 1) { 
@@ -489,8 +518,8 @@ showcmd( char *args) {
       snprintf(rbuf, NBUFF, "showcmd: show config ws2000");
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, NBUFF, "showcmd: show config pcwsr");
-    } else if ( is_1wire == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show config 1wire)");
+    } else if ( is_onewire == 1) {
+      snprintf(rbuf, NBUFF, "showcmd: show config onewire)");
     } else {
       //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 

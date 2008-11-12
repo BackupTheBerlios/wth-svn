@@ -624,10 +624,6 @@ wstat(unsigned char *data, int mdat ) {
   if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
     snprintf( s, TBUFF, "Failed to open database %s. Error: %s\n", 
       ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    /*
-    s = mkmsg2("Failed to open database %s. Error: %s\n", 
-	     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    */
     strncat( t, s, strlen(s));
     return(t);
   }
@@ -729,18 +725,10 @@ wstat(unsigned char *data, int mdat ) {
 
     snprintf( s, TBUFF, "DCF status\t:\t%d (DCF receiver present)\n", 
 	       ws2000station.status.DCFstat);
-    /*
-    s = mkmsg2("DCF status\t:\t%d (DCF receiver present)\n", 
-	       ws2000station.status.DCFstat);
-    */
   }
   else {
     snprintf( s, TBUFF, "DCF status\t:\t%d (no DCF receiver found)\n", 
 	       ws2000station.status.DCFstat);
-    /*
-    s = mkmsg2("DCF status\t:\t%d (no DCF receiver found)\n", 
-	       ws2000station.status.DCFstat);
-    */
   }
 
   strncat(t, s, strlen(s));
@@ -748,58 +736,33 @@ wstat(unsigned char *data, int mdat ) {
   if ( ws2000station.status.DCFsync == 1 ) {
     snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF synchronized)\n", 
 	       ws2000station.status.DCFsync);
-    /*
-    s = mkmsg2("DCF sync.\t:\t%d (DCF synchronized)\n", 
-	       ws2000station.status.DCFsync);
-    */
   }
   else {
     snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
 	       ws2000station.status.DCFsync);
-    /*
-    s = mkmsg2("DCF sync.\t:\t%d (DCF NOT synchronized)\n", 
-	       ws2000station.status.DCFsync);
-    */
   }
   strcat(t,s);
 
   if ( ws2000station.status.HFstat == 1 ) {
     snprintf( s, TBUFF, "HF status\t:\t%d (with HF)\n", 
 	       ws2000station.status.HFstat);
-    /*
-    s = mkmsg2("HF status\t:\t%d (with HF)\n", 
-	       ws2000station.status.HFstat);
-    */
   }
   else {
     snprintf (s , TBUFF, "HF status\t:\t%d (without HF)\n", 
 	       ws2000station.status.HFstat);
-    /*
-    s = mkmsg2("HF status\t:\t%d (without HF)\n", 
-	       ws2000station.status.HFstat);
-    */
   }
   strcat(t,s);
 
   snprintf(s, TBUFF, "Battery status\t:\t%d\n", 
 	     ws2000station.status.Battstat);
-  /*
-  s = mkmsg2("Battery status\t:\t%d\n", 
-	     ws2000station.status.Battstat);
-  */
   strcat(t,s);
    
   snprintf(s, TBUFF, "Sensor status\t:\t( %d sensors)\n", 
 	     ws2000station.status.numsens);
-  /*
-  s = mkmsg2("Sensor status\t:\t( %d sensors)\n", 
-	     ws2000station.status.numsens);
-  */
   strcat(t,s);
 
   for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
     snprintf(s, TBUFF,"%2d|", i);
-    //s = mkmsg2("%2d|", i);
     strcat(t,s);  
   }
   strcat(t,"\n");
@@ -807,7 +770,6 @@ wstat(unsigned char *data, int mdat ) {
   
   for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
     snprintf(s, TBUFF, "%2d|", ws2000station.sensor[i].status);
-    //s= mkmsg2("%2d|", ws2000station.sensor[i].status);
     strcat(t,s);
   } 
   strcat(t,"\n");
