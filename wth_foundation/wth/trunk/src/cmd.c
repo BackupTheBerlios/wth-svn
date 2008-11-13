@@ -159,116 +159,38 @@ docmd( int sockfd) {
 /* tnstat: weatherstation status */
 char *
 tnstat ( char *station) {
-  int i, err;
-  static char t[NBUFF+1];
-  char buf[TBUFF+1];
-  char s[TBUFF+1];
-  struct tm *tm;
+  int err;
+  static char rbuf[NBUFF+1];
   time_t lastread, statread;
 
   printf("tnstat: station: %s\n", station);
-  snprintf(t, NBUFF, "");
+  snprintf(rbuf, NBUFF, "");
   if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
     if ( ws2000station.status.is_present == 1) {
-      snprintf( s , TBUFF, "WS2000 weatherstation status\n"
-            "version\t\t:\t%x\nmeasure interval:\t%lu (min)\n",
-            ws2000station.status.version,
-            (long int)ws2000station.status.interval
-                );
-      strncat( t, s, strlen(s));
 
-      if ( ws2000station.status.DCFstat == 1 ) {
-        snprintf( s, TBUFF, "DCF status\t:\t%d (DCF receiver present)\n",
-               ws2000station.status.DCFstat);
-      }
-      else {
-        snprintf( s, TBUFF,"DCF status\t:\t%d (no DCF receiver found)\n",
-               ws2000station.status.DCFstat);
-      }
-      strncat( t, s, strlen(s));
-      if ( ws2000station.status.DCFsync == 1 ) {
-        snprintf( s, TBUFF, "DCF sync.\t:\t%d (DCF synchronized)\n",
-               ws2000station.status.DCFsync);
-      }
-      else {
-        snprintf ( s, TBUFF,"DCF sync.\t:\t%d (DCF NOT synchronized)\n",
-               ws2000station.status.DCFsync);
-      }
-      strncat( t, s, strlen(s));
-      if ( ws2000station.status.HFstat == 1 ) {
-        snprintf( s, TBUFF, "HF status\t:\t%d (with HF)\n",
-               ws2000station.status.HFstat);
-      }
-      else {
-        snprintf( s, TBUFF, "HF status\t:\t%d (without HF)\n",
-               ws2000station.status.HFstat);
-      }
-      strncat(t,s,strlen(s));
-      snprintf( s, TBUFF, "battery status\t:\t%d\n",
-             ws2000station.status.Battstat);
-      strncat(t,s,strlen(s));
-  
-      snprintf ( s, TBUFF, "sensor number\t:\t%d (sensors)\n",
-             ws2000station.status.numsens);
-      strncat(t,s,strlen(s));
-
-      snprintf( s, TBUFF, "sensorname\tsensorstatus\tlastseen\n"
-            "------------\t------------\t----------\n"
-            );
-      strncat(t,s,strlen(s));
       time(&statread);
       lastread = statread - ws2000station.status.lastread;
 
       if ( lastread > 600 ) {
         ws2000station.status.lastread = statread;
-        readstat( station);
-      }
-      for ( i = 1; i <=ws2000station.status.numsens; i++) {
-        tm = gmtime(&ws2000station.sensor[i].lastseen);
-        strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-        snprintf ( s , TBUFF, "%12s\t%d\t\t%s\n",
-          ws2000station.sensor[i].sensorname,
-          ws2000station.sensor[i].status,
-          buf
-          );
-        strncat(t,s,strlen(s));
+        snprintf(rbuf, NBUFF, readstat( "ws2000"));
       }
     } else { 
-     snprintf( s, TBUFF, "No WS2000 weatherstation attached.\n"
+     snprintf( rbuf, TBUFF, "No WS2000 weatherstation attached.\n"
        "Please check hardware, if you do not expect this correct.\n");
-     strncat(t, s, strlen(s)); 
     }
   } else if  ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) { 
       printf("tnstat: pcwsrstation.status.is_present: %d\n", 
         pcwsrstation.status.is_present);
       if ( pcwsrstation.status.is_present == 1) {
-        readstat( "pcwsr");
-        snprintf( s, TBUFF, "PCWSR weatherstation status\n");
-        strncat( t, s, strlen(s));
-
-        snprintf( s, TBUFF, "sensorname\tlastseen\n"
-            "------------\t----------\n"
-            );
-        strncat(t,s,strlen(s));
-        printf("tnstat: pcwsrstation.status.numsens: %d\n",
-          pcwsrstation.status.numsens);
-        for ( i = 1; i <=pcwsrstation.status.numsens; i++) {
-          tm = gmtime(&pcwsrstation.sensor[i].lastseen);
-          strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-          snprintf ( s , TBUFF, "%12s\t%s\n",
-            pcwsrstation.sensor[i].sensorname,
-            buf
-          );
-          strncat(t,s,strlen(s));
-        }
+        snprintf( rbuf, NBUFF, readstat( "pcwsr"));
       } else {
-        snprintf( s, TBUFF, "No PCWSR weatherstation attached.\n"
+        snprintf( rbuf, NBUFF, "No PCWSR weatherstation attached.\n"
           "Please allow 5-10 minutes for PCWSR data to accumulate. "
           "Check hardware, if you do not expect this correct.\n");
-        strncat(t, s, strlen(s)); 
       }
   }
-  return(t);
+  return(rbuf);
 }
 
 

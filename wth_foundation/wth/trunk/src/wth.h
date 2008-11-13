@@ -322,4 +322,4 @@ int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
 char *readdb( char *wstation);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-int readstat( char *wstation);
+char *readstat( char *wstation);
