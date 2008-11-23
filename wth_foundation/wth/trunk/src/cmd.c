@@ -243,12 +243,6 @@ tnhelp( char *args) {
   char *sep = "\\/:;=- ";
   char *token;
 
-  /*
-  if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
-    return NULL;
-  */
-
-  //printf("tnhelp: input string: \"%s\"\n", args);
   if ( args == NULL ) {
     snprintf(rbuf,TBUFF, tnusage( 0, "", ""));
     return( rbuf);
@@ -421,9 +415,9 @@ showcmd( char *args) {
     }
   } else if ( is_conf == 1) { 
     if ( is_ws2000 == 1 ) { 
-      snprintf(rbuf, NBUFF, "showcmd: show config ws2000");
+      snprintf(rbuf, NBUFF, echoconfig("ws2000"));
     } else if ( is_pcwsr == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show config pcwsr");
+      snprintf(rbuf, NBUFF, echoconfig("pcwsr"));
     } else if ( is_onewire == 1) {
       snprintf(rbuf, NBUFF, "showcmd: show config onewire)");
     } else {

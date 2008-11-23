@@ -203,6 +203,13 @@ typedef struct pcwsrstat {
   int is_present;   /* flag if station is attached */
 } pcwsrstat_t;
 
+typedef struct onewirestat {
+  time_t lastread;  /* last status read date */
+  int numsens;      /* internal number of sensors */
+  int ndats;        /* number of datasets retrieved */
+  int is_present;   /* flag if station is attached */
+} onewirestat_t;
+
 typedef struct wsconf {
   char dbfile[TBUFF+1];
   char device[TBUFF+1];
@@ -222,6 +229,12 @@ typedef struct pcwsr {
   wsconf_t config;
   sensor_t sensor[MAXSENSORS];
 } pcwsr_t;
+
+typedef struct onewire {
+  onewirestat_t status;
+  wsconf_t config;
+  sensor_t sensor[MAXSENSORS];
+} onewire_t;
 
 typedef struct conf {
   int command;
@@ -259,7 +272,7 @@ char *mkmsg2( const char *, ...);
 int usage (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
-char *echoconfig();
+char *echoconfig( char *station);
 Sigfunc *signal(int signo, Sigfunc *func);
 void *signal_hd( void *arg);
 
@@ -297,8 +310,9 @@ int readdata( int fd, unsigned char *data, int *ndat);
 ws2000key_t *c( int n);
 int wstrlen( unsigned char *s);
 
-ws2000_t ws2000station;
-pcwsr_t  pcwsrstation;
+ws2000_t  ws2000station;
+pcwsr_t   pcwsrstation;
+onewire_t onewirestation;
 conf_t   wsconf;
 
 char *tnstat( char *station);

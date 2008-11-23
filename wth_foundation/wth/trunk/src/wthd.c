@@ -27,7 +27,6 @@ main ( int argc, char **argv )
   sigset_t signals_to_block;
 
   char *lockfile = WS2000LOCK;
-  //char *ws2000lck = WS2000LOCK;
 
   nobg = 0;
   /* parse commandline */
@@ -61,7 +60,6 @@ main ( int argc, char **argv )
   }
   syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
 
-  //unlink( ws2000lck);
   unlink( lockfile);
   tzset();
 

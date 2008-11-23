@@ -256,42 +256,66 @@ readconfig( ) {
    echo datastructure cmd
 */
 char *
-echoconfig ( ) {
-  int size;
-  char *s;
-  static char t[MAXLINE];
+echoconfig ( char *station) {
+  int err;
+  char s[TBUFF+1];
+  static char t[SBUFF+1];
 
-  s = mkmsg2("Configuration parameters\n");
-  size = strlen(s) + 1;
-  
+  snprintf(t, SBUFF, "");
+  printf("echoconfig: station: \"%s\"\n", station);
+
+  snprintf(s, TBUFF,"global configuration\n");
   strncat(t,s,strlen(s));
-  s = mkmsg2("\twsconf.command: %d\n", wsconf.command);
+  snprintf(s, TBUFF, "\ttimeout serialline\t%d\n",wsconf.timeout);
   strncat(t,s, strlen(s));
-
-  s = mkmsg2("\twsconf.argcmd: %d\n",wsconf.argcmd);
+  snprintf(s, TBUFF, "\tsyslog logfacility\t%d\n",wsconf.logfacility);
   strncat(t,s, strlen(s));
-
-  s = mkmsg2("\twsconf.verbose: %d\n",wsconf.verbose);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\twsconf.timeout: %d\n",wsconf.timeout);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\twsconf.logfacility: %d\n",wsconf.logfacility);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\twsconf.hostname: %s\n",wsconf.hostname);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\twsconf.port: %s\n",wsconf.port);
-  strncat(t,s, strlen(s));
-  
-  s = mkmsg2("\tws2000station.config.device:\t%s\n",ws2000station.config.device);
+  snprintf(s, TBUFF, "\ttelnet port\t\t%s\n",wsconf.port);
   strncat(t,s, strlen(s));
  
-  s = mkmsg2("\tws2000station.config.dbfile:\t%s\n",ws2000station.config.dbfile);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\tpcwsrstation.config.device:\t%s\n",pcwsrstation.config.device);
-  strncat(t,s, strlen(s));
-  s = mkmsg2("\tpcwsrstation.config.dbfile:\t%s\n",pcwsrstation.config.dbfile);
-  strncat(t,s, strlen(s));
-  
+  if ( ( err = strncmp( station, "ws2000", 5)) == 0 ) {
+    snprintf(s, TBUFF, 
+      "ws2000 configuration\n");
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tws2000 device\t\t%s\n",ws2000station.config.device);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tws2000 database\t\t%s\n",ws2000station.config.dbfile);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tws2000 rrdpath\t\t%s\n",ws2000station.config.rrdpath);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tws2000 monitor\t\t%s\n",ws2000station.config.monitor);
+    strncat(t,s, strlen(s));
+  } else if ( ( err = strncmp( station, "pcwsr", 5)) == 0 ) {
+    snprintf(s, TBUFF, 
+      "pcwsr configuration\n");
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tpcwsr device\t\t%s\n",pcwsrstation.config.device);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF,
+      "\tpcwsr database\t\t%s\n",pcwsrstation.config.dbfile);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\tpcwsr rrdpath\t\t%s\n",pcwsrstation.config.rrdpath);
+    strncat(t,s, strlen(s));
+  } else if ( ( err = strncmp( station, "onewire", 5)) == 0 ) {
+    snprintf(s, TBUFF, 
+      "1wire configuration\n");
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\t1wire device\t%s\n",onewirestation.config.device);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF,
+      "\t1wire database\t%s\n",onewirestation.config.dbfile);
+    strncat(t,s, strlen(s));
+    snprintf(s, TBUFF, 
+      "\t1wire rrdpath\t%s\n",onewirestation.config.rrdpath);
+    strncat(t,s, strlen(s));
+  } 
   return(t);
 }
 
