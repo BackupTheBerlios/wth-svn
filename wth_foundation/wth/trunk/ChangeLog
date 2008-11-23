@@ -1,5 +1,11 @@
 wth - experimental test release 
 
+release 0.5.1
+- information on status, data, configuration and remote execution of ws2000
+commands available at port 2000
+- bug fixes
+- configuration file wth.conf reworked
+
 release 0.5.0
 - logging to rrd and sqlite databases
 - rrdtool mason integration for deployment on apache
