@@ -1,0 +1,60 @@
+#!/usr/bin/perl -w
+
+#
+# wthlog correction for corrected pressure = pressure_old + 200
+#
+use strict;
+use Getopt::Long;
+
+my $SensNo;
+my $SensTxt;
+my $SensErr;
+my $SensDatno;
+my $TimeVal;
+my $Sign;
+my $SensVal;
+#my $LOGFILE="wthlog1a";
+my $filename;
+my $old;
+
+GetOptions( "old" => \$old,
+            "filename=s" => \$filename );
+
+if ( ! $filename) {
+  print "Usage wthlogCorr --filename=string --old\n";
+  exit;
+}
+
+open (LOGFH,"<$filename")
+  or die "Can't open logfile : \"$filename\"\n";
+
+if ( $old) {
+  while ( <LOGFH> ) {
+    if ( m#^19# ) {
+        ( $SensNo, $SensTxt, $SensErr, $SensDatno, $TimeVal, $Sign, $SensVal ) 
+	  = split ;
+	printf("%d\t%s\t%d\t%d\t%d\t%d\t%8.1f\n", 
+	  $SensNo+1, $SensTxt, $SensErr, $SensDatno, 
+	  $TimeVal, $Sign, $SensVal+200) ;
+    } elsif ( m#^20|^21# ) {
+        ( $SensNo, $SensTxt, $SensErr, $SensDatno, $TimeVal, $Sign, $SensVal ) 
+	  = split ;
+	printf("%d\t%s\t%d\t%d\t%d\t%d\t%8.1f\n", 
+	  $SensNo+1, $SensTxt, $SensErr, $SensDatno, 
+	  $TimeVal, $Sign, $SensVal) ;
+    } else {
+        print;    
+    }
+  }
+} else {
+  while ( <LOGFH> ) {
+    if ( m#^20.*$# ) {
+        ( $SensNo, $SensTxt, $SensErr, $SensDatno, $TimeVal, $Sign, $SensVal ) =
+	    split ;
+	printf("%d\t%s\t%d\t%d\t%d\t%d\t%8.1f\n", 
+	  $SensNo, $SensTxt, $SensErr, $SensDatno, $TimeVal, $Sign, $SensVal+200) ;
+      } else {
+          print $_;
+      }
+  }
+}

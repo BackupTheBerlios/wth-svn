@@ -1,0 +1,177 @@
+<%doc>
+
+  rrdfetch Mason component
+
+  dhandler, called via 
+    http://<hostname>/rrdfetch/?rrd=<sensor>&ds=<dsname>&start=<start>  
+
+  rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
+  mason:   http://www.masonhq.com
+
+</%doc>
+
+<%flags>
+    inherit => undef
+</%flags>
+
+<%args>
+     $rrd   => undef
+     $ds    => undef
+     $start => undef
+</%args>
+
+<%filter>
+s/^\n//g;
+</%filter>
+
+<%init>
+    use RRDs;
+    #use Data::Dumper;
+
+    my $ERROR;
+    my $rrdok     = 0;
+    my $sensor    = "";
+    my $errortext = "";
+
+    my $logfile = ">>/tmp/rrdfetch.log";
+    my $logtime;
+    my $rrdval;
+    my $sstart;
+
+    #%fetchopts;
+
+    my $lasttim = $start;
+    $lastval = "NA";
+    my $dsname;
+    my @retlist;
+    my $return;
+    my $comp = $m->current_comp;
+
+    $m->clear_buffer;
+    open(DFH,"$logfile")
+      or die "Can't open logfile";
+
+    *DFH = *STDOUT;
+
+    $logtime = localtime;
+    $logtime = $logtime . " RRDFetch:";
+   
+    # read configfile
+    my $configfile = "./wthrrd.conf";
+    unless ( $return = do $configfile)  {
+      die "Couldn't parse configfile: $configfile: $@" if $@;
+      die "Couldn't do configfile: $configfile: $!"    unless defined $return;
+      die "Couldn't run configfile: $configfile"       unless $return;
+    } 
+
+    print DFH "$logtime starting execution\n";
+    print DFH "$logtime checking configured sensors ( each sensor has its own rrd)\n";
+    foreach $sensor ( keys %fetchopts ) {
+        print  DFH "$logtime \$sensor: $sensor\n";
+        if ( $rrd eq $sensor ) {
+	    print DFH  "$logtime \$sensor valid: $sensor\n";
+            $rrdok = 1;
+        }
+    }
+    print DFH "$logtime checking sensors done: OK\n";
+
+    if ( $rrdok) {
+       my $rrdfile = $extraopts{$rrd}->{rrdfile};
+       #print Dumper $rrdfile;
+       print DFH "$logtime $rrd: using rrdfile : \"$rrdfile\"\n";
+       if ( -r $rrdfile) {
+          print DFH "$logtime rrdfile was found at: $rrdfile\n";
+       } else {
+          die "file does'nt exist: \"$rrdfile\"";
+       }
+
+       my @fetchstr = ();
+       push ( @fetchstr, $rrdfile );
+       foreach my $fopt ( keys %{ $fetchopts{$rrd}} ) {
+            push ( @fetchstr, $fopt);
+            push ( @fetchstr, $fetchopts{$rrd}{$fopt});
+       }
+
+       $#fetchstr = $#fetchstr -1;
+
+       print DFH "$logtime \@fetchstr: @fetchstr\n";
+       print DFH "$logtime length \@fetchstr: $#fetchstr\n";
+       #print Dumper(@fetchstr);
+
+       my ($sstart,$step,$names,$array) = 
+           RRDs::fetch @fetchstr;
+
+       $ERROR = RRDs::error;
+       print DFH "$logtime ERROR: $ERROR\n" if $ERROR ;
+
+       print DFH "$logtime checking DS \"$ds\"\n";
+       my $dsiter = 0;
+       my $dsnum  = 0;
+       foreach $dsrrd (@$names) {
+         print DFH "$logtime DS: \"$dsrrd\" \"$ds\"\n";
+         if ( $dsrrd eq $ds ) {
+           $dsnum = $dsiter;
+           $dsname = $dsrrd;
+           print DFH "$logtime DS found : \$dsname: $dsname \$dsnum: $dsnum\n";
+	 }
+         $dsiter++;
+       }
+       print DFH "$logtime checking DS done: OK\n";
+
+       #
+       # get last entry in rrd and store to $lastval
+       # each rrd must contain one datasource
+       foreach $line (@$array){
+         #print Dumper @$line;
+         $dsiter = 0;
+         foreach my $dsval (@$line) {
+           if ( (defined $dsval) && ($dsval ne "") && ( $dsiter == $dsnum)) {
+             print DFH "$logtime \$dsval: $dsval\n";
+             $lasttim = $sstart;
+             $lastval = $dsval;
+             push (@retlist, $sstart);
+             push (@retlist, $dsval);
+           }
+           $dsiter++;
+         }
+         #printf DFH "\n";
+         $sstart += $step;
+       }
+
+       #
+       # no data found 
+       # 
+       if ( $lastval eq "") {
+         $lasttim= $start;
+         $lastval = "NA";
+         push(@retlist, $lasttim);
+         push(@retlist, $lastval);
+       }
+
+       push(@retlist, $dsname);
+       printf DFH "$logtime $rrd: rrdfetch result \"@retlist\"\n";
+    } else {
+        printf DFH "$logtime Can't find sensor : \"$rrd\"!\n";
+        $rrdval = "NA";
+        push(@retlist, $rrdval);
+    }
+
+    if (!$start) {
+        # correction of raw pressure data
+        if ( $rrd eq "PressureI" ) {
+          $lastval = $lastval + ( $extraopts{$rrd}->{heightNN} / 8.0 );
+          print "$lastval";
+        } 
+        elsif ( $rrd eq "Winddev" ) {
+          $lastval = 22.5 * $lastval;
+          print "$lastval";
+        } 
+        else {
+          print "$lastval";
+        }
+    } 
+    else {
+        print scalar localtime($lasttim);
+    }
+     return wantarray ? @retlist : $retlist[0];
+</%init>

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+#
+#
+#
+HW="`uname -m`"
+OS="`uname -s`"
+RELEASE="`uname -r`"
+
+echo "$OS-$RELEASE-$HW" | sed -e 's/ //g'

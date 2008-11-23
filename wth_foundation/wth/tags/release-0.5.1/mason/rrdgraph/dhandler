@@ -1,0 +1,147 @@
+<%doc>
+
+  rrdgraph Mason component
+
+  using rrdtool graph from within Mason
+
+  usage:
+  http://<hostname>/rrdgraph?rrd=Indoorsensor&ds=Pressure&start=-86400
+  
+
+  rrdtool: http://people.ee.ethz.ch/~oetiker/webtools/rrdtool/
+  mason:   http://www.masonhq.com
+
+  adapt the %graphopts in component RRDConf hash to your needs
+
+</%doc>
+
+
+<%flags>
+    inherit => undef
+</%flags>
+
+
+<%args>
+     $rrd   => undef;
+     $start => undef;
+     $ds    => undef;
+</%args>
+
+<%init>
+    use Image::Magick;
+    use RRDs;
+    use Data::Dumper;
+
+    my $DAY   = 86400;
+    my $WEEK  = 604800;
+    my $MONTH = 18144000;
+    my $START = -86400;
+
+    my $logfile = ">>/tmp/rrdgraph.log";
+    my $imagefile = "/tmp/$rrd.png";
+
+    my $errortext = "";
+    my $sensor    = "";
+
+    open(DFH,"$logfile")
+      or die "Can't open logfile";
+
+    #*DFH = *STDOUT;
+    my $logtime = localtime;
+    $logtime = $logtime . " RRDFetch:";
+
+    # read configfile
+    my $configfile = "./wthrrd.conf";
+    unless ( $return = do $configfile)  {
+      die "Couldn't parse configfile: $configfile: $@" if $@;
+      die "Couldn't do configfile: $configfile: $!"    unless defined $return;
+      die "Couldn't run configfile: $configfile"       unless $return;
+    } 
+
+    print DFH "$logtime starting execution\n";
+    print DFH "$logtime checking configured sensors ( each sensor has its own rrd)\n";
+    my $rrdok = 0;
+    foreach $sensor ( keys %graphopts ) {
+	print DFH "$logtime sensor: $sensor\n";
+        if ( $rrd eq $sensor ) {
+            print DFH "$logtime sensor matches: $rrd\n";
+            $rrdok = 1;
+        }
+    }	
+    print DFH "$logtime checking sensors done: OK\n";
+
+    print DFH "$logtime checking datasources in rrd \"$rrd\"\n";
+    # check if $ds is a valid datasource
+    foreach my $dsname ( keys %{ $graphopts{$rrd}} ) {
+	print DFH "$logtime datasource: $dsname\n";
+        if ( $ds eq $dsname ) {
+            print DFH "$logtime datasource matches: $ds\n";
+            $rrdok = 1;
+        }
+    }	
+    print DFH "$logtime checking datasources done: OK\n";
+
+    if ( $rrdok) {
+        print DFH "$logtime sensor matches: $rrd\n";
+        my @graphstr = ();
+        push( @graphstr, $imagefile);
+
+        foreach my $gopt ( keys %{ $graphopts{$rrd}{$ds}} ) {
+            print DFH "$logtime gopt: $gopt\n";
+            push ( @graphstr, $gopt);
+            push ( @graphstr, $graphopts{$rrd}{$ds}{$gopt});
+        }
+
+        push ( @graphstr, @{ $graphdefs{$ds}});
+
+        print DFH "$logtime graphstr: @graphstr\n";
+        RRDs::graph @graphstr;
+    	#RRDs::graph @{ $graphopts{$rrd}};
+
+    	if (my $ERROR = RRDs::error) {
+            $errortext = "RRDs ERROR:\n$ERROR";
+            print DFH "$logtime ERROR: $ERROR\n";
+    	} else {
+    	    #$r->content_type("image/png");
+    	    #$r->send_http_header();
+
+    	    open(FH,"<$imagefile") or 
+              die "Can't open $imagefile: $@";
+
+    	    undef $/;
+    	    my $file = <FH>;
+
+    	    #$r->content_type("image/png");
+    	    $m->clear_buffer; 
+    	    $m->print($file);
+    	    #unlink ($imagefile);
+    	    close DFH;
+    	    $m->abort();
+        }
+    } else {
+        $errortext = "Can't find sensor : \"$rrd\"!";
+        printf DFH "$logtime $errortext\n";
+    }
+
+
+    # return image containing error text
+    if ( $errortext ne "" ) {
+        my $image = Image::Magick->new;
+        $image->Set(size=>'300x100');
+        $image->ReadImage('xc:white');
+        $image->Annotate( pointsize => 18, gravity=>'Center',
+                          text=>$errortext);
+    	#$r->content_type("image/png");
+    	$m->clear_buffer;
+        $image->Write($imagefile);
+
+    	open(FH,"<$imagefile");
+    	undef $/;
+    	my $file = <FH>;
+    	$m->print($file);
+    	unlink ($imagefile);
+    	close DFH;
+    	$m->abort();
+    } 
+
+</%init>

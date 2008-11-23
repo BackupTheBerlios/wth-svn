@@ -1,0 +1,658 @@
+#!/usr/bin/perl
+
+#
+# dbmk
+# create SQLITE database for ws2000 and pcwsr weatherstation
+#
+# $Id$
+#
+# SQLITE Database description for 
+# - WS2000 and Lacrosse Weatherstation
+# - PCWSR weatherstation receiver
+#
+#
+# WS2000 weatherstation has
+#     - status
+#         - DCF
+#         - HF
+#     - sensors which
+#         - measure parameter values
+#         - have status
+#
+# PCWSR weatherstation has
+#     - sensors which
+#         - measure parameter values
+#
+# Copyright (C) 2008 Volker Jahns, volker@thalreit.de
+#
+
+use strict;
+use DBI;
+use Getopt::Std;
+
+my $DBFILE="nodata.db";
+my $DEBUG = 0;
+my $res;
+my ($sens_meas_no, $sens_no, $query);
+my %options;
+
+getopts("pw", \%options);
+
+if ( $options{w} ) {
+  print "Creating  weathersensor database WS2000\n";
+  $DBFILE = "ws2000.db";
+  unlink($DBFILE);
+
+  my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
+    or die ("Can't get DB handle: $DBI::Errstr");
+
+  #
+  # table sensordata holds measured values and corresponding time
+  #
+  $dbh->do("
+    CREATE TABLE
+    sensordata
+    (
+      dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      dataset_date DATE NOT NULL,
+      sensor_meas_no INTEGER NOT NULL,
+      meas_value FLOAT NOT NULL,
+      FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
+    )
+  ");
+
+  #
+  # index on dataset_date increases table lookup
+  #
+  $dbh->do("
+    CREATE INDEX sdidx2 ON sensordata(dataset_date)
+  ");
+
+  #
+  # sensor status
+  #
+  $dbh->do("
+    CREATE TABLE
+    sensorstatus
+    (
+      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      statusset_date DATE NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      sensor_status INTEGER NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+    )
+  ");
+
+  # create index to speed up request
+  $dbh->do("
+    CREATE INDEX ssidx ON sensorstatus(sensor_no, statusset_date,sensor_status)
+  ");
+
+  #
+  # sensor status
+  #
+  $dbh->do("
+    CREATE TABLE
+    sensornewflag
+    (
+      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      statusset_date DATE NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      new_flag INTEGER NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+    )
+  ");
+
+  $dbh->do("
+    CREATE TABLE
+    ws2000status
+    (
+      wstatus_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      wstatus_date DATE NOT NULL,
+      interval_time INTEGER NOT NULL,
+      DCF_status INTEGER NOT NULL,
+      DCF_sync INTEGER NOT NULL,
+      HF_status INTEGER NOT NULL,
+      no_sensors INTERGER NOT NULL
+    )
+  ");
+
+  #
+  # sensor names
+  #
+  $dbh->do("
+    create table
+    sensornames
+    (
+      sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensorname VARCHAR(255) NOT NULL
+    )
+  ");
+
+  #
+  # last update time of a sensor parameter
+  #
+  $dbh->do("
+    create table
+    sensorupdate
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      last_update DATE NOT NULL
+    )
+  ");
+
+  #
+  # name and unit of sensor parameter
+  #
+  $dbh->do("
+    create table
+    parameternames
+    (
+      parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      parameter_name VARCHAR(64) NOT NULL,
+      parameter_unit VARCHAR(64) NOT NULL
+    )
+  ");
+
+  #
+  # relation between sensor and its parameters
+  #
+  $dbh->do("
+    create table
+    sensorparameters
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      parameter_no INTEGER NOT NULL,
+      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+    )
+  ");
+
+  #
+  # presetting fixed values
+  #
+  #
+  # table parameternames will not change (WS2000 can't do more)
+  #
+  $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m-2') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s-1') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddrct Variance','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm h-1') ");
+
+  #
+  # table sensornames will not change (WS2000 can't do more)
+  #
+  $dbh->do(" INSERT INTO sensornames VALUES ('1','Sensor1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('2','Sensor2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('3','Sensor3') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('4','Sensor4') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('5','Sensor5') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('6','Sensor6') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('7','Sensor7') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('8','Sensor8') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('9','Rainsensor') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('10','Windsensor') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('11','Indoorsensor') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('12','Sensor9') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('13','Sensor10') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('14','Sensor11') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('15','Sensor12') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('16','Sensor13') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('17','Sensor14') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('18','Sensor15') ");
+
+  #
+  # table sensorparameters 
+  #
+  # sensor1
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('1','1','1') "); # temperature
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('2','1','2') "); # humidity
+
+  # sensor2
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('3','2','1') "); # temperature
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('4','2','2') "); # humidity
+
+  # sensor3
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('5','3','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('6','3','2') ");
+
+  # sensor4
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('7','4','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('8','4','2') ");
+
+  # sensor5
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('9','5','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('10','5','2') ");
+
+  # sensor6
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('11','6','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('12','6','2') ");
+
+  # sensor7
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('13','7','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('14','7','2') ");
+
+  # Sensor8
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('15','8','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('16','8','2') ");
+  # Regensensor
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('17','9','3') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('38','9','8') "); # precipitation intensity
+  # Windsensor
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('18','10','4') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('19','10','5') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('20','10','6') ");
+  # Innensensor
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('21','11','7') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('22','11','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('23','11','2') ");
+  # Sensor9
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('24','12','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('25','12','2') ");
+  # Sensor10
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('26','13','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('27','13','2') ");
+  # Sensor11
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('28','14','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('29','14','2') ");
+  # Sensor12
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('30','15','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('31','15','2') ");
+  # Sensor13
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('32','16','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('33','16','2') ");
+  # Sensor14
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('34','17','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('35','17','2') ");
+  # Sensor15
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('36','18','1') ");
+  $dbh->do(" INSERT INTO sensorparameters VALUES ('37','18','2') ");
+
+  #
+  # table sensorupdate
+  #
+  # Sensor1
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('1','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('2','0') ");
+  # Sensor2
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('3','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('4','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('5','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('6','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('7','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('8','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('9','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('10','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('11','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('12','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('13','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('14','0') ");
+  # Sensor8
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('15','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('16','0') ");
+  # Rainsensor
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('17','0') "); # precipitation
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('38','0') "); # precipitation intensity
+  # Windsensor
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('18','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('19','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('20','0') ");
+  # Indoorsensor
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('21','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('22','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('23','0') ");
+  # Sensor9
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('24','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('25','0') ");
+  # Sensor10
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('26','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('27','0') ");
+  # Sensor11
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('28','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('29','0') ");
+  # Sensor12
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('30','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('31','0') ");
+  # Sensor13
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('32','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('33','0') ");
+  # Sensor14
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('34','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('35','0') ");
+  # Sensor15
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('36','0') ");
+  $dbh->do(" INSERT INTO sensorupdate VALUES ('37','0') ");
+
+  printf "Create ws2000.db: done\n";
+  exit(0);
+}
+elsif ( $options{p} ) {
+  print "Creating weathersensor database PCWSR\n";
+  $DBFILE = "pcwsr.db";
+  unlink($DBFILE);
+
+  my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
+    or die ("Can't get DB handle: $DBI::Errstr");
+  #
+  # table sensordata holds measured values and corresponding time
+  #
+  $dbh->do("
+    CREATE TABLE
+    sensordata
+    (
+      dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      dataset_date DATE NOT NULL,
+      sensor_meas_no INTEGER NOT NULL,
+      meas_value FLOAT NOT NULL,
+      FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
+    )
+  ");
+
+  #
+  # index on dataset_date increases table lookup
+  #
+  $dbh->do("
+    CREATE INDEX sdidx2 ON sensordata(dataset_date)
+  ");
+
+  #
+  # sensor names
+  #
+  $dbh->do("
+    create table
+    sensornames
+    (
+      sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensorname VARCHAR(255) NOT NULL,
+      sensoraddr INTEGER NOT NULL,
+      sensorvers VARCHAR(8) NOT NULL
+    )
+  ");
+
+  #
+  # last update time of a sensor parameter
+  #
+  $dbh->do("
+    create table
+    sensorupdate
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      last_update DATE NOT NULL
+    )
+  ");
+
+  #
+  # name and unit of sensor parameter
+  #
+  $dbh->do("
+    create table
+    parameternames
+    (
+      parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      parameter_name VARCHAR(64) NOT NULL,
+      parameter_unit VARCHAR(64) NOT NULL
+    )
+  ");
+
+  #
+  # relation between sensor and its parameters
+  #
+  $dbh->do("
+    create table
+    sensorparameters
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      parameter_no INTEGER NOT NULL,
+      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+    )
+  ");
+
+  #
+  # presetting fixed values
+  #
+  #
+  # table parameternames will not change (PCWSR can't do more)
+  #
+  $dbh->do(" INSERT INTO parameternames VALUES ('1','Temperature','degC') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('3','Precipitation','mm m^-2') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('4','Windspeed','m s^-1') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('5','Winddir. Variation','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('6','Winddirection','deg') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('7','Pressure','hPa') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('8','Brightness','klx') ");
+  $dbh->do(" INSERT INTO parameternames VALUES ('9','RadiationPower','arb.unit') ");
+
+  #
+  # table sensornames will not change ( PCWSR can't do more)
+  #
+  # 0x00 - 0x07 outdoor T only V1.1 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('0','Outdoor','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('1','Outdoor','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('2','Outdoor','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('3','Outdoor','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('4','Outdoor','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('5','Outdoor','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('6','Outdoor','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('7','Outdoor','0x07','V1.1') ");
+  # 0x08 - 0x0f outdoor T only V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('8','Outdoor','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('9','Outdoor','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('10','Outdoor','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('11','Outdoor','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('12','Outdoor','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('13','Outdoor','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('14','Outdoor','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('15','Outdoor','0x07','V1.2') ");
+
+  # 0x10 - 0x17 outdoor T/H V1.1 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('16','Outdoor','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('17','Outdoor','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('18','Outdoor','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('19','Outdoor','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('20','Outdoor','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('21','Outdoor','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('22','Outdoor','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('23','Outdoor','0x07','V1.1') ");
+  # 0x18 - 0x1f outdoor T/H V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('24','Outdoor','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('25','Outdoor','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('26','Outdoor','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('27','Outdoor','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('28','Outdoor','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('29','Outdoor','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('30','Outdoor','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('31','Outdoor','0x07','V1.2') ");
+
+  # 0x20 - 0x27 rain V1.1 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('32','Rain','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('33','Rain','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('34','Rain','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('35','Rain','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('36','Rain','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('37','Rain','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('38','Rain','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('39','Rain','0x07','V1.1') ");
+  # 0x28 - 0x2f rain V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('40','Rain','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('41','Rain','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('42','Rain','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('43','Rain','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('44','Rain','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('45','Rain','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('46','Rain','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('47','Rain','0x07','V1.2') ");
+
+  # 0x30 - 0x37 wind V1.1 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('48','Wind','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('49','Wind','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('50','Wind','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('51','Wind','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('52','Wind','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('53','Wind','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('54','Wind','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('55','Wind','0x07','V1.1') ");
+  # 0x38 - 0x3f wind V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('56','Wind','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('57','Wind','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('58','Wind','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('59','Wind','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('60','Wind','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('61','Wind','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('62','Wind','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('63','Wind','0x07','V1.2') ");
+
+  # 0x40 - 0x47 indoor V1.1 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('64','Indoor','0x00','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('65','Indoor','0x01','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('66','Indoor','0x02','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('67','Indoor','0x03','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('68','Indoor','0x04','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('69','Indoor','0x05','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('70','Indoor','0x06','V1.1') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('71','Indoor','0x07','V1.1') ");
+  # 0x48 - 0x4f indoor V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('72','Indoor','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('73','Indoor','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('74','Indoor','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('75','Indoor','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('76','Indoor','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('77','Indoor','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('78','Indoor','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('79','Indoor','0x07','V1.2') ");
+
+  # 0x58 - 0x5f brightness V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('88','Brightness','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('89','Brightness','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('90','Brightness','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('91','Brightness','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('92','Brightness','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('93','Brightness','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('94','Brightness','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('95','Brightness','0x07','V1.2') ");
+
+  # 0x68 - 0x6f pyranometer V1.2 address 0 .. 7
+  $dbh->do(" INSERT INTO sensornames VALUES ('104','Pyranometer','0x00','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('105','Pyranometer','0x01','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('106','Pyranometer','0x02','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('107','Pyranometer','0x03','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('108','Pyranometer','0x04','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('109','Pyranometer','0x05','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('110','Pyranometer','0x06','V1.2') ");
+  $dbh->do(" INSERT INTO sensornames VALUES ('111','Pyranometer','0x07','V1.2') ");
+
+  #
+  # table sensorparameters does not change
+  #
+  $sens_meas_no = 1;
+
+  # outdoor V1.1 and V1.2 type 0x00 .. 0x0f
+  for ( $sens_no = 0; $sens_no <= 15; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # outdoor V1.1 and V1.2 type 0x10 .. 0x1f
+  for ( $sens_no = 16; $sens_no <= 31; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','2') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # rain V1.1 and V1.2 type 0x20 .. 0x2f
+  for ( $sens_no = 32; $sens_no <= 47; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','3') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # wind V1.1 and V1.2 type 0x30 .. 0x3f
+  for ( $sens_no = 48; $sens_no <= 63; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','4') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','5') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','6') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # indoor V1.1 and V1.2 type 0x40 .. 0x4f
+  for ( $sens_no = 64; $sens_no <= 79; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','1') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','2') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','7') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # brightness V1.2 type 0x58 .. 0x5f
+  for ( $sens_no = 88; $sens_no <= 95; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','8') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  # pyranometer V1.2 type 0x68 .. 0x6f
+  for ( $sens_no = 104; $sens_no <= 111; $sens_no ++) {
+    $query = "INSERT INTO sensorparameters VALUES('" . $sens_meas_no . "','"
+             . $sens_no . "','9') ";
+    print "query: $query\n" if ( $DEBUG == 1);
+    $dbh->do($query);
+    $sens_meas_no++;
+  }
+
+  printf "\tInserting initial values into sensorupdate\n";
+  for ( $sens_no = 0; $sens_no < $sens_meas_no; $sens_no++) {
+    $query= "INSERT INTO sensorupdate VALUES('" . $sens_no . "','0') ";
+    print "query: $query\n" if ( $DEBUG == 1 );
+    $dbh->do( $query);
+  }
+
+  printf "Create pcwsr.db: done\n";
+  exit(0);
+}
+else {
+  print "Usage: dbmk [-p|-w]\nwith options\n\t-p:\tcreate PCWSR database\n\t-w:\tcreate WS2000 database\n";
+  exit(0);
+}
+exit(-1); # should never be reached
