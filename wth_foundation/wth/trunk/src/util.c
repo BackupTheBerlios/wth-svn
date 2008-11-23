@@ -48,67 +48,29 @@ wthd_init( ) {
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
   
-  ws2000station.config.dbfile        = "ws2000.db";
-  strncpy(ws2000station.config.device, "n.a.", MAXMSGLEN);
-  ws2000station.config.rrdpath       = ".";
-  ws2000station.config.monitor       = "Sensormonitor.rrd";
+  strncpy(ws2000station.config.dbfile, "ws2000.db", TBUFF);
+  strncpy(ws2000station.config.device, "n.a.", TBUFF);
+  strncpy(ws2000station.config.rrdpath, ".", TBUFF);
+  strncpy(ws2000station.config.monitor,"Sensormonitor.rrd", TBUFF);;
   ws2000station.status.interval      = 300;  
 
-  pcwsrstation.config.dbfile         = "pcwsr.db";
-  strncpy( pcwsrstation.config.device, "n.a.", MAXMSGLEN);
+  strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
+  strncpy( pcwsrstation.config.device, "n.a.", TBUFF);
   err = readconfig();
   printf("wthd_init: readconfig done\n");
 
   /* allocate sensornames WS2000 */
-  if (( ws2000station.sensor[1].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[1].sensorname, "Sensor1", MAXMSGLEN);
-
-  if (( ws2000station.sensor[2].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[2].sensorname, "Sensor2", MAXMSGLEN);
-
-  if (( ws2000station.sensor[3].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[3].sensorname, "Sensor3", MAXMSGLEN);
-
-  if (( ws2000station.sensor[4].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[4].sensorname, "Sensor4", MAXMSGLEN);
-
-  if (( ws2000station.sensor[5].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[5].sensorname, "Sensor5", MAXMSGLEN);
-
-  if (( ws2000station.sensor[6].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[6].sensorname, "Sensor6", MAXMSGLEN);
-
-  if (( ws2000station.sensor[7].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[7].sensorname, "Sensor7", MAXMSGLEN);
-
-  if (( ws2000station.sensor[8].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[8].sensorname, "Sensor8", MAXMSGLEN);
-
-  if (( ws2000station.sensor[9].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", MAXMSGLEN);
-
-  if (( ws2000station.sensor[10].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[10].sensorname, "Windsensor", MAXMSGLEN);
-
-  if (( ws2000station.sensor[11].sensorname = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-  strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", MAXMSGLEN);
-
-  /*
-  rbuf = malloc(2*MAXMSGLEN*sizeof(char *));
-  strncpy( rbuf, echoconfig(), MAXMSGLEN);
-  printf("Configuration:\n%s", rbuf);
-  */
+  strncpy(ws2000station.sensor[1].sensorname, "Sensor1", TBUFF);
+  strncpy(ws2000station.sensor[2].sensorname, "Sensor2", TBUFF);
+  strncpy(ws2000station.sensor[3].sensorname, "Sensor3", TBUFF);
+  strncpy(ws2000station.sensor[4].sensorname, "Sensor4", TBUFF);
+  strncpy(ws2000station.sensor[5].sensorname, "Sensor5", TBUFF);
+  strncpy(ws2000station.sensor[6].sensorname, "Sensor6", TBUFF);
+  strncpy(ws2000station.sensor[7].sensorname, "Sensor7", TBUFF);
+  strncpy(ws2000station.sensor[8].sensorname, "Sensor8", TBUFF);
+  strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", TBUFF);
+  strncpy(ws2000station.sensor[10].sensorname, "Windsensor", TBUFF);
+  strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", TBUFF);
   return(0);
 }
 
@@ -170,49 +132,6 @@ mkmsg2( const char *fmt, ...) {
   va_end(ap);
 
   return(buff);
-}
-
-/* usage : print handling instructions of wthc */
-int
-usage (int exitcode, char *error, char *addl) {
-  char *bufstr;
-
-  if (( bufstr = malloc(MAXMSGLEN)) == NULL ) 
-  {
-    return(1);
-  }
-
-  snprintf( bufstr, MAXMSGLEN, "Usage: wthc [Options]\n"
-	  "where options include:\n"
-	  "\t-c <command>\texecute command\n"
-	  "\t\t0\tPoll DCF Time\n"
-	  "\t\t1\tRequest dataset\n"
-	  "\t\t2\tSelect next dataset\n"
-	  "\t\t3\tActivate 9 temperature sensors\n"
-	  "\t\t4\tActivate 16 temperature sensors\n"
-	  "\t\t5\tRequest status\n"
-	  "\t\t6\tSet interval time,\n" 
-	   "\t\t\t\trequires extra parameter specified by option -i\n");
-  snprintf( bufstr, MAXMSGLEN, "%s"
-	  "\t\t12\tRequest all available data recursively\n"
-	  "\t-i <interval>\tspecifies interval time\n"
-	  "\t\tpermissible values for the interval lie\n"
-	  "\t\twithin the range from 1 to 60 minutes\n"
-	  "\t-h <hostname>\tconnect to <hostname/ipaddress>\n"
-	  "\t-p <portnumber>\tuse portnumber at remote host\n"
-	  "\t\tfor connection\n"
-	  "\t-s\t\tuse local serial connection\n"
-	  "\t-t\t\tset time using internal DCF77 receiver\n"
-	  "\t\tneeds superuser privileges\n" 
-	  "\t-u <units>\tset the units of measured values\n"
-          "\t\tSI\tuse SI units for output: °C, m/s, hPa\n"
-          "\t\tUS\tuse US units for output: °F, mph, inHg\n"
-  ,bufstr);
-
-  fprintf(stderr, "%s", bufstr);
-
-  if (error) fprintf(stderr, "%s: %s\n", error, addl);
-  exit(exitcode);
 }
 
 
@@ -299,25 +218,25 @@ readconfig( ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
-	  ws2000station.config.dbfile = strdup(value);
+	  strncpy( ws2000station.config.dbfile, strdup(value), TBUFF);
 	  printf("ws2000.dbfile: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.monitor" ) == 0 ) {
-	  ws2000station.config.monitor = strdup(value);
+	  strncpy( ws2000station.config.monitor, strdup(value), TBUFF);
 	  printf("ws2000.monitor: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
-	  ws2000station.config.rrdpath = strdup(value);
+	  strncpy( ws2000station.config.rrdpath, strdup(value), SBUFF);
 	  printf("ws2000.rrdpath: \"%s\"\n", value);
         } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
 	  printf("pcwsr.device: \"%s\"\n", value);
 	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "pcwsr.dbfile" ) == 0 ) {
-	  pcwsrstation.config.dbfile = strdup(value);
+	  strncpy(pcwsrstation.config.dbfile, strdup(value), TBUFF);
 	  printf("pcwsr.dbfile: \"%s\"\n", value);
         } else if ( strcasecmp( name, "pcwsr.monitor" ) == 0 ) {
-	  pcwsrstation.config.monitor = strdup(value);
+	  strncpy(pcwsrstation.config.monitor, strdup(value), TBUFF);
 	  printf("pcwsr.monitor: \"%s\"\n", value);
         } else if ( strcasecmp( name, "pcwsr.rrdpath" ) == 0 ) {
-	  pcwsrstation.config.rrdpath = strdup(value);
+	  strncpy( pcwsrstation.config.rrdpath, strdup(value), SBUFF);
 	  printf("pcwsr.rrdpath: \"%s\"\n", value);
 	  /* this is not complete and 
 	     has to be changed

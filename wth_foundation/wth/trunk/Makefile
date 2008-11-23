@@ -19,7 +19,7 @@ WTHAPP  = $(OBJDIR)/wthd
 #$(info $(OBJS))
 
 CFLAGS  = -Wall
-CC = gcc
+CC = gcc34
 
 ifneq (,$(findstring Darwin,$(ARCH)))
   #$(info This is Darwin)

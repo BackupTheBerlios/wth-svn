@@ -22,6 +22,8 @@
 
 */
 #include "wth.h"
+#include <sys/resource.h>
+
 #define MAXWAIT  10
 #define DATAWAIT 300
 
@@ -77,10 +79,21 @@ wcmd ( ) {
   int command;
   int argcm;
   int dle_isset = FALSE;
-  static unsigned char data[MAXBUFF]; /* data array to store the raw dataframe 
-                                         and the message datagram */
-  char *clk;                          /* display time in reasonable format */
-  char *rbuf;                         /* return buffer */
+  static unsigned char data[MAXBUFF+1]; /* data array store the raw dataframe 
+                                           and the message datagram */
+  char *clk;                            /* display time in reasonable format */
+  char *rbuf;                           /* return buffer */
+
+  time_t pstatime;
+  struct tm *pstatm;
+  struct rusage pstat;
+
+  time(&pstatime); pstatm = gmtime(&pstatime);
+  err = getrusage( RUSAGE_SELF, &pstat);
+  syslog(LOG_DEBUG, "wcmd_i: memory check: %lu : "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         (long int)pstatime, pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
 
   syslog(LOG_DEBUG, "wcmd: called for command request: %d\n",wsconf.command);  
   ws2000station.status.ndats = 0;
@@ -89,6 +102,8 @@ wcmd ( ) {
   command = wsconf.command; 
   argcm   = wsconf.argcmd; 
   wsconf.command = 0;
+
+  
   if ( ( err = getcd( data, &ndat)) == -1) {
     syslog(LOG_CRIT, "wcmd: error data reception");
     ws2000station.status.is_present = -1;
@@ -98,7 +113,7 @@ wcmd ( ) {
 
   ws2000station.status.is_present = 1;
   ws2000station.status.DCFtime  = dcftime(data, ndat);
-  if ( ws2000station.status.DCFtime == -1) {
+   if ( ws2000station.status.DCFtime == -1) {
     snprintf(ws2000station.status.message, MAXMSGLEN, "DCF not synchronized\n");
     syslog( LOG_INFO, "wcmd: DCF not synchronized\n");
   }
@@ -468,12 +483,25 @@ getcd ( unsigned char *data, int *mdat) {
     int i;
     int err;
 
+    /*
+    time_t pstatime;
+    struct tm *pstatm;
+    struct rusage pstat;
+    
+    time(&pstatime); pstatm = gmtime(&pstatime);
+    err = getrusage( RUSAGE_SELF, &pstat);
+    syslog(LOG_DEBUG, "getcd_i: memory check: %lu : "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         (long int)pstatime, pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
+    */
+    
     /* read answer of weather station from serial port */
     if ( ( err = getrd( data, mdat)) == -1)
 	  return(-1);
 
     /* echo raw dataframe */
-    err = echodata( data, *mdat);
+    // err = echodata( data, *mdat);
     
     /* check data frame and do 
     	 data correction for masqueraded bytes */
@@ -481,7 +509,7 @@ getcd ( unsigned char *data, int *mdat) {
          return(-1);
     
     /* echo raw demasqueraded dataframe */
-    err = echodata(data, *mdat);
+    //err = echodata(data, *mdat);
 
     /* extract message: eliminiate first and last 2 bytes */
     for ( i = 0; i < *mdat - 4; i++ ) {
@@ -490,6 +518,14 @@ getcd ( unsigned char *data, int *mdat) {
     *mdat = *mdat - 4;
 
     syslog(LOG_DEBUG, "getcd : Data length getcd : %d\n", *mdat);
+    /*
+    time(&pstatime); pstatm = gmtime(&pstatime);
+    err = getrusage( RUSAGE_SELF, &pstat);
+    syslog(LOG_DEBUG, "getcd_f: memory check: %lu : "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         (long int)pstatime, pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
+    */
     return(0);
 }
 
@@ -512,7 +548,7 @@ chkframe( unsigned char *data, int *mdat) {
     int i;
     int chksum;
     int ldat;
-    unsigned char *nakfram = "\x02\x01\x15\xe8\x03";
+    char nakfram[TBUFF] = "\x02\x01\x15\xe8\x03";
 
     ldat = *mdat;
 
@@ -576,7 +612,7 @@ chkframe( unsigned char *data, int *mdat) {
     syslog(LOG_DEBUG, "chkframe : response length: %d\n", data[1]);
 	
     /* check if NAK dataframe has been received */
-    if ( !strncmp( data, nakfram, *mdat) ) {
+    if ( !strncmp( (char *)data, nakfram, strlen(nakfram)) ) {
 	  syslog(LOG_INFO, 
 		 "chkframe : NAK received : faulty data reception\n");
 	  werrno = ERCPT;
@@ -599,10 +635,20 @@ wstat(unsigned char *data, int mdat ) {
   int sdata[MAXSENSORS];
   time_t statusset_date;
   char frame[MAXMSGLEN+1] = ""; 
-  static char t[NBUFF+1] = "no status available";
+  static char t[NBUFF+1];
   char s[TBUFF+1];
 
-  t[0] = '\0';
+
+  time_t pstatime;
+  struct tm *pstatm;
+  struct rusage pstat;
+    
+  time(&pstatime); pstatm = gmtime(&pstatime);
+  err = getrusage( RUSAGE_SELF, &pstat);
+  syslog(LOG_DEBUG, "wstat_i: memory check: %lu : "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         (long int)pstatime, pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
 
   /* time of statusset
      if DCF synchronized use time delivered by weatherstation
@@ -620,20 +666,10 @@ wstat(unsigned char *data, int mdat ) {
            (long int)statusset_date);
   }
 
-  /* open sqlite db file */
-  if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
-    snprintf( s, TBUFF, "Failed to open database %s. Error: %s\n", 
-      ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    strncat( t, s, strlen(s));
-    return(t);
-  }
-
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
-  statdb( sdata, statusset_date, ws2000db);
+  statdb( sdata, statusset_date);
 
-  /* cleanup and close */
-  sqlite3_close( ws2000db);
 
   /* status of first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
@@ -684,7 +720,6 @@ wstat(unsigned char *data, int mdat ) {
   }
   else if ( getbits(data[19],2,1) == 1 ) {
     ws2000station.status.numsens = 18; 
-    //rw->wstat.nsens = 42;
   }
 
   /* version number */
@@ -715,11 +750,10 @@ wstat(unsigned char *data, int mdat ) {
   syslog(LOG_DEBUG, "wstat: version : %x\n", ws2000station.status.version);
 
   /* fill return buffer */
-  snprintf( s, TBUFF,
+  snprintf( t, TBUFF,
 	     "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
 	     ws2000station.status.version, 
 	     ws2000station.status.interval);
-  strncat( t, s, strlen(s));   
 
   if ( ws2000station.status.DCFstat == 1 ) {
 
@@ -773,6 +807,14 @@ wstat(unsigned char *data, int mdat ) {
     strcat(t,s);
   } 
   strcat(t,"\n");
+
+  time(&pstatime); pstatm = gmtime(&pstatime);
+  err = getrusage( RUSAGE_SELF, &pstat);
+  syslog(LOG_DEBUG, "wstat_f: memory check: %lu : "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         (long int)pstatime, pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
+
   return (t);
 }
 
@@ -898,28 +940,24 @@ datex ( unsigned char *data, int ndat) {
   int Hi, Lo, new;
   time_t dataset_date;
   long age;
-  char *clk, *errmsg = 0;
+  char *clk;
 
-  char tstrg[MAXMSGLEN];
-  char *rrdfile;
-  char *template;
+  char tstrg[TBUFF+1];
+  /*
+  char rrdfile[TBUFF+1];
+  char template[TBUFF+1];
   char **ustrg;
-
+  */
   float meas_value[3];
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
   syslog(LOG_DEBUG, "datex : rrdpath in datex : %s", 
     ws2000station.config.rrdpath);
-  if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
-    return(-1);
 
-  if (( template = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-
+  /*
   ustrg = (char **)malloc(sizeof(char *));
   ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
-
-
+  */
 
   /* block number */
   syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
@@ -963,6 +1001,8 @@ datex ( unsigned char *data, int ndat) {
 
   
   /* open sqlite db file */
+  /*
+  printf("datex: opening database\n");
   err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
   syslog(LOG_DEBUG, 
 	 "datex: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
@@ -976,6 +1016,8 @@ datex ( unsigned char *data, int ndat) {
   } else {
     syslog(LOG_DEBUG, "datex: sqlite3_open: no error: OK\n");
   }
+  printf("datex: opening database done\n");
+  */
 
   nval = 0;
   new  = 0;
@@ -1050,9 +1092,8 @@ datex ( unsigned char *data, int ndat) {
       syslog(LOG_DEBUG,
         "datex: sensor #%d ws2000station.sensor[%d].status: %d\n",
         i,i, ws2000station.sensor[i].status);
-      newdb( dataset_date, i, new, ws2000db);
-      writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
-	       ws2000db);
+      newdb( dataset_date, i, new);
+      writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
     } else {
       syslog(LOG_DEBUG,"datex: sensor #%d temperature/humidity not found\n", i);
     }
@@ -1068,9 +1109,8 @@ datex ( unsigned char *data, int ndat) {
     meas_value[0]   = Hi + Lo;
     sensor_meas_no[0] = 17;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    newdb( dataset_date, 9, new, ws2000db);
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
-	     ws2000db);
+    newdb( dataset_date, 9, new);
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
     syslog(LOG_DEBUG,
 	   "datex: sensor #9 rain:\t\tdataset_date: %lu meas_value: %f new: %d\n", 
 	   (long int)dataset_date, meas_value[0], new);
@@ -1094,7 +1134,7 @@ datex ( unsigned char *data, int ndat) {
 
     /* wind new flag */
     new = getbits ( data[27], 7, 1);
-    newdb( dataset_date, 10, new, ws2000db);
+    newdb( dataset_date, 10, new);
     syslog(LOG_DEBUG,
      "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
      (long int)dataset_date, meas_value[0], new);
@@ -1118,8 +1158,7 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,
       "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value[2]);
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
-	     ws2000db);
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
   } 
@@ -1163,16 +1202,13 @@ datex ( unsigned char *data, int ndat) {
       "new: %d\n", (long int)dataset_date, meas_value[2], new);
     syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
-    newdb( dataset_date, 11, new, ws2000db); 
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, 
-      ws2000db);
+    /* write database */
+    newdb( dataset_date, 11, new); 
+    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
   }
-  /* cleanup and close */
-  sqlite3_close( ws2000db);
-  syslog(LOG_DEBUG,"datex: sqlite3_close ws2000db done\n");
-	
+
   return(0);
 };
 
@@ -1195,7 +1231,7 @@ char *
 bitstat( int byte  ) 
 {
   int x;
-  static char bbuf[MAXMSGLEN];
+  static char bbuf[MAXMSGLEN+1];
 
   for( x = 7; x > -1; x-- )
     snprintf( bbuf, MAXMSGLEN, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
@@ -1390,7 +1426,7 @@ readdata (int fd, unsigned char *data, int *ndat)
 {
   int i,n;
   int err;
-  static unsigned char sbuf[MAXBUFF] = "no data available";
+  unsigned char sbuf[MAXBUFF+1] = "no data available";
   int maxfd;
   int loop = 1;
   fd_set readfs;
@@ -1533,11 +1569,12 @@ int getsrd ( unsigned char *data, int *mdat) {
     }
     
     /* echo raw dataframe */
+    /*
     if ( echodata( data, *mdat) == -1) {
-    closeserial(fd, &oldtio);
+      closeserial(fd, &oldtio);
       return(-1);
     }
-    
+    */
     closeserial(fd, &oldtio);
     
     syslog(LOG_DEBUG, "getsrd : Data length getsrd : %d\n", *mdat);

@@ -167,10 +167,10 @@ typedef struct param {
 typedef struct sensor {
   int status;
   param_t param[MAXPARAM];
-  char *sensorname;
-  char *rrdfile;
+  char sensorname[TBUFF+1];
+  char rrdfile[TBUFF+1];
   int address;
-  char *version;
+  char version[TBUFF+1];
   float updatefreq;
   time_t lastseen;
 } sensor_t;
@@ -204,11 +204,11 @@ typedef struct pcwsrstat {
 } pcwsrstat_t;
 
 typedef struct wsconf {
-  char *dbfile;
-  char device[MAXMSGLEN];
-  char *dbpath;
-  char *rrdpath; 
-  char *monitor;
+  char dbfile[TBUFF+1];
+  char device[TBUFF+1];
+  char dbpath[SBUFF+1];
+  char rrdpath[SBUFF+1]; 
+  char monitor[TBUFF+1];
 } wsconf_t;
 
 typedef struct ws2000 {
@@ -309,15 +309,13 @@ char *execmd( char *args);
 char *showcmd( char *args);
 char *initcmd (char *args);
 
-int datadb( long dataset_date, int sensor_param, float meas_value, 
-      sqlite3 *wthdb) ;
-int statdb( int sensor_status[], time_t statusset_date, 
-      sqlite3 *wthdb);
-int newdb( long statusset_date, int sensor_no, int new_flag, 
-      sqlite3 *wthdb);
+int datadb( long dataset_date, int sensor_param, float meas_value,
+  sqlite3 *pcwsrdb);
+int statdb( int sensor_status[], time_t statusset_date );
+int newdb( long statusset_date, int sensor_no, int new_flag);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
-      float meas_value[], sqlite3 *wthdb );
+      float meas_value[] );
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
 char *readdb( char *wstation);
 int readpar( time_t *meastim, float *measval, 

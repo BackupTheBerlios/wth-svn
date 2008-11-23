@@ -161,31 +161,20 @@ char *
 tnstat ( char *station) {
   int err;
   static char rbuf[NBUFF+1];
-  time_t lastread, statread;
 
-  printf("tnstat: station: %s\n", station);
   snprintf(rbuf, NBUFF, "");
   if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
     if ( ws2000station.status.is_present == 1) {
-
-      time(&statread);
-      lastread = statread - ws2000station.status.lastread;
-
-      if ( lastread > 600 ) {
-        ws2000station.status.lastread = statread;
-        snprintf(rbuf, NBUFF, readstat( "ws2000"));
-      }
+      snprintf(rbuf, NBUFF, readstat( "ws2000"));
     } else { 
      snprintf( rbuf, TBUFF, "No WS2000 weatherstation attached.\n"
        "Please check hardware, if you do not expect this correct.\n");
     }
   } else if  ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) { 
-      printf("tnstat: pcwsrstation.status.is_present: %d\n", 
-        pcwsrstation.status.is_present);
       if ( pcwsrstation.status.is_present == 1) {
         snprintf( rbuf, NBUFF, readstat( "pcwsr"));
       } else {
-        snprintf( rbuf, NBUFF, "No PCWSR weatherstation attached.\n"
+        snprintf( rbuf, NBUFF, "No PCWSR weatherstation found.\n"
           "Please allow 5-10 minutes for PCWSR data to accumulate. "
           "Check hardware, if you do not expect this correct.\n");
       }
@@ -249,18 +238,20 @@ tnhelp( char *args) {
   int err, ntok;
   int is_show, is_init, is_exec;
   int is_conf, is_data, is_stat;
-  char *rbuf;
+  static char rbuf[TBUFF+1];
   char *sbuf;
   char *sep = "\\/:;=- ";
   char *token;
 
+  /*
   if ( ( rbuf = malloc(MAXMSGLEN+1)) == NULL )
     return NULL;
+  */
 
   //printf("tnhelp: input string: \"%s\"\n", args);
   if ( args == NULL ) {
-    //snprintf(rbuf,MAXMSGLEN, "tnhelp: provide general HELP\n");
-    return( tnusage(0,"",""));
+    snprintf(rbuf,TBUFF, tnusage( 0, "", ""));
+    return( rbuf);
   }
 
   ntok=0; 
@@ -289,20 +280,20 @@ tnhelp( char *args) {
 
   if ( is_show == 1) {
     if ( is_data == 1) {
-      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW DATA");
+      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW DATA");
     } else if ( is_stat == 1) {
-      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW STATUS");
+      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW STATUS");
     } else if ( is_conf == 1) {
-      snprintf(rbuf, MAXMSGLEN, "thhelp: provide help on SHOW CONFIG");
+      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW CONFIG");
     } else {
-      snprintf(rbuf, MAXMSGLEN, "thhelp: provide general help on SHOW");
+      snprintf(rbuf, TBUFF, "thhelp: provide general help on SHOW");
     }
   } else if ( is_init == 1 ) {
-    snprintf(rbuf, MAXMSGLEN, "tnhelp: provide help on RESTART/RELOAD");
+    snprintf(rbuf, TBUFF, "tnhelp: provide help on RESTART/RELOAD");
   } else if ( is_exec == 1) {
-    snprintf(rbuf, MAXMSGLEN, tnusage( 2, "", ""));
+    snprintf(rbuf, TBUFF, tnusage( 2, "", ""));
   } else {  // catch all 
-    snprintf(rbuf, MAXMSGLEN, tnusage( 0,"",""));
+    snprintf(rbuf, TBUFF, tnusage( 0,"",""));
   }
   return(rbuf);
 }
@@ -375,16 +366,13 @@ showcmd( char *args) {
   int err, ntok;
   int is_ws2000, is_pcwsr, is_onewire, is_unknown;
   int is_data, is_stat, is_conf;
-  char *rbuf;
+  char rbuf[NBUFF+1];;
   char *sbuf;
   char *sep = "\\/:;=- ";
   char *token;
 
-  if ( ( rbuf = malloc(NBUFF+1)) == NULL )
-    return NULL;
-
+  snprintf(rbuf, NBUFF, "");
   if ( args == NULL ) {
-    //snprintf(rbuf,MAXMSGLEN, "showcmd: provide HELP (called w/o all args");
     snprintf(rbuf, NBUFF, tnusage(1,"",""));
     return(rbuf);
   }
@@ -412,14 +400,12 @@ showcmd( char *args) {
 
   if ( is_data == 1) {
     if ( is_ws2000 == 1 ) { 
-      /* snprintf(rbuf, MAXMSGLEN, "showcmd: show data ws2000"); */
       snprintf(rbuf, NBUFF, readdb("ws2000"));
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, NBUFF, readdb("pcwsr"));
     } else if ( is_onewire == 1) {
       snprintf(rbuf, NBUFF, "showcmd: show data onewire)");
     } else {
-      //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }
   } else if ( is_stat == 1) { 
@@ -441,14 +427,9 @@ showcmd( char *args) {
     } else if ( is_onewire == 1) {
       snprintf(rbuf, NBUFF, "showcmd: show config onewire)");
     } else {
-      //snprintf(rbuf, MAXMSGLEN, "showcmd: provide HELP (no weatherstation specified)"); 
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }
   } else {  // catch all 
-    /*
-    snprintf(rbuf, MAXMSGLEN, 
-      "execmd: provide general HELP (only ws2000 supported)");
-    */
     snprintf(rbuf, NBUFF, tnusage(1,"",""));
   }
   return(rbuf);

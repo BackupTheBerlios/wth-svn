@@ -120,10 +120,10 @@ pcwsr_hd( void *arg) {
     struct termios newtio,oldtio; 
     unsigned char data[MAXMSGLEN];
     char clk[MAXMSGLEN];
-    char *msg;
-    char tstrg[MAXMSGLEN];
-    char *rrdfile;
-    char *template;
+    char msg[TBUFF+1];
+    char tstrg[TBUFF+1];
+    char rrdfile[TBUFF+1];
+    char template[TBUFF+1];
     char **ustrg;
     static char buf[MAXMSGLEN];
     time_t dataset_date;
@@ -131,15 +131,6 @@ pcwsr_hd( void *arg) {
     senspar_t spar;
 
     syslog( LOG_DEBUG, "pcwsr_hd: start of execution\n");
-
-    if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
-      return( ( void *) &failure);
-
-    if (( msg = malloc(MAXMSGLEN)) == NULL)
-      return( ( void *) &failure);
-
-    if (( template = malloc(MAXMSGLEN)) == NULL)
-      return( ( void *) &failure);
 
     if (( ustrg = malloc(sizeof(char *)*MAXMSGLEN)) == NULL )
       return( ( void *) &failure);
@@ -153,8 +144,8 @@ pcwsr_hd( void *arg) {
     fd = initpcwsr(&newtio, &oldtio, pcwsrstation.config.device); 
 
     if ( ( err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb))) {
-      msg = mkmsg2("Failed to open database %s. Error: %s\n",
-         pcwsrstation.config.dbfile, sqlite3_errmsg( pcwsrdb));
+      snprintf(msg, TBUFF, "Failed to open database %s. Error: %s\n",
+	       pcwsrstation.config.dbfile, sqlite3_errmsg( pcwsrdb));
       closepcwsr( fd, &oldtio); 
       return( ( void *) &failure);
     }

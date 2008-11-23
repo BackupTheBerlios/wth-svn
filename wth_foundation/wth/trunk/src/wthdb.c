@@ -4,14 +4,14 @@
 
 */
 #include "wth.h"
-
+#include <sys/resource.h>
 /*
   datadb - insert measured values
 
 */
 int
-datadb( long dataset_date, int sensor_param, float meas_value, 
-        sqlite3 *wthdb) 
+datadb( long dataset_date, int sensor_param, float meas_value,
+  sqlite3 *pcwsrdb )
 {
   int err;
   int querylen = MAXQUERYLEN;
@@ -21,23 +21,24 @@ datadb( long dataset_date, int sensor_param, float meas_value,
   snprintf(query, querylen, 
     "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
     dataset_date, sensor_param, meas_value); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
+  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_DEBUG,
       "datadb: error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(wthdb));
+      err, sqlite3_errmsg(pcwsrdb));
   }
 
   /* insert date when last data has been updated */
   snprintf(query, querylen, 
     "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
     dataset_date, sensor_param); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
+  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_DEBUG, 
       "datadb: error: update sensor date: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(wthdb));
+      err, sqlite3_errmsg(pcwsrdb));
   }
+
   return(err);
 }
 /*
@@ -45,47 +46,82 @@ datadb( long dataset_date, int sensor_param, float meas_value,
 
 */
 int
-statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb) 
+statdb( int sensor_status[], time_t statusset_date) 
 {
   int i, err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  char tstrg[MAXMSGLEN];
-  char *rrdfile;
-  char *tmpstr;
-  char *template;
+  sqlite3_stmt *qcomp;
+
+  char *errmsg;
+
+  char tstrg[TBUFF+1];
+  char rrdfile[TBUFF+1];
+  char tmpstr[TBUFF];
+  char template[TBUFF];
   char **ustrg;
 
+  //time_t pstatime;
+  //struct tm *pstatm;
+  struct rusage pstat;
+    
+  //time(&pstatime); pstatm = gmtime(&pstatime);
+  err = getrusage( RUSAGE_SELF, &pstat);
+  syslog(LOG_DEBUG, "statdb_i: memory check: "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
   err = 0;
-  if (( rrdfile = malloc(MAXMSGLEN)) == NULL ) return(-1);
-  if (( tmpstr = malloc(MAXMSGLEN)) == NULL ) return(-1);
-  if (( template = malloc(MAXMSGLEN)) == NULL) return(-1);
 
   ustrg = malloc(sizeof(char)*MAXMSGLEN);
   ustrg[2] = malloc(sizeof(char)*MAXBUFF);
   snprintf(tstrg,MAXMSGLEN, "%lu", (long int) statusset_date);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    return(err);
+  }
  
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
      "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
      (long unsigned int) statusset_date, i, sensor_status[i]); 
-    err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
+    err = sqlite3_exec( ws2000db, query, NULL, NULL, &errmsg);
     if ( err) { 
       syslog(LOG_DEBUG,
         "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s", 
-        err, sqlite3_errmsg(wthdb));
-    } 
+        err, sqlite3_errmsg(ws2000db));
+    }
+    if ( errmsg != NULL) {
+      sqlite3_free( errmsg);
+      errmsg = NULL;
+    }
+
     snprintf(template,MAXMSGLEN,"%d", sensor_status[i]);
     strncat(tstrg, ":", 1);
     strncat(tstrg, template, strlen(template));
   }
-  snprintf( rrdfile, MAXMSGLEN, "%s", ws2000station.config.rrdpath);
+
+  /* cleanup and close */
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+	    "statdb: error: err: %d sqlite3_finalize: %s\n", 
+	    err, sqlite3_errmsg(ws2000db));
+    return(1);
+  }
+  sqlite3_free( qcomp);
+  sqlite3_close( ws2000db);
+
+  snprintf( rrdfile, TBUFF, "%s", ws2000station.config.rrdpath);
   snprintf( tmpstr, MAXMSGLEN, "%s", ws2000station.config.monitor);
   strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
   syslog(LOG_DEBUG, "statdb: rrdfile: %s", rrdfile);
   syslog(LOG_DEBUG, "statdb: rrd update string: %s", tstrg);
+  
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
-
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
@@ -93,6 +129,15 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
     syslog( LOG_ALERT, "statdb: RRD return code: %d\n",
             rrd_test_error());
   }
+  free(ustrg[2]);
+  free(ustrg);
+
+  err = getrusage( RUSAGE_SELF, &pstat);
+  syslog(LOG_DEBUG, "statdb_f: memory check: "
+         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+         pstat.ru_maxrss,
+         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
+
   return(err);
 
 }
@@ -103,23 +148,41 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *wthdb)
 
 */
 int
-newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *wthdb) 
+newdb( long statusset_date, int sensor_no, int new_flag) 
 {
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
+  char *errmsg;
+
+  err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+  syslog(LOG_DEBUG, 
+    "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+    ws2000station.config.dbfile,
+    err, sqlite3_errmsg(ws2000db));
+  if ( err) {
+    syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
+    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    free( errmsg);
+    return (-1);
+  } else {
+    syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+  }
 
   snprintf(query, querylen, 
 	   "INSERT INTO sensornewflag VALUES ( NULL, %lu, %d, %d)",
 	   statusset_date, sensor_no, new_flag); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
+  err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_ALERT,
 	   "newdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
-	   err, sqlite3_errmsg(wthdb));
-  } else {
-    return(-1);
+	   err, sqlite3_errmsg(ws2000db));
+    free(errmsg);
   }
+  /* cleanup and close */
+  sqlite3_close( ws2000db);
+  syslog(LOG_DEBUG,"newdb: sqlite3_close ws2000db done\n");
+
   return(0);
 }
 
@@ -170,35 +233,42 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
 
 int
 writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date, 
-         float meas_value[], sqlite3 *wthdb ) {
+         float meas_value[] ) {
   int i, err;
-  char tstrg[MAXMSGLEN];
-  char *rrdfile;
-  char *tmpstr;
-  char *template;
+  char tstrg[TBUFF+1];
+  char rrdfile[TBUFF+1];
+  char tmpstr[TBUFF+1];
+  char template[TBUFF+1];
   char **ustrg;
   senspar_t spar;
+  char *errmsg;
 
   err = 0;        
-  if (( rrdfile = malloc(MAXMSGLEN)) == NULL )
-    return(-1);
-
-  if (( tmpstr = malloc(MAXMSGLEN)) == NULL )
-    return(-1);
-
-  if (( template = malloc(MAXMSGLEN)) == NULL)
-    return(-1);
-
-  ustrg = malloc(sizeof(char)*MAXMSGLEN);
-  ustrg[2] = malloc(sizeof(char)*MAXBUFF);
+  ustrg = malloc(sizeof(char)*TBUFF);
+  ustrg[2] = malloc(sizeof(char)*NBUFF);
 
   snprintf(tstrg,MAXMSGLEN, "%lu", (long int)dataset_date);
+
+  err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+  syslog(LOG_DEBUG, 
+    "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+    ws2000station.config.dbfile,
+    err, sqlite3_errmsg(ws2000db));
+  if ( err) {
+    syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
+    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    free( errmsg);
+    return (-1);
+  } else {
+    syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+  }
+
   /* database and rrd handling */
   for ( i = 0; i < nval; i++) {
-    datadb( dataset_date, sensor_meas_no[i], meas_value[i], wthdb);
+    datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);
     /* handling rrd */
     /* fetch names from database */
-    if ( ( err = senspardb( sensor_meas_no[i], &spar, wthdb)) != 0 ) {
+    if ( ( err = senspardb( sensor_meas_no[i], &spar, ws2000db)) != 0 ) {
       syslog(LOG_DEBUG,"writedb: senspardb returned error: %d\n", err);
     }
     if ( spar.sensor_no != sensor_no ) {
@@ -235,6 +305,15 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
     syslog( LOG_ALERT, "writedb: RRD return code: %d\n",
             rrd_test_error());
   }
+
+  free(ustrg[2]);
+  free(ustrg);
+
+  /* cleanup and close */
+  sqlite3_close( ws2000db);
+  syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000db done\n");
+
+
   return(err);
 }
 
@@ -245,17 +324,13 @@ char *
 readdb( char *wstation) {
   int err;
   char *errmsg;
-  char *rbuf;
-  char s[TBUFF+1];
-  char query[SBUFF+1];
+  static char rbuf[NBUFF+1];;
+  char s[TBUFF+1], buf[TBUFF+1], query[SBUFF+1];
   sqlite3_stmt *qcomp;
-  char buf[MAXLINE];
   struct tm *tm;
   time_t meastim;
 
-  if ( ( rbuf = malloc( MAXBUFF+1)) == NULL )
-    return NULL;
-
+  snprintf(rbuf, NBUFF, "");
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
     printf("readdb: ws2000 : %s\n", wstation);
@@ -515,14 +590,15 @@ readpar( time_t *meastim, float *measval,
 */
 char *
 readstat ( char *wstation) {
-  int i, err, sensor_no, rows, sensoraddr;
+  int i, err, sensor_no, sensoraddr;
   char *errmsg;
-  static char rbuf[SBUFF+1], s[TBUFF+1], buf[TBUFF+1];
-  char query[SBUFF+1], sensorvers[SBUFF+1], sensorname[SBUFF+1];
+  static char rbuf[NBUFF+1], s[TBUFF+1], buf[TBUFF+1];
+  char query[SBUFF+1], sensorvers[TBUFF+1], sensorname[TBUFF+1];
   sqlite3_stmt *qcomp;
   struct tm *tm;
   time_t lastread, statread;
 
+  snprintf(rbuf, NBUFF, "");
   /* WS2000 weatherstation handling */
   if ( ( err = strncmp( wstation,"ws2000",6)) == 0) {
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
@@ -558,7 +634,6 @@ readstat ( char *wstation) {
       sensor_no   = sqlite3_column_int(qcomp,0);  
       ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
       ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  
-      rows++;
     }
    
     err = sqlite3_finalize(qcomp);
@@ -638,7 +713,7 @@ readstat ( char *wstation) {
     /* function returns here for WS2000 weatherstation */
     return(rbuf);
 
-  /* PCWSR weatherstation handling */
+  /* PCWSR weatherstation status handling */
   } else if ( ( err = strncmp( wstation,"pcwsr",6)) == 0) {
     err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
     syslog(LOG_DEBUG, 
@@ -673,30 +748,20 @@ readstat ( char *wstation) {
       return(rbuf);
     }
 
-
     /* prepare PCWSR status response */
-    snprintf( rbuf, TBUFF, "PCWSR weatherstation status\n");
+    snprintf( rbuf, NBUFF, "PCWSR weatherstation status\n");
     
     snprintf( s, TBUFF, "sensorname\taddress\tversion\tlastseen\n"
 	      "--------------\t-------\t-------\t----------\n"
 	      );
     strncat( rbuf, s, strlen(s));
 
-    rows = 0;
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
       sensor_no   = sqlite3_column_int(qcomp,0); 
       snprintf( sensorname, SBUFF, (char *)sqlite3_column_text(qcomp,1));
       sensoraddr  = sqlite3_column_int(qcomp,2);
       snprintf( sensorvers, SBUFF, (char *)sqlite3_column_text(qcomp,3)); 
       pcwsrstation.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,4);  
-      rows++;
-      printf("sensor_no: %d sensorname: %s sensoraddr: 0x%d sensorvers: %s pcwsrstation.sensor[sensor_no].lastseen: %lu\n",
-        sensor_no, 
-        sensorname,
-        sensoraddr,
-        sensorvers, 
-        (long int)pcwsrstation.sensor[sensor_no].lastseen);
-
       tm = gmtime(&pcwsrstation.sensor[sensor_no].lastseen);
       strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
       snprintf ( s , TBUFF, "%12s%d\t0x%d\t%s\t%s\n",
@@ -705,8 +770,10 @@ readstat ( char *wstation) {
 		 buf
         );
       strncat( rbuf, s, strlen(s));
-
     }
+
+    printf("readstat: response: %s\n", rbuf);
+
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
       syslog( LOG_ALERT,
