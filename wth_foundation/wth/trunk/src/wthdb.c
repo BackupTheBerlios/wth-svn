@@ -73,8 +73,8 @@ statdb( int sensor_status[], time_t statusset_date)
          pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
   err = 0;
 
-  ustrg = malloc(sizeof(char)*MAXMSGLEN);
-  ustrg[2] = malloc(sizeof(char)*MAXBUFF);
+  ustrg = malloc(sizeof(char)*TBUFF+1);
+  ustrg[2] = malloc(sizeof(char)*NBUFF+1);
   snprintf(tstrg,MAXMSGLEN, "%lu", (long int) statusset_date);
 
   /* open sqlite db file */
@@ -601,11 +601,13 @@ readstat ( char *wstation) {
   snprintf(rbuf, NBUFF, "");
   /* WS2000 weatherstation handling */
   if ( ( err = strncmp( wstation,"ws2000",6)) == 0) {
+
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG, 
       "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
       ws2000station.config.dbfile,
        err, sqlite3_errmsg(ws2000db));
+
     if ( err) {
       syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
 	ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
@@ -627,7 +629,12 @@ readstat ( char *wstation) {
         err, sqlite3_errmsg(ws2000db));
       snprintf(rbuf, SBUFF, 
         "WS2000 database problem. Please check installation");
+
+      /* cleanup and close */
+      sqlite3_close( ws2000db);
+      syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000 done\n");
       return(rbuf);
+
     }
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
@@ -643,6 +650,11 @@ readstat ( char *wstation) {
         err, sqlite3_errmsg(ws2000db));
       snprintf(rbuf, SBUFF, 
         "WS2000 Database problem. Please check installation");
+
+      /* cleanup and close */
+      sqlite3_close( ws2000db);
+      syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000 done\n");
+
       return(rbuf);
     }
 
@@ -745,6 +757,10 @@ readstat ( char *wstation) {
         "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(pcwsrdb));
       snprintf(rbuf, SBUFF, "PCWSR database problem.");
+
+      /* cleanup and close */
+      sqlite3_close( pcwsrdb);
+      syslog(LOG_DEBUG,"readstat: sqlite3_close pcwsrdb done\n");
       return(rbuf);
     }
 
@@ -780,6 +796,10 @@ readstat ( char *wstation) {
         "Error: readstat: select parametername: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(ws2000db));
       snprintf( rbuf, SBUFF, "PCWSR database problem.");
+      /* cleanup and close */
+      sqlite3_close( pcwsrdb);
+      syslog(LOG_DEBUG,"readstat: sqlite3_close pcwsrdb done\n");
+      
       return(rbuf);
     }
 

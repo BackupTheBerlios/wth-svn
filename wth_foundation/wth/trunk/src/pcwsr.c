@@ -118,24 +118,24 @@ pcwsr_hd( void *arg) {
     float meas_value[3];
    
     struct termios newtio,oldtio; 
-    unsigned char data[MAXMSGLEN];
-    char clk[MAXMSGLEN];
+    unsigned char data[MAXMSGLEN+1];
+    char clk[MAXMSGLEN+1];
     char msg[TBUFF+1];
     char tstrg[TBUFF+1];
     char rrdfile[TBUFF+1];
     char template[TBUFF+1];
     char **ustrg;
-    static char buf[MAXMSGLEN];
+    static char buf[TBUFF+1];
     time_t dataset_date;
     struct tm *ctm;
     senspar_t spar;
 
     syslog( LOG_DEBUG, "pcwsr_hd: start of execution\n");
 
-    if (( ustrg = malloc(sizeof(char *)*MAXMSGLEN)) == NULL )
+    if (( ustrg = malloc(sizeof(char *)*MAXMSGLEN+1)) == NULL )
       return( ( void *) &failure);
 
-    if (( ustrg[2] = malloc(sizeof(char)*MAXBUFF)) == NULL)
+    if (( ustrg[2] = malloc(sizeof(char)*NBUFF+1)) == NULL)
       return( ( void *) &failure);
 
     /* setting timezone */
