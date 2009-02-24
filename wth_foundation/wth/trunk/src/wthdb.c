@@ -1,8 +1,29 @@
 /*
   wthdb.c
-  reading writing database data 
+
+  read and write wth database data 
+
+  $Id$
+  $Revision$
+
+  Copyright (C) 2009 Volker Jahns <volker@thalreit.de>
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 
 */
+ 
 #include "wth.h"
 #include <sys/resource.h>
 /*
@@ -166,7 +187,7 @@ newdb( long statusset_date, int sensor_no, int new_flag)
     free( errmsg);
     return (-1);
   } else {
-    syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+    syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
   }
 
   snprintf(query, querylen, 
@@ -260,7 +281,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
     free( errmsg);
     return (-1);
   } else {
-    syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+    syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
   }
 
   /* database and rrd handling */
@@ -333,7 +354,6 @@ readdb( char *wstation) {
   snprintf(rbuf, NBUFF, "");
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
-    printf("readdb: ws2000 : %s\n", wstation);
     /* open sqlite db file */
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG, 
@@ -346,7 +366,7 @@ readdb( char *wstation) {
       free( errmsg);
       return (NULL);
     } else {
-      syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+      syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
     }
 
     snprintf( query, SBUFF, 
@@ -416,7 +436,7 @@ readdb( char *wstation) {
       free( errmsg);
       return (NULL);
     } else {
-      syslog(LOG_DEBUG, "readdb: sqlite3_open: no error: OK\n");
+      syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
     }
 
     snprintf( query, SBUFF, 
@@ -492,11 +512,27 @@ readpar( time_t *meastim, float *measval,
 {
   int err, num;
   char query[SBUFF+1];
+  char rbuf[NBUFF+1];
+  char *errmsg;
   sqlite3_stmt *qcomp;
 
   /* handle ws2000 weatherstation */
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
-    /* open sqlite db file must be done in calling function */
+    /* open sqlite db file */
+    err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+    syslog(LOG_DEBUG, 
+	 "readpar: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+	 ws2000station.config.dbfile,
+	 err, sqlite3_errmsg(ws2000db));
+    if ( err) {
+      syslog( LOG_ALERT, "readpar: failed to open database %s. error: %s\n", 
+	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+      free( errmsg);
+      return(err);
+    } else {
+      syslog(LOG_DEBUG, "readpar: sqlite3_open: OK\n");
+    }
+
     snprintf ( query, SBUFF,
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensordata.dataset_date, sensordata.meas_value, "
@@ -537,7 +573,36 @@ readpar( time_t *meastim, float *measval,
       }
     }
 
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      snprintf(rbuf, TBUFF, 
+        "Error: readpar: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	err, sqlite3_errmsg(ws2000db));
+      syslog( LOG_ALERT, rbuf);
+      return(err);
+    }
+
+    /* cleanup and close */
+    sqlite3_close( ws2000db);
+    syslog(LOG_DEBUG,"readpar: sqlite3_close ws2000db done\n");
+
+    /* handle pcwsr weatherstation */
   } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0 ) {
+    /* open sqlite db file */
+    err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
+    syslog(LOG_DEBUG, 
+	 "readpar: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
+	 pcwsrstation.config.dbfile,
+	 err, sqlite3_errmsg(pcwsrdb));
+    if ( err) {
+      syslog( LOG_ALERT, "readpar: failed to open database %s. error: %s\n", 
+	    pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
+      free( errmsg);
+      return(err);
+    } else {
+      syslog(LOG_DEBUG, "readpar: sqlite3_open: OK\n");
+    }
+
     snprintf( query, SBUFF,
       "SELECT DISTINCT sensornames.sensorname,parameternames.parameter_name, "
       "sensordata.dataset_date, sensordata.meas_value, "
@@ -577,10 +642,23 @@ readpar( time_t *meastim, float *measval,
         num++;
       }
     }
+    err = sqlite3_finalize(qcomp);
+    if ( err != SQLITE_OK ) {
+      snprintf( rbuf, TBUFF, 
+        "Error: readpar: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	err, sqlite3_errmsg(pcwsrdb));
+      syslog( LOG_ALERT, rbuf);
+      return(err);
+    }
+
+    /* cleanup and close */
+    sqlite3_close( pcwsrdb);
+    syslog(LOG_DEBUG,"readpar: sqlite3_close pcwsrdb done\n");      
+
   } else if ( ( err = strncmp( wstation,"1wire",5)) == 0 ) {
      return(err);
   } else {
-      return(err);
+     return(err);
   }
   return(err);
 }
@@ -615,7 +693,7 @@ readstat ( char *wstation) {
       snprintf(rbuf, SBUFF, "WS2000 database problem");
       return NULL;
     } else {
-      syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
+      syslog(LOG_DEBUG, "readstat: sqlite3_open: OK\n");
     }
 
     snprintf( query, SBUFF, 
@@ -739,7 +817,7 @@ readstat ( char *wstation) {
       snprintf(rbuf, SBUFF, "PCWSR database problem.");
       return NULL;
     } else {
-      syslog(LOG_DEBUG, "readstat: sqlite3_open: no error: OK\n");
+      syslog(LOG_DEBUG, "readstat: sqlite3_open: OK\n");
     }
 
     snprintf ( query, SBUFF, 

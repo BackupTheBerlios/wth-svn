@@ -1,11 +1,11 @@
 /* util.c
 
+   collection of utility functions
+
    $Id: util.c 213 2008-10-25 20:33:26Z vjahns $
    $Revision: 213 $
 
    Copyright 2007,2008 Volker Jahns <volker@thalreit.de>
-
-   collection of utility functions
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 
 */
+ 
 #include "wth.h"
 
 
@@ -31,6 +32,7 @@
 
    ws2000station
    pcwsrstation
+   onewirestation
    wsconf
  
 */
@@ -44,20 +46,15 @@ wthd_init( ) {
   wsconf.debug       = 1;
   wsconf.hostname    = "localhost";
   wsconf.port        = "2000";
-  wsconf.wwwport     = "8880";
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
-  
+
+  /* WS2000 */  
   strncpy(ws2000station.config.dbfile, "ws2000.db", TBUFF);
   strncpy(ws2000station.config.device, "n.a.", TBUFF);
   strncpy(ws2000station.config.rrdpath, ".", TBUFF);
   strncpy(ws2000station.config.monitor,"Sensormonitor.rrd", TBUFF);;
   ws2000station.status.interval      = 300;  
-
-  strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
-  strncpy( pcwsrstation.config.device, "n.a.", TBUFF);
-  err = readconfig();
-  printf("wthd_init: readconfig done\n");
 
   /* allocate sensornames WS2000 */
   strncpy(ws2000station.sensor[1].sensorname, "Sensor1", TBUFF);
@@ -71,6 +68,18 @@ wthd_init( ) {
   strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", TBUFF);
   strncpy(ws2000station.sensor[10].sensorname, "Windsensor", TBUFF);
   strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", TBUFF);
+
+  /* PCWSR */
+  strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
+  strncpy( pcwsrstation.config.device, "n.a.", TBUFF);
+
+  /* ONEWIRE */
+  strncpy(onewirestation.config.dbfile, "onewire.db", TBUFF);
+  strncpy( onewirestation.config.device, "n.a.", TBUFF);
+
+  err = readconfig();
+  printf("wthd_init: readconfig done\n");
+
   return(0);
 }
 

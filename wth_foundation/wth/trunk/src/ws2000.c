@@ -1,6 +1,6 @@
 /* ws2000.c
 
-   ws2000 handler in conjunction with wthnewd
+   ws2000 handler implemented as POSIX thread
 
    $Id: ws2000.c 217 2008-11-03 22:03:29Z vjahns $
 
@@ -34,7 +34,7 @@ char *lockfile = WS2000LOCK;
 
 */
 void *
-ws2000_hd( ) {
+ws2000_hd( void *arg) {
   int lfd;
   int waitmax  = 0;
 
@@ -999,26 +999,6 @@ datex ( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
   syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
 
-  
-  /* open sqlite db file */
-  /*
-  printf("datex: opening database\n");
-  err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
-  syslog(LOG_DEBUG, 
-	 "datex: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-	 ws2000station.config.dbfile,
-	 err, sqlite3_errmsg(ws2000db));
-  if ( err) {
-    syslog( LOG_ALERT, "datex: failed to open database %s. error: %s\n", 
-	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    free( errmsg);
-    return -1;
-  } else {
-    syslog(LOG_DEBUG, "datex: sqlite3_open: no error: OK\n");
-  }
-  printf("datex: opening database done\n");
-  */
-
   nval = 0;
   new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
@@ -1112,9 +1092,10 @@ datex ( unsigned char *data, int ndat) {
     newdb( dataset_date, 9, new);
     writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
     syslog(LOG_DEBUG,
-	   "datex: sensor #9 rain:\t\tdataset_date: %lu meas_value: %f new: %d\n", 
+	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
+           "meas_value: %f new: %d\n", 
 	   (long int)dataset_date, meas_value[0], new);
-    readpar( &omtim, &omval, 9, 17, 3600, "ws2000");
+    readpar( &omtim, &omval, sensor_no, 17, 3600, "ws2000");
   } else {
     syslog(LOG_DEBUG,"datex: sensor #9 rain not found\n");
   }

@@ -7,12 +7,12 @@
      WS2000
      PC weathersensor receiver
      1-wire weatherstation
- 
+
    $Id: wth.h 177 2008-06-10 15:19:08Z vjahns $
    $Revision: 177 $
 
-   Copyright (C) 2000-2001,2005,2007 Volker Jahns <Volker.Jahns@thalreit.de>
-
+   Copyright 2009 Volker Jahns, <volker@thalreit.de>
+ 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
-//#include <strings.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
@@ -58,6 +57,10 @@
 #include <pthread.h>
 #include <rrd.h>
 
+#include "ownet.h"
+#include "findtype.h"
+#include "atod26.h"
+
 #define VERSION     "0.5.0"
 #define	MAXLINE     4096	
 #define	MAXSOCKADDR 128
@@ -67,7 +70,7 @@
 #define NBUFF       8192
 #define SBUFF       1024
 #define TBUFF       256
-#define MAXSENSORS  128
+#define MAXSENSORS  24
 #define MAXPARAM    8
 #define MAXDATA     256
 #define PCWSRLEN    8
@@ -83,6 +86,10 @@
 
 #define WS2000LOCK "/tmp/LCK...wth";
 
+#define SBATTERY_FAM  0x26
+#define VSENS 1
+#define VACC  2
+
 enum {
   SOH = 0x01,
   STX = 0x02,
@@ -96,10 +103,12 @@ enum {
   NAK = 0x15
 };
 
+/*
 enum {
   FALSE = 0,
   TRUE  = 1
 };
+*/
 
 /* weatherstation errors */
 enum {
@@ -161,6 +170,8 @@ typedef struct dataset {
 
 typedef struct param {
   char *paramname;
+  float gain;
+  float offset;
   dataset_t sample[MAXDATA];
 } param_t;
 
@@ -168,6 +179,9 @@ typedef struct sensor {
   int status;
   param_t param[MAXPARAM];
   char sensorname[TBUFF+1];
+  uchar serialnum[9];
+  char familycode;
+  char description[TBUFF+1];
   char rrdfile[TBUFF+1];
   int address;
   char version[TBUFF+1];
@@ -182,7 +196,7 @@ typedef struct senspar {
 } senspar_t;
 
 typedef struct ws2000stat {
-  time_t interval;  /* internal measurement interval of WS2000 PC interface */
+  time_t interval;  /* internal measurement interval WS2000 PC interface */
   time_t lastread;  /* last status read date */
   int version;      /* internal version number */
   int DCFstat;      /* status of DCF receiver */
@@ -245,7 +259,6 @@ typedef struct conf {
   int logfacility;
   char *hostname;
   char *port;
-  char *wwwport;
   char *units;
   char *outfmt;
 } conf_t;
@@ -290,9 +303,10 @@ const char *inet_ntop(int, const void *, char *, size_t);
 int inet_pton(int, const char *, void *); 
 int daemon_init( );
 
-void *pcwsr_hd();
-void *ws2000_hd();
-void *cmd_hd();
+void *pcwsr_hd( void *arg);
+void *ws2000_hd( void *arg);
+void *onewire_hd( void *arg);
+void *cmd_hd( void *arg);
 int docmd( int sockfd);
 
 int demasq( unsigned char *data, int *mdat);
@@ -335,3 +349,9 @@ char *readdb( char *wstation);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 char *readstat( char *wstation);
+
+char *ppagemem( uchar pagemen[]);
+int bitprint( int byte, char *s_reg);
+int longprint( int byte, char *s_reg);
+char *echo_serialnum( uchar *serialnum);
+char echo_familycode( uchar *serialnum);
