@@ -655,9 +655,9 @@ wstat(unsigned char *data, int mdat ) {
      if not, use localtime
   */
   if ( ws2000station.status.DCFtime != -1 ) {
+    syslog(LOG_DEBUG, "wstat: %d", ws2000station.status.DCFtime);
     statusset_date = ws2000station.status.DCFtime;
-  }
-  else { 
+  } else { 
     syslog(LOG_INFO,
 	   "wstat : DCF not synchronized, using localtime for statusset\n");
     err = time(&statusset_date);

@@ -244,10 +244,12 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
     syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d",
 	   sensor_meas_no, sqlite3_column_int(qcomp, 0));
     syslog(LOG_DEBUG, "senspardb  : sensorname: %s : parametername: %s",
-	   sqlite3_column_text(qcomp, 1), sqlite3_column_text(qcomp, 2));
-    sspar->sensor_no   = sqlite3_column_int(qcomp,0);  
-    sspar->sensor_name = (char *)sqlite3_column_text(qcomp,1);  
-    sspar->par_name    = (char *)sqlite3_column_text(qcomp,2);  
+	   (char *)sqlite3_column_text(qcomp, 1), (char *)sqlite3_column_text(qcomp, 2));
+    sspar->sensor_no   = sqlite3_column_int(qcomp,0); 
+    sspar->sensor_name = malloc(sizeof(char)*TBUFF+1); 
+    sspar->par_name    = malloc(sizeof(char)*TBUFF+1);
+    strncpy(sspar->sensor_name, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
+    strncpy(sspar->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  
   }
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK ) {

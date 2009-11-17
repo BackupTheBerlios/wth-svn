@@ -15,7 +15,7 @@ endif
 OBJDIR  = build_$(ARCH)
 SRCS    = wthd.c ws2000.c pcwsr.c util.c net.c cmd.c wthdb.c onewire.c ds2438.c crcutil.c ioutil.c owerr.c ownetu.c owtrnu.c ds2480ut.c linuxlnk.c owllu.c owsesu.c findtype.c atod26.c
 OBJS    = $(patsubst %c, $(OBJDIR)/%o, $(SRCS))
-WTHAPP  = $(OBJDIR)/wthd
+WTHAPP  = $(OBJDIR)/wthd $(OBJDIR)/readconfig
 #$(info $(OBJS))
 
 CFLAGS  = -Wall
@@ -29,14 +29,14 @@ endif
 
 ifneq (,$(findstring FreeBSD,$(ARCH)))
   #$(info This is FreeBSD)
-  include_flags = -I./src -I/usr/local/include -I/usr/include
+  include_flags = -I./src -I./src/1wire/common  -I./src/1wire/lib/userial/shared -I/usr/local/include -I/usr/include
   ld_flags = -L/usr/local/lib -lpthread -lrrd_th -lsqlite3
 endif
 
 ifneq (,$(findstring Linux,$(ARCH)))
   #$(info This is Linux)
-  include_flags = -I./src -I./src/1wire/common  -I./src/1wire/lib/userial/shared -I/usr/include
-  ld_flags = -L/usr/local/lib -lpthread -lrrd_th -lsqlite3
+  include_flags = -I./src -I./src/1wire/common  -I./src/1wire/lib/userial/shared -I/usr/include -I/usr/local/include
+  ld_flags = -L/usr/local/lib -lpthread -lrrd_th -lsqlite3 
 endif
 
 INCLUDE = $(include_flags)
@@ -44,7 +44,7 @@ LDFLAGS = $(ld_flags)
 
 all: $(WTHAPP)
 
-$(WTHAPP): $(OBJS)
+$(OBJDIR)/wthd: $(OBJS)
 	$(CC) -g $(LDFLAGS) $(OBJS) -o $@ 
 
 $(OBJDIR)/%.o: %.c wth.h
