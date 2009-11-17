@@ -72,7 +72,7 @@ statdb( int sensor_status[], time_t statusset_date)
   int i, err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  sqlite3_stmt *qcomp;
+  //sqlite3_stmt *qcomp;
 
   char *errmsg;
 
@@ -104,7 +104,8 @@ statdb( int sensor_status[], time_t statusset_date)
       ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
     return(err);
   }
- 
+
+  syslog(LOG_DEBUG,"statdb: control point #1"); 
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
      "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
@@ -124,8 +125,11 @@ statdb( int sensor_status[], time_t statusset_date)
     strncat(tstrg, ":", 1);
     strncat(tstrg, template, strlen(template));
   }
+  syslog(LOG_DEBUG,"statdb: control point #2"); 
 
   /* cleanup and close */
+  syslog(LOG_DEBUG,"statdb: control point #3"); 
+  /*
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
@@ -133,7 +137,10 @@ statdb( int sensor_status[], time_t statusset_date)
 	    err, sqlite3_errmsg(ws2000db));
     return(1);
   }
+  syslog(LOG_DEBUG,"statdb: control point #4"); 
   sqlite3_free( qcomp);
+  */
+  syslog(LOG_DEBUG,"statdb: control point #5"); 
   sqlite3_close( ws2000db);
 
   snprintf( rrdfile, TBUFF, "%s", ws2000station.config.rrdpath);
