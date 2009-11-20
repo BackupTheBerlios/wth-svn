@@ -327,7 +327,6 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   syslog(LOG_DEBUG, "writedb: rrdfile: %s", rrdfile);
   syslog(LOG_DEBUG, "writedb: update string: %s", tstrg);
   snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
-  printf("snprintf ustrg done \n");
   rrd_clear_error();
   rrd_get_context();
   rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));

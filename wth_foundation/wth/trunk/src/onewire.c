@@ -126,11 +126,15 @@ onewire_hd( void *arg) {
   float vsens;
   double mtime;
   uchar serialnum[9];
-  char port[256] = "";
+  char port[TBUFF+1] = "";
   struct timezone tz;
   struct timeval  tv;
 
   syslog( LOG_DEBUG, "onewire_hd: start of execution\n");
+
+  // initialize parameters
+  strncpy( port,  "/dev/ttyd0", TBUFF);
+  nmeas = 64;
 
   if((portnum = owAcquireEx(port)) < 0) {
     OWERROR_DUMP(stdout);
@@ -145,6 +149,7 @@ onewire_hd( void *arg) {
       while (rslt) {
         /* print the Serial Number of the device just found */
         owSerialNum( portnum,serialnum,TRUE);
+        /* DS2438 */
         if ( echo_familycode(serialnum) == 0x26 ) {
           gettimeofday( &tv, &tz);
           mtime = tv.tv_sec+1.0e-6*tv.tv_usec; 

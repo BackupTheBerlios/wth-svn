@@ -120,7 +120,7 @@ echodata(unsigned char *data, int mdat) {
 
    transfrom bytes of weather station data to BCD, otherwise picking single
    or group of bits.
-   Kerninghan, Ritchie, The C Programming Language, p49.
+
 */
 unsigned char
 getbits(unsigned char x, int p, int n) {
@@ -204,23 +204,6 @@ readconfig( ) {
         /* Interpret. */		
         if ( strcasecmp( name, "timeout" ) == 0 ) {
 		  wsconf.timeout = atoi(value);
-        } else if ( strcasecmp( name, "logfacility" ) == 0 ) {
-	  if ( strcasecmp( value, "local0") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL0;
-	  else if ( strcasecmp( value, "local1") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL1;
-	  else if ( strcasecmp( value, "local2") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL2;
-	  else if ( strcasecmp( value, "local3") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL3;
-	  else if ( strcasecmp( value, "local4") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL4;
-	  else if ( strcasecmp( value, "local5") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL5;
-	  else if ( strcasecmp( value, "local6") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL6;
-	  else if ( strcasecmp( value, "local7") == 0 ) 
-	    wsconf.logfacility = LOG_LOCAL7;
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 	  wsconf.port = strdup(value);
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
@@ -247,9 +230,12 @@ readconfig( ) {
         } else if ( strcasecmp( name, "pcwsr.rrdpath" ) == 0 ) {
 	  strncpy( pcwsrstation.config.rrdpath, strdup(value), SBUFF);
 	  printf("pcwsr.rrdpath: \"%s\"\n", value);
-	  /* this is not complete and 
-	     has to be changed
-	  */
+        } else if ( strcasecmp( name, "onewire.device" ) == 0 ) {
+	  printf("onewire.device: \"%s\"\n", value);
+	  strncpy(onewirestation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "onewire.dbfile" ) == 0 ) {
+	  printf("onewire.dbfile: \"%s\"\n", value);
+	  strncpy(onewirestation.config.dbfile, strdup(value), TBUFF);
         } else {
 	  printf("unknown option '%s' inf configuration file\n", name );
           return(-1);
