@@ -13,7 +13,7 @@ ifndef ARCH
 endif
 
 OBJDIR  = build_$(ARCH)
-SRCS    = wthd.c ws2000.c pcwsr.c util.c net.c cmd.c wthdb.c onewire.c ds2438.c crcutil.c ioutil.c owerr.c ownetu.c owtrnu.c ds2480ut.c linuxlnk.c owllu.c owsesu.c findtype.c atod26.c
+SRCS    = wthd.c ws2000.c pcwsr.c util.c net.c cmd.c wthdb.c onewire.c ds2438.c crcutil.c ioutil.c owerr.c ownetu.c owtrnu.c ds2480ut.c linuxlnk.c owllu.c owsesu.c findtype.c atod26.c temp10.c
 OBJS    = $(patsubst %c, $(OBJDIR)/%o, $(SRCS))
 WTHAPP  = $(OBJDIR)/wthd $(OBJDIR)/readconfig
 #$(info $(OBJS))

@@ -179,8 +179,6 @@ typedef struct sensor {
   int status;
   param_t param[MAXPARAM];
   char sensorname[TBUFF+1];
-  uchar serialnum[9];
-  char familycode;
   char description[TBUFF+1];
   char rrdfile[TBUFF+1];
   int address;
@@ -194,6 +192,15 @@ typedef struct senspar {
   char *sensor_name;
   char *par_name;
 } senspar_t;
+
+typedef struct sensdevpar {
+  int sensor_meas_no;
+  char *sensorname;
+  char *par_name;
+  char *devicetyp;
+  char *familycode;
+  char *serialnum;
+} sensdevpar_t;
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval WS2000 PC interface */
@@ -225,6 +232,7 @@ typedef struct onewirestat {
 } onewirestat_t;
 
 typedef struct wsconf {
+  int mcycle;
   char dbfile[TBUFF+1];
   char device[TBUFF+1];
   char dbpath[SBUFF+1];
@@ -346,13 +354,15 @@ int writedb( int sensor_no, int nval, int sensor_meas_no[],
       time_t dataset_date,
       float meas_value[] );
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
+int sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
 char *readdb( char *wstation);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 char *readstat( char *wstation);
+int maxsensmeas( sqlite3 *onewiredb);
 
 char *ppagemem( uchar pagemen[]);
 int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
-char echo_familycode( uchar *serialnum);
+char *echo_familycode( uchar *serialnum);

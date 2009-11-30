@@ -62,6 +62,7 @@ main ( int argc, char **argv )
   /* reading config file and default parameters */
   if  (( ret = wthd_init()) != 0 ) {
     printf("wthd: can't initialize. Exit!\n");
+    exit(ret);
   }
 
 
@@ -114,7 +115,7 @@ main ( int argc, char **argv )
   printf("wthd: onewirestation.config.device: \"%s\"\n", 
     onewirestation.config.device);
   if ( strncmp( onewirestation.config.device, "/dev/", 5) == 0) {
-    if ( ( ret = pthread_create( &wtid, NULL, ws2000_hd, NULL) == 0)) {
+    if ( ( ret = pthread_create( &owtid, NULL, onewire_hd, NULL) == 0)) {
       syslog(LOG_DEBUG, "wthd: creating 1-Wire thread: success");
     } else {
       syslog(LOG_ALERT,"wthd: error! Can't create 1-Wire thread");

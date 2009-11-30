@@ -26,6 +26,7 @@
  
 #include "wth.h"
 #include <sys/resource.h>
+
 /*
   datadb - insert measured values
 
@@ -72,7 +73,6 @@ statdb( int sensor_status[], time_t statusset_date)
   int i, err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  //sqlite3_stmt *qcomp;
 
   char *errmsg;
 
@@ -105,7 +105,6 @@ statdb( int sensor_status[], time_t statusset_date)
     return(err);
   }
 
-  syslog(LOG_DEBUG,"statdb: control point #1"); 
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
      "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
@@ -125,22 +124,8 @@ statdb( int sensor_status[], time_t statusset_date)
     strncat(tstrg, ":", 1);
     strncat(tstrg, template, strlen(template));
   }
-  syslog(LOG_DEBUG,"statdb: control point #2"); 
 
   /* cleanup and close */
-  syslog(LOG_DEBUG,"statdb: control point #3"); 
-  /*
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-	    "statdb: error: err: %d sqlite3_finalize: %s\n", 
-	    err, sqlite3_errmsg(ws2000db));
-    return(1);
-  }
-  syslog(LOG_DEBUG,"statdb: control point #4"); 
-  sqlite3_free( qcomp);
-  */
-  syslog(LOG_DEBUG,"statdb: control point #5"); 
   sqlite3_close( ws2000db);
 
   snprintf( rrdfile, TBUFF, "%s", ws2000station.config.rrdpath);
@@ -221,7 +206,7 @@ newdb( long statusset_date, int sensor_no, int new_flag)
 int
 senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
 {
-  int err;
+  int err, rowcnt;
   char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
@@ -240,6 +225,7 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
     return(1);
   }
 
+  rowcnt = 0;
   while( SQLITE_ROW == sqlite3_step(qcomp)) {
     syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d",
 	   sensor_meas_no, sqlite3_column_int(qcomp, 0));
@@ -250,12 +236,85 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
     sspar->par_name    = malloc(sizeof(char)*TBUFF+1);
     strncpy(sspar->sensor_name, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
     strncpy(sspar->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  
+    rowcnt++;
   }
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
 	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
+    return(1);
+  }
+  if ( rowcnt == 0) {
+    syslog( LOG_ALERT, "Error: no configuration data in database");
+    return(1);
+  }
+  return(0);
+}
+
+/*
+  sensdevpar - retrieve sensor number , devicetyp and parameter name
+*/
+int
+sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
+{
+  int err, rowcnt;
+  char query[SBUFF+1];
+  sqlite3_stmt *qcomp;
+
+  snprintf(query, SBUFF, 
+    "SELECT sdp.sensor_meas_no, sn.sensor_name, pn.parameter_name, dt.devicetyp, dt.familycode, dt.serialnum "
+    "FROM sensordevparameters AS sdp, sensorname AS sn, parametername AS pn, devicetyp AS dt "
+    "WHERE sdp.parameter_no = pn.parameter_no "
+    "AND sdp.sensor_no = sn.sensor_no "
+    "AND sdp.device_no = dt.device_no "
+    "AND dt.serialnum = '%s' " 
+    "AND pn.parameter_name = '%s' ", 
+    serialnum, parname);
+  //syslog(LOG_DEBUG, "sensdevpar: sql: %s", query);
+
+  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+	    "Error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
+	    err, sqlite3_errmsg(wthdb));
+    return(1);
+  }
+
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    /*
+    syslog(LOG_DEBUG, "sensdevpar  : sensorname: %s : parametername: %s : sensor_meas_no: %d",
+	   (char *)sqlite3_column_text(qcomp, 1), 
+           (char *)sqlite3_column_text(qcomp, 2),
+           sqlite3_column_int(qcomp, 0));
+    syslog(LOG_DEBUG, "sensdevpar  : devicetyp: %s : familycode: %s : serialnum: %s",
+	   (char *)sqlite3_column_text(qcomp, 3), 
+           (char *)sqlite3_column_text(qcomp, 4), 
+           (char *)sqlite3_column_text(qcomp, 5));
+    */
+    ssdp->sensorname     = malloc(sizeof(char)*TBUFF+1); 
+    ssdp->par_name       = malloc(sizeof(char)*TBUFF+1);
+    ssdp->devicetyp      = malloc(sizeof(char)*TBUFF+1);
+    ssdp->familycode     = malloc(sizeof(char)*TBUFF+1);
+    ssdp->serialnum      = malloc(sizeof(char)*TBUFF+1);
+    ssdp->sensor_meas_no = sqlite3_column_int(qcomp, 0);
+    strncpy(ssdp->sensorname, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
+    strncpy(ssdp->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  
+    strncpy(ssdp->devicetyp, (char *)sqlite3_column_text(qcomp,3), TBUFF);  
+    strncpy(ssdp->familycode, (char *)sqlite3_column_text(qcomp,4), TBUFF);  
+    strncpy(ssdp->serialnum, (char *)sqlite3_column_text(qcomp,5), TBUFF);  
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	    err, sqlite3_errmsg(wthdb));
+    return(1);
+  }
+  if ( rowcnt == 0) {
+    syslog( LOG_ALERT, "Error: no configuration data in database");
     return(1);
   }
   return(0);
@@ -900,4 +959,46 @@ readstat ( char *wstation) {
     return(rbuf);
   }
   return(NULL);
+}
+
+int
+maxsensmeas( sqlite3 *onewiredb) {
+  int max_sens_meas;
+  int err, rowcnt;
+  char query[SBUFF+1];
+  sqlite3_stmt *qcomp;
+
+  snprintf(query, SBUFF, "SELECT COUNT(*) "
+    "FROM sensordevparameters");
+  syslog(LOG_DEBUG, "maxsensmeas: sql: %s", query);
+
+  err = sqlite3_prepare( onewiredb, query, -1, &qcomp, 0);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "Error: select maxsensmeas: err: %d : sqlite_errmsg: %s\n",
+            err, sqlite3_errmsg(onewiredb));
+    return(1);
+  }
+
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "maxsensmeas  : max_sens_meas: %d",
+           sqlite3_column_int(qcomp, 0));
+    max_sens_meas = sqlite3_column_int(qcomp, 0);
+    rowcnt++;
+  }
+
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "Error: select parametername: err: %d : sqlite_errmsg: %s\n",
+            err, sqlite3_errmsg(onewiredb));
+    return(1);
+  }
+
+  if ( rowcnt == 0) {
+    syslog( LOG_ALERT, "Error: cant find relation sensor - device - parameter");
+    return(1);
+  }
+
+  return(max_sens_meas);
 }

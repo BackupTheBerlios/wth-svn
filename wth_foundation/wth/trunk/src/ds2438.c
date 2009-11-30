@@ -277,7 +277,7 @@ ds2438mem_rd(int portnum, uchar *SNum, uchar *pagemem, uchar pageno, char *devic
      lastcrc8 = docrc8(portnum,pagemem[i]);
    }
    if(lastcrc8 != 0x00) {
-     syslog(LOG_ALERT, "CRC error ");
+     syslog(LOG_ALERT, "ds2438mem_rd: CRC error ");
      bitprint( lastcrc8, "lastcrc8");
      return 1;
    }
