@@ -1505,7 +1505,7 @@ ws2000key_t *c(int n){
 */
 int getsrd ( unsigned char *data, int *mdat) {
     int fd;                         /* filedescriptor serial port */
-    char lword[5];                  /* temporary array to hold commandword */
+    char lword[6];                  /* temporary array to hold commandword */
     struct termios newtio,oldtio;   /* termios structures to set 
                                        comm parameters */
 
