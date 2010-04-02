@@ -7,7 +7,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2008 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2008-2010 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -36,18 +36,24 @@ struct mset {
   mset_t *next;
 };
 
+typedef struct aset aset_t;
+struct aset {
+  double mtime;
+  float mval;
+};
 
 /*
- *   ppagemem
- *
- *     print contents of uchar array of memory
- *
- *     */
-char 
-*ppagemem( uchar *pagemem) {
+  ppagemem
+
+  print contents of uchar array of memory
+*/
+
+char *ppagemem( uchar *pagemem) {
   int x;
   char tchr[4];
-  static char pblock[NBUFF + 1] = "";
+  char *pblock;
+  pblock = ( char *) malloc(NBUFF+1);
+  //static char pblock[NBUFF + 1] = "";
 
   sprintf( pblock, "");
   for ( x = 0; x < 10; x++) {
@@ -76,10 +82,10 @@ bitprint ( int byte, char *s_reg ) {
 }
 
 /*
- *   longprint 
- *
- *     utility function to print bits of 16-bit byte
- *     */
+  longprint 
+
+  utility function to print bits of 16-bit byte
+*/
 int 
 longprint ( int byte, char *s_reg ) {
   int x;
@@ -92,13 +98,15 @@ longprint ( int byte, char *s_reg ) {
     syslog(LOG_INFO, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
   return(0);
 }
+
 /*
    echo_serialnum
 
    returns serial number of 1-Wire device in char array
 
 */
-char *echo_serialnum( uchar serialnum[]) {
+char 
+*echo_serialnum( uchar serialnum[]) {
   int i;
   static char rbuf[64];
   char buf[64];
@@ -118,7 +126,8 @@ char *echo_serialnum( uchar serialnum[]) {
   returns familycode of 1-Wire device
 
 */
-char *echo_familycode( uchar serialnum[]) {
+char 
+*echo_familycode( uchar serialnum[]) {
   static char rbuf[TBUFF];
   snprintf( rbuf, TBUFF-1, "%x", serialnum[0]);
   return(rbuf);
@@ -130,7 +139,8 @@ char *echo_familycode( uchar serialnum[]) {
   adding measurement data in structure mset
 
 */
-mset_t * addmdat( mset_t *listp, mset_t *newp) {
+mset_t 
+*addmdat( mset_t *listp, mset_t *newp) {
   newp->next = listp;
   return newp;
 }
@@ -140,7 +150,7 @@ mset_t * addmdat( mset_t *listp, mset_t *newp) {
 
   create new mset for mtime and mval
 */
-mset_t
+mset_t 
 *newmdat( double mtime, float mval) {
   mset_t *newp;
   newp = ( mset_t *) malloc(sizeof(mset_t));
@@ -153,15 +163,35 @@ mset_t
 
 /*
   pmdat
-
 */
-void pmdat( mset_t *listp) {
+void
+pmdat( mset_t *listp) {
   int i;
   for ( ; listp != NULL; listp = listp-> next) {
     syslog(LOG_DEBUG, "pmdat: %d %f, %f\n", i, listp->mtime, listp->mval);
     i++;
   }
+}
 
+/*
+  average
+*/
+aset_t
+average( mset_t *listp) {
+  int i;
+  float avgtime, avgval;
+  aset_t avgdata;
+
+  for ( ; listp != NULL; listp = listp-> next) {
+    syslog(LOG_DEBUG, "avgdat: %d %f, %f\n", i, listp->mtime, listp->mval);
+    avgtime = avgtime + listp->mtime;
+    avgval  = avgval  + listp->mval;
+    i++;
+  }
+  syslog( LOG_DEBUG, "avgdat: avgtime: %f, avgval: %f\n", avgtime/i, avgval/i); 
+  avgdata.mtime = avgtime/i;
+  avgdata.mval  = avgval/i;
+  return avgdata;
 }
 
 /*
@@ -174,7 +204,8 @@ onewire_hd( void *arg) {
   int portnum, svdd, cvdd, cvad;
   int max_sens_meas;
   float meas_value[TBUFF+1][TBUFF+1];
-  float vsens[TBUFF+1], vad[TBUFF+1], vdd[TBUFF+1], temp10[TBUFF+1], humid2438[TBUFF+1];
+  float vsens[TBUFF+1], vad[TBUFF+1], vdd[TBUFF+1], temp10[TBUFF+1],
+    humid2438[TBUFF+1];
   float temp;
   double mtime[TBUFF+1], temp2438[TBUFF+1];
   uchar serialnum[9];
@@ -184,11 +215,13 @@ onewire_hd( void *arg) {
   struct timezone tz;
   struct timeval  tv;
   mset_t meas_set[MAXSENSORS];
+  aset_t meas_avg;
 
   syslog( LOG_DEBUG, "onewire_hd: start of execution");
 
   // initialize parameters
-  syslog(LOG_DEBUG,"onewire_hd: onewirestation.config.device: %s", onewirestation.config.device);
+  syslog(LOG_DEBUG,"onewire_hd: onewirestation.config.device: %s", 
+    onewirestation.config.device);
   strncpy( port,  onewirestation.config.device, TBUFF);
   if((portnum = owAcquireEx(port)) < 0) {
     OWERROR_DUMP(stdout);
@@ -324,6 +357,7 @@ onewire_hd( void *arg) {
       currsens = numsens;
       syslog(LOG_DEBUG,"1-wire loop: mcycle: %d %f %f %f %f %f %f %f", i, mtime[i], vsens[i], vad[i], vdd[i], temp2438[i], humid2438[i], temp10[i]);
     }
+    /* end of measurement cycle */
     syslog( LOG_DEBUG, "1-wire collect loop done. Averaging");
     syslog( LOG_DEBUG, "onewire_hd: onewirestation.config.mcycle: %d, max_sens_meas: %d", onewirestation.config.mcycle, max_sens_meas);
     for ( i = 0; i < onewirestation.config.mcycle; i++) {
@@ -332,7 +366,9 @@ onewire_hd( void *arg) {
         datadb(mtime[i], j, meas_value[j][i], onewiredb);
       }
     }
-    pmdat(meas_set);
+    /* averaging cycle */
+    pmdat ( meas_set);
+    meas_avg = average( meas_set);
   }
 
   /* database cleanup and close */

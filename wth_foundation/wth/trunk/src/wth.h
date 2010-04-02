@@ -361,7 +361,7 @@ int readpar( time_t *meastim, float *measval,
 char *readstat( char *wstation);
 int maxsensmeas( sqlite3 *onewiredb);
 
-char *ppagemem( uchar pagemen[]);
+char *ppagemem( uchar *pagemen);
 int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
