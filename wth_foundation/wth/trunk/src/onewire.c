@@ -173,6 +173,32 @@ void prtmdat( struct mset *mlist_p) {
 }
 
 /*
+  avgmdat
+
+  average data in linked list and write to database
+*/
+void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
+  struct mset *llist_p = *mlist_ref;
+  int count = 0;
+  double avgtime = 0;
+  double avgval  = 0;
+
+  while ( llist_p != NULL) {
+    count++;
+    avgtime = avgtime + llist_p->mtime;
+    avgval = avgval + llist_p->mval;
+    syslog(LOG_DEBUG, "avgmdat: meas_set->mtime: %f, meas_set->mval: %f, avgtime: %f, avgval: %f, count: %d", llist_p->mtime, llist_p->mval, avgtime, avgval, count);
+    llist_p = llist_p->next;
+  }
+  if ( count != 0 ) {
+    avgtime = avgtime / count;
+    avgval = avgval / count;
+    syslog( LOG_DEBUG, "avgmdat: avgtime: %f, avgval: %f", avgtime, avgval); 
+    datadb( avgtime, sens_meas_no, avgval, onewiredb);
+  }
+}
+
+/*
    onewire_handler
    logging onewire sensor data to rrd and Sqlite DB
 */
@@ -181,10 +207,9 @@ onewire_hd( void *arg) {
   int i, j, rslt, verbose, currsens, numsens;
   int portnum, svdd, cvdd, cvad;
   int max_sens_meas;
-  float meas_value[TBUFF+1][TBUFF+1];
-  float vsens[TBUFF+1], vad[TBUFF+1], vdd[TBUFF+1], temp10[TBUFF+1], humid2438[TBUFF+1];
+  float vsens, vad, vdd, temp10[TBUFF+1], humid2438;
   float temp;
-  double mtime[TBUFF+1], temp2438[TBUFF+1];
+  double mtime, temp2438;
   uchar serialnum[9];
   char port[TBUFF+1];
   char *errmsg;
@@ -230,7 +255,7 @@ onewire_hd( void *arg) {
     syslog( LOG_DEBUG, "onewire_hd: start of measurement loop");
     for ( i = 0; i < onewirestation.config.mcycle; i++) {
       gettimeofday( &tv, &tz);
-      mtime[i] = tv.tv_sec+1.0e-6*tv.tv_usec; 
+      mtime = tv.tv_sec+1.0e-6*tv.tv_usec; 
       /* find the first device (all devices not just alarming) */
       rslt = owFirst( portnum, TRUE, FALSE);
       numsens = 0;
@@ -244,14 +269,12 @@ onewire_hd( void *arg) {
         /* DS2438 */
         if ( strncmp(echo_familycode(serialnum), "26",1) == 0 ) {
           /* read VSENS */
-          vsens[i] = ReadVsens( 0, VSENS, serialnum, port);
+          vsens = ReadVsens( 0, VSENS, serialnum, port);
           if ( ( rslt  = sensdevpar( "VSENS+", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            meas_value[ssdp.sensor_meas_no][i] = vsens[i];
-            syslog(LOG_DEBUG, "onewire_hd: call to addmdat w/ mtime: %f and mval: %f\n", mtime[i], vsens[i]);
-            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime[i], vsens[i]);
-	    syslog(LOG_DEBUG, "onewire_hd: call to addmdat done: contents of meas_set:\n");
+            syslog(LOG_DEBUG, "onewire_hd: call to addmdat w/ mtime: %f and mval: %f\n", mtime, vsens);
+            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vsens);
 	    prtmdat(mlist_p[ssdp.sensor_meas_no]);
           } else {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
@@ -260,11 +283,13 @@ onewire_hd( void *arg) {
           /* read VAD */
           svdd = 0;
           SetupAtoD( portnum, svdd, serialnum);
-          vad[i] = ReadAtoD( portnum, svdd, serialnum);
+          vad = ReadAtoD( portnum, svdd, serialnum);
           if ( ( rslt  = sensdevpar( "VAD", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VAD): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            meas_value[ssdp.sensor_meas_no][i] = vad[i];
+            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vad);
+	    prtmdat(mlist_p[ssdp.sensor_meas_no]);
+
           } else {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
@@ -272,21 +297,24 @@ onewire_hd( void *arg) {
           /* read VDD */
           svdd = 1;
           SetupAtoD( portnum, svdd, serialnum);
-          vdd[i] = ReadAtoD( portnum, svdd, serialnum);
+          vdd = ReadAtoD( portnum, svdd, serialnum);
           if ( ( rslt = sensdevpar( "VDD", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VDD): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            meas_value[ssdp.sensor_meas_no][i] = vdd[i];
+            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vdd);
+	    prtmdat(mlist_p[ssdp.sensor_meas_no]);
           } else {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
           /* read temperature */
-          temp2438[i] = Get_Temperature( portnum, serialnum);
+          temp2438 = Get_Temperature( portnum, serialnum);
           if ( ( rslt = sensdevpar( "Temperature", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: ds2438(Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            meas_value[ssdp.sensor_meas_no][i] = temp2438[i];
+            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, temp2438);
+	    prtmdat(mlist_p[ssdp.sensor_meas_no]);
+
           } else {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
@@ -294,13 +322,14 @@ onewire_hd( void *arg) {
           if ( ( rslt = sensdevpar( "Humidity", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(Humidity): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            cvad = vad[i];
-            cvdd = vdd[i];
+            cvad = vad;
+            cvdd = vdd;
             if ( ( cvad > 0) || ( cvdd > 0)) {
-                humid2438[i] = ( ( vad[i]/vdd[i]) - 0.16) * 161.29;
-                humid2438[i] = humid2438[i] / ( 1.0546 - ( 0.00216 * temp2438[i]));
-                meas_value[ssdp.sensor_meas_no][i] = humid2438[i];
-                syslog(LOG_DEBUG,"Humidity sensor discovered: %f", humid2438[i]);
+                humid2438 = ( ( vad/vdd) - 0.16) * 161.29;
+                humid2438 = humid2438 / ( 1.0546 - ( 0.00216 * temp2438));
+		addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, humid2438);
+                syslog(LOG_DEBUG,"Humidity sensor discovered: %f", humid2438);
+		prtmdat(mlist_p[ssdp.sensor_meas_no]);
             } else {
                 syslog(LOG_ALERT,"Humidity : negative value of VAD or VDD: skipping!");
             }
@@ -308,7 +337,7 @@ onewire_hd( void *arg) {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
           syslog(LOG_DEBUG, "%f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f Temperature: %f\n", 
-		 mtime[i], echo_serialnum( serialnum), vsens[i], vad[i], vdd[i], temp2438[i]);
+		 mtime, echo_serialnum( serialnum), vsens, vad, vdd, temp2438);
           /*
           if ( verbose == 1 ) {
             ds2438mem_dump(0, TRUE, serialnum, port);
@@ -318,9 +347,9 @@ onewire_hd( void *arg) {
         } else if ( strncmp(echo_familycode(serialnum), "10",1) == 0 ) {
           if ( ( rslt = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
             temp10[i] = temp;
-            syslog(LOG_DEBUG, "%f DS1820/DS1920 serialnum: %s Temperature: %f", mtime[i], echo_serialnum(serialnum),temp10[i]); 
+            syslog(LOG_DEBUG, "%f DS1820/DS1920 serialnum: %s Temperature: %f", mtime, echo_serialnum(serialnum),temp10[i]); 
           } else {
-            syslog(LOG_ALERT, "%f DS1820/DS1920 serialnum: %s Temperature conversion error", mtime[i], echo_serialnum( serialnum)); 
+            syslog(LOG_ALERT, "%f DS1820/DS1920 serialnum: %s Temperature conversion error", mtime, echo_serialnum( serialnum)); 
           }
           if ( ( rslt = sensdevpar( "Temperature", echo_serialnum(serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS1820/DS1920 (Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -343,21 +372,15 @@ onewire_hd( void *arg) {
         syslog(LOG_ALERT, "Number of 1-Wire devices changed from %d to %d", currsens, numsens);  
       }
       currsens = numsens;
-      syslog(LOG_DEBUG,"1-wire loop: mcycle: %d %f %f %f %f %f %f %f", i, mtime[i], vsens[i], vad[i], vdd[i], temp2438[i], humid2438[i], temp10[i]);
+      syslog(LOG_DEBUG,"1-wire loop: mcycle: %d %f %f %f %f %f %f %f", i, mtime, vsens, vad, vdd, temp2438, humid2438, temp10[i]);
     }
     syslog( LOG_DEBUG, "onewire_hd: end of measurement loop");
     syslog( LOG_DEBUG, "onewire_hd: start of averaging");
-    syslog( LOG_DEBUG, "onewire_hd: onewirestation.config.mcycle: %d, max_sens_meas: %d", onewirestation.config.mcycle, max_sens_meas);
-    for ( i = 0; i < onewirestation.config.mcycle; i++) {
-      for ( j = 1; j <= max_sens_meas; j++) {
-        syslog( LOG_DEBUG, "mcycle: %d mtime:%f meas_value[%d][%d]: %f", i, mtime[i], j, i, meas_value[j][i]);
-        datadb(mtime[i], j, meas_value[j][i], onewiredb);
-      }
-    }
-    prtmdat( mlist_p[11]);
-    syslog( LOG_DEBUG, "onewire_hd: end of averaging");
-    for ( j = 0 ; j < MAXSENSMEAS; j ++ ) 
+    for ( j = 0 ; j < MAXSENSMEAS; j ++ ) {
+      avgmdat( &mlist_p[j], j);
       rstmdat( &mlist_p[j]);
+    }
+    syslog( LOG_DEBUG, "onewire_hd: end of averaging");
   }
 
   /* database cleanup and close */
