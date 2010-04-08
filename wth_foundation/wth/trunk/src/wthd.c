@@ -43,16 +43,22 @@ main ( int argc, char **argv )
 
   nobg = 0;
   /* parse commandline */
-  while ((op = getopt(argc, argv, "dp:")) != -1) {
+  while ((op = getopt(argc, argv, "dp:f:h")) != -1) {
     switch(op) {
     case 'd':
       nobg = 1;
+      break;
+    case 'f':
+      wsconf.configfile = strdup(optarg);
       break;
     case 'p':
       wsconf.port = strdup(optarg);
       break;
     case '?':
       usaged(1,"command line error","");
+      break;
+    case 'h':
+      usaged(0,"","");
       break;
     default:
       usaged(0, "", "");

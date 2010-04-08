@@ -5,8 +5,8 @@
 --
 -- Sensor#	Sensorname		Description		
 -- -------	----------		-----------	
--- 1		Barometersensor		Barometer
--- 2		HTSsensor		Humidity/Temp/Solar
+-- 1		HTSsensor		Humidity/Temp/Solar
+-- 2		Barometersensor		Barometer
 -- 3		Humiditysensor		Indoor humidity
 -- 4		Humiditysensor		Outdoor humidity
 -- 5		Radiationsensor		Global radiation
@@ -54,6 +54,7 @@ CREATE TABLE devicetyp
 INSERT INTO devicetyp VALUES ( 1, 'DS2438', 'smart battery monitor', '26', 'D0000000A9192626');
 INSERT INTO devicetyp VALUES ( 2, 'DS1920/DS1820', 'high precision digital thermometer', '10', '370008014D32A110');
 INSERT INTO devicetyp VALUES ( 3, 'DS2509', '1k add-only memory', '9', '42000004292E4409');
+INSERT INTO devicetyp VALUES ( 4, 'DS2438', 'smart battery monitor', '26', 'D4000000AEE92926');
 
 --
 -- Table parametername
@@ -100,10 +101,11 @@ INSERT INTO sensordevparameters VALUES ( 4, 1, 1, 3); -- HTSsensor and DS2438 an
 INSERT INTO sensordevparameters VALUES ( 5, 1, 1, 6); -- HTSsensor and DS2438 and Humidity
 INSERT INTO sensordevparameters VALUES ( 6, 1, 2, 1); -- HTSsensor and DS1820 and Temperature
 
--- INSERT INTO sensordevparameters VALUES ( 6, 2, 1, 1); -- Barometersensor and DS2438 and Temperature
--- INSERT INTO sensordevparameters VALUES ( 7, 2, 1, 2); -- Barometersensor and DS2438 and VAD
--- INSERT INTO sensordevparameters VALUES ( 8, 2, 1, 3); -- Barometersensor and DS2438 and VDD
--- INSERT INTO sensordevparameters VALUES ( 9, 2, 1, 7); -- Barometersensor and DS2438 and Pressure
+INSERT INTO sensordevparameters VALUES ( 7, 2, 4, 1); -- Barometersensor and DS2438 and Temperature
+INSERT INTO sensordevparameters VALUES ( 8, 2, 4, 4); -- Barometersensor and DS2438 and VSENS
+INSERT INTO sensordevparameters VALUES ( 9, 2, 4, 2); -- Barometersensor and DS2438 and VAD
+INSERT INTO sensordevparameters VALUES (10, 2, 4, 3); -- Barometersensor and DS2438 and VDD
+INSERT INTO sensordevparameters VALUES (11, 2, 4, 7); -- Barometersensor and DS2438 and Pressure
 -- 
 -- Table sensordata
 -- ----------------

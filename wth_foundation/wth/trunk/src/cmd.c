@@ -73,7 +73,7 @@ cmd_hd( void *arg) {
   tnservaddr.sin_family      = AF_INET;
   tnservaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   tnservaddr.sin_port        = htons(atoi(wsconf.port));
-
+  printf("cmd: wsconf.port: %s\n", wsconf.port);
   Setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
   Bind(listenfd, (SA *) &tnservaddr, sizeof(tnservaddr));
@@ -375,7 +375,7 @@ showcmd( char *args) {
   int err, ntok;
   int is_ws2000, is_pcwsr, is_onewire, is_unknown;
   int is_data, is_stat, is_conf;
-  char rbuf[NBUFF+1];;
+  static char rbuf[NBUFF+1];;
   char *sbuf;
   char *sep = "\\/:;=- ";
   char *token;
@@ -434,7 +434,7 @@ showcmd( char *args) {
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, NBUFF, echoconfig("pcwsr"));
     } else if ( is_onewire == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show config onewire)");
+      snprintf(rbuf, NBUFF, echoconfig("onewire"));
     } else {
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }

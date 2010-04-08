@@ -46,7 +46,9 @@ wthd_init( ) {
   wsconf.verbose     = 1;
   wsconf.debug       = 1;
   wsconf.hostname    = "localhost";
-  wsconf.port        = "2000";
+  if ( wsconf.port == NULL ) {
+    wsconf.port        = "2000";
+  }
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
 
@@ -150,12 +152,14 @@ mkmsg2( const char *fmt, ...) {
 /* usaged : print handling instructions of wthd */
 int
 usaged (int exitcode, char *error, char *addl) {
-      fprintf(stderr,"Usage: wthd [Options]\n"
+      fprintf(stderr,"Usage: wthd [options]\n"
                      "where options include:\n"
-                     "\t-d \t\tdo not daemonize, stay in foreground\n"
-                     "\t-p <portnumber>\tuse portnumber to listen\n");
+                     "\t-d\t\tdo not daemonize, stay in foreground\n"
+                     "\t-f <filename>\tuse filename as configuration file\n"
+                     "\t-p <portnumber>\tuse portnumber to listen\n"
+                     "\t-h\t\tprint this help\n");
 
-      if (error) fprintf(stderr, "%s: %s\n", error, addl);
+      if (strlen(error) > 0) fprintf(stderr, "%s: %s\n", error, addl);
       exit(exitcode);
 }
 
@@ -163,22 +167,32 @@ usaged (int exitcode, char *error, char *addl) {
 /* readconfig : read configuration file */
 int
 readconfig( ) {
+  int cfgok;
   FILE *cfg;
   char line[BUFFSIZE];
   char *name;
   char *value;
   char *cp, *cp2;
-  char *cfgfile;
 
-  if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
-    cfgfile = "/etc/wth/wth.conf";
-    printf("Reading config file /etc/wth/wth.conf\n");
+  cfgok = FALSE;
+  if ( wsconf.configfile != NULL ) {
+    printf("wsconf.configfile: %s\n", wsconf.configfile);
+    if ( ( cfg = fopen(wsconf.configfile,"r")) != NULL ) {
+      printf("Reading config file %s\n", wsconf.configfile);
+      cfgok = TRUE;
+    }
+  } else { 
+    if ( ( cfg = fopen("/etc/wth/wth.conf","r")) != NULL ) {
+      printf("Reading config file /etc/wth/wth.conf\n");
+      cfgok = TRUE;
+    }
+    else if ( ( cfg = fopen("/usr/local/etc/wth/wth.conf","r")) != NULL ) {
+      printf("Reading config file /usr/local/etc/wth/wth.conf\n");
+      cfgok = TRUE;
+    }
   }
-  else if ( ( cfg = fopen("/usr/local/etc/wth/wth.conf","r")) != NULL ) {
-    cfgfile = "/usr/local/etc/wth.conf";
-    printf("Reading config file /usr/local/etc/wth/wth.conf\n");
-  }
-  else {
+
+  if ( cfgok == FALSE ) {
     printf("No config file found, using default parameters\n");
     return(-1);
   }
@@ -272,8 +286,6 @@ echoconfig ( char *station) {
   strncat(t,s,strlen(s));
   snprintf(s, TBUFF, "\ttimeout serialline\t%d\n",wsconf.timeout);
   strncat(t,s, strlen(s));
-  snprintf(s, TBUFF, "\tsyslog logfacility\t%d\n",wsconf.logfacility);
-  strncat(t,s, strlen(s));
   snprintf(s, TBUFF, "\ttelnet port\t\t%s\n",wsconf.port);
   strncat(t,s, strlen(s));
  
@@ -317,7 +329,7 @@ echoconfig ( char *station) {
       "\tdatabase\t\t%s\n",onewirestation.config.dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\t1rrdpath\t\t%s\n",onewirestation.config.rrdpath);
+      "\trrdpath\t\t%s\n",onewirestation.config.rrdpath);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
       "\tmeasurement cycle\t%d\n",onewirestation.config.mcycle);

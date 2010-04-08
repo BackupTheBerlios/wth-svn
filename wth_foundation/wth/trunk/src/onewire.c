@@ -7,7 +7,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2008-2010 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2008 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,32 +28,25 @@
 #include "wth.h"
 #include "ds2438.h"
 #include "temp10.h"
+#include <sys/resource.h>
 
-typedef struct mset mset_t;
 struct mset {
   double mtime;
   float mval;
-  mset_t *next;
-};
-
-typedef struct aset aset_t;
-struct aset {
-  double mtime;
-  float mval;
+  struct mset *next;
 };
 
 /*
-  ppagemem
-
-  print contents of uchar array of memory
-*/
-
-char *ppagemem( uchar *pagemem) {
+ *   ppagemem
+ *
+ *     print contents of uchar array of memory
+ *
+ *     */
+char 
+*ppagemem( uchar *pagemem) {
   int x;
   char tchr[4];
-  char *pblock;
-  pblock = ( char *) malloc(NBUFF+1);
-  //static char pblock[NBUFF + 1] = "";
+  static char pblock[NBUFF + 1] = "";
 
   sprintf( pblock, "");
   for ( x = 0; x < 10; x++) {
@@ -82,10 +75,10 @@ bitprint ( int byte, char *s_reg ) {
 }
 
 /*
-  longprint 
-
-  utility function to print bits of 16-bit byte
-*/
+ *   longprint 
+ *
+ *     utility function to print bits of 16-bit byte
+ *     */
 int 
 longprint ( int byte, char *s_reg ) {
   int x;
@@ -98,15 +91,13 @@ longprint ( int byte, char *s_reg ) {
     syslog(LOG_INFO, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
   return(0);
 }
-
 /*
    echo_serialnum
 
    returns serial number of 1-Wire device in char array
 
 */
-char 
-*echo_serialnum( uchar serialnum[]) {
+char *echo_serialnum( uchar serialnum[]) {
   int i;
   static char rbuf[64];
   char buf[64];
@@ -126,8 +117,7 @@ char
   returns familycode of 1-Wire device
 
 */
-char 
-*echo_familycode( uchar serialnum[]) {
+char *echo_familycode( uchar serialnum[]) {
   static char rbuf[TBUFF];
   snprintf( rbuf, TBUFF-1, "%x", serialnum[0]);
   return(rbuf);
@@ -136,62 +126,50 @@ char
 /*
   addmdat
 
-  adding measurement data in structure mset
-
+  adding measurement data in linked list mlist
 */
-mset_t 
-*addmdat( mset_t *listp, mset_t *newp) {
-  newp->next = listp;
-  return newp;
-}
-
-/* 
-  newmdat
-
-  create new mset for mtime and mval
-*/
-mset_t 
-*newmdat( double mtime, float mval) {
-  mset_t *newp;
-  newp = ( mset_t *) malloc(sizeof(mset_t));
-  newp->mtime = mtime;
-  newp->mval = mval;
-  newp->next = NULL;
-  return newp;
-}
-
-
-/*
-  pmdat
-*/
-void
-pmdat( mset_t *listp) {
-  int i;
-  for ( ; listp != NULL; listp = listp-> next) {
-    syslog(LOG_DEBUG, "pmdat: %d %f, %f\n", i, listp->mtime, listp->mval);
-    i++;
+int addmdat( struct mset ** mlist_ref, double mtime, double mval) {
+  struct mset *meas_set;
+  syslog( LOG_DEBUG,"addmdat: pointer of meas_set: %p", meas_set);
+  if ( ( meas_set = ( struct mset *)malloc ( sizeof ( struct mset))) == NULL ) {
+    return 1;
+  } else {
+    meas_set->mtime = mtime;
+    meas_set->mval  = mval;
+    meas_set->next  = *mlist_ref;
+    *mlist_ref = meas_set;
+    return 0;
   }
 }
 
 /*
-  average
-*/
-aset_t
-average( mset_t *listp) {
-  int i;
-  float avgtime, avgval;
-  aset_t avgdata;
+  rstmdat
 
-  for ( ; listp != NULL; listp = listp-> next) {
-    syslog(LOG_DEBUG, "avgdat: %d %f, %f\n", i, listp->mtime, listp->mval);
-    avgtime = avgtime + listp->mtime;
-    avgval  = avgval  + listp->mval;
-    i++;
+  delete linked list mlist_p and set the head pointer to NULL
+*/
+void rstmdat( struct mset ** mlist_ref) {
+  struct mset * current = *mlist_ref;
+  struct mset * next;
+
+  while ( current != NULL ) {
+    next = current->next;
+    free(current);
+    current = next;
+  }  
+  *mlist_ref = NULL;
+}
+
+/*
+  prtmdat
+
+  print data in linked list
+*/
+void prtmdat( struct mset *mlist_p) {
+
+  if ( mlist_p != NULL) {
+    prtmdat(mlist_p->next);
+    syslog(LOG_DEBUG, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", mlist_p->mtime, mlist_p->mval);
   }
-  syslog( LOG_DEBUG, "avgdat: avgtime: %f, avgval: %f\n", avgtime/i, avgval/i); 
-  avgdata.mtime = avgtime/i;
-  avgdata.mval  = avgval/i;
-  return avgdata;
 }
 
 /*
@@ -204,8 +182,7 @@ onewire_hd( void *arg) {
   int portnum, svdd, cvdd, cvad;
   int max_sens_meas;
   float meas_value[TBUFF+1][TBUFF+1];
-  float vsens[TBUFF+1], vad[TBUFF+1], vdd[TBUFF+1], temp10[TBUFF+1],
-    humid2438[TBUFF+1];
+  float vsens[TBUFF+1], vad[TBUFF+1], vdd[TBUFF+1], temp10[TBUFF+1], humid2438[TBUFF+1];
   float temp;
   double mtime[TBUFF+1], temp2438[TBUFF+1];
   uchar serialnum[9];
@@ -214,14 +191,15 @@ onewire_hd( void *arg) {
   sensdevpar_t ssdp;
   struct timezone tz;
   struct timeval  tv;
-  mset_t meas_set[MAXSENSORS];
-  aset_t meas_avg;
+  struct mset *mlist_p[MAXSENSMEAS];
+  time_t pstatime;
+  struct tm *pstatm;
+  struct rusage pstat;
 
   syslog( LOG_DEBUG, "onewire_hd: start of execution");
 
   // initialize parameters
-  syslog(LOG_DEBUG,"onewire_hd: onewirestation.config.device: %s", 
-    onewirestation.config.device);
+  syslog(LOG_DEBUG,"onewire_hd: onewirestation.config.device: %s", onewirestation.config.device);
   strncpy( port,  onewirestation.config.device, TBUFF);
   if((portnum = owAcquireEx(port)) < 0) {
     OWERROR_DUMP(stdout);
@@ -245,9 +223,11 @@ onewire_hd( void *arg) {
   verbose = 0;
 
   max_sens_meas = maxsensmeas( onewiredb);
+  syslog(LOG_DEBUG, "onewire_hd: max_sens_meas: %d", max_sens_meas);
 
   for (;;) {
     /* measurement loop */
+    syslog( LOG_DEBUG, "onewire_hd: start of measurement loop");
     for ( i = 0; i < onewirestation.config.mcycle; i++) {
       gettimeofday( &tv, &tz);
       mtime[i] = tv.tv_sec+1.0e-6*tv.tv_usec; 
@@ -269,10 +249,12 @@ onewire_hd( void *arg) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             meas_value[ssdp.sensor_meas_no][i] = vsens[i];
-            addmdat( meas_set, newmdat( mtime[i], vsens[i]));
-            
+            syslog(LOG_DEBUG, "onewire_hd: call to addmdat w/ mtime: %f and mval: %f\n", mtime[i], vsens[i]);
+            addmdat( &mlist_p[ssdp.sensor_meas_no], mtime[i], vsens[i]);
+	    syslog(LOG_DEBUG, "onewire_hd: call to addmdat done: contents of meas_set:\n");
+	    prtmdat(mlist_p[ssdp.sensor_meas_no]);
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup");
+            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
           /* read VAD */
@@ -284,7 +266,7 @@ onewire_hd( void *arg) {
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             meas_value[ssdp.sensor_meas_no][i] = vad[i];
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup");
+            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
           /* read VDD */
@@ -296,7 +278,7 @@ onewire_hd( void *arg) {
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             meas_value[ssdp.sensor_meas_no][i] = vdd[i];
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup");
+            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
           /* read temperature */
@@ -306,7 +288,7 @@ onewire_hd( void *arg) {
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             meas_value[ssdp.sensor_meas_no][i] = temp2438[i];
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup");
+            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
           if ( ( rslt = sensdevpar( "Humidity", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
@@ -323,7 +305,7 @@ onewire_hd( void *arg) {
                 syslog(LOG_ALERT,"Humidity : negative value of VAD or VDD: skipping!");
             }
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup");
+            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
           syslog(LOG_DEBUG, "%f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f Temperature: %f\n", 
 		 mtime[i], echo_serialnum( serialnum), vsens[i], vad[i], vdd[i], temp2438[i]);
@@ -343,9 +325,15 @@ onewire_hd( void *arg) {
           if ( ( rslt = sensdevpar( "Temperature", echo_serialnum(serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS1820/DS1920 (Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-
           }
         }
+        time(&pstatime); pstatm = gmtime(&pstatime);
+        rslt = getrusage( RUSAGE_SELF, &pstat);
+        syslog(LOG_DEBUG, "wcmd_i: memory check: %lu : "
+          "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
+          (long int)pstatime, pstat.ru_maxrss,
+          pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
+
         /* find the next device */
         rslt = owNext( portnum, TRUE, FALSE);
     
@@ -357,8 +345,8 @@ onewire_hd( void *arg) {
       currsens = numsens;
       syslog(LOG_DEBUG,"1-wire loop: mcycle: %d %f %f %f %f %f %f %f", i, mtime[i], vsens[i], vad[i], vdd[i], temp2438[i], humid2438[i], temp10[i]);
     }
-    /* end of measurement cycle */
-    syslog( LOG_DEBUG, "1-wire collect loop done. Averaging");
+    syslog( LOG_DEBUG, "onewire_hd: end of measurement loop");
+    syslog( LOG_DEBUG, "onewire_hd: start of averaging");
     syslog( LOG_DEBUG, "onewire_hd: onewirestation.config.mcycle: %d, max_sens_meas: %d", onewirestation.config.mcycle, max_sens_meas);
     for ( i = 0; i < onewirestation.config.mcycle; i++) {
       for ( j = 1; j <= max_sens_meas; j++) {
@@ -366,9 +354,10 @@ onewire_hd( void *arg) {
         datadb(mtime[i], j, meas_value[j][i], onewiredb);
       }
     }
-    /* averaging cycle */
-    pmdat ( meas_set);
-    meas_avg = average( meas_set);
+    prtmdat( mlist_p[11]);
+    syslog( LOG_DEBUG, "onewire_hd: end of averaging");
+    for ( j = 0 ; j < MAXSENSMEAS; j ++ ) 
+      rstmdat( &mlist_p[j]);
   }
 
   /* database cleanup and close */

@@ -71,6 +71,7 @@
 #define SBUFF       1024
 #define TBUFF       256
 #define MAXSENSORS  24
+#define MAXSENSMEAS 128
 #define MAXPARAM    8
 #define MAXDATA     256
 #define PCWSRLEN    8
@@ -266,6 +267,7 @@ typedef struct conf {
   int timeout;
   int logfacility;
   char *hostname;
+  char *configfile;
   char *port;
   char *units;
   char *outfmt;

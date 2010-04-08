@@ -68,3 +68,8 @@ LINE2:Sensor8#cc9900:Sensor8 \
 LINE2:Rainsensor#0033ff:Rainsensor \
 LINE2:Windsensor#ffccff:Windsensor \
 LINE2:Indoorsensor#00cc99:Indoorsensor 
+
+
+rrdtool graph Sensormonitor.png --start -86400 \
+DEF:Windsensor=Sensormonitor.rrd:Windsensor:AVERAGE \
+LINE2:Windsensor#ffccff:Windsensor 

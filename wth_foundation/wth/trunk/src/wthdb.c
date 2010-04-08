@@ -314,7 +314,7 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
     return(1);
   }
   if ( rowcnt == 0) {
-    syslog( LOG_ALERT, "Error: no configuration data in database");
+    //syslog( LOG_ALERT, "Error: no configuration data in database");
     return(1);
   }
   return(0);
