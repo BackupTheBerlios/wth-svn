@@ -187,13 +187,13 @@ void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
     count++;
     avgtime = avgtime + llist_p->mtime;
     avgval = avgval + llist_p->mval;
-    syslog(LOG_DEBUG, "avgmdat: meas_set->mtime: %f, meas_set->mval: %f, avgtime: %f, avgval: %f, count: %d", llist_p->mtime, llist_p->mval, avgtime, avgval, count);
+    //syslog(LOG_DEBUG, "avgmdat: meas_set->mtime: %f, meas_set->mval: %f, avgtime: %f, avgval: %f, count: %d", llist_p->mtime, llist_p->mval, avgtime, avgval, count);
     llist_p = llist_p->next;
   }
   if ( count != 0 ) {
     avgtime = avgtime / count;
     avgval = avgval / count;
-    syslog( LOG_DEBUG, "avgmdat: avgtime: %f, avgval: %f", avgtime, avgval); 
+    syslog( LOG_DEBUG, "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, number: %d", sens_meas_no, avgtime, avgval, count); 
     datadb( avgtime, sens_meas_no, avgval, onewiredb);
   }
 }
