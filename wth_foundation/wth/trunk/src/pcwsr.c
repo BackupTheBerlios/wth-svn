@@ -2,8 +2,8 @@
 
    serial line communication w/ PC weathersensor receiver
 
-   $Id: pcwsr.c 194 2008-07-08 19:15:47Z vjahns $
-   $Revision: 194 $
+   $Id$
+   $Revision$
 
    Copyright (C) 2001-2004,2007,2008 Volker Jahns <volker@thalreit.de>
 

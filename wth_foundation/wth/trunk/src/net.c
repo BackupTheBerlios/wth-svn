@@ -3,8 +3,8 @@
 
    network related functions of wthc and wthd
 
-   $Id: net.c 194 2008-07-08 19:15:47Z vjahns $
-   $Revision: 194 $
+   $Id$
+   $Revision$
 
    Copyright (C) 2000-2001 Volker Jahns <Volker.Jahns@thalreit.de>
 
