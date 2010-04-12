@@ -193,10 +193,16 @@ tnstat ( char *station) {
           "Please allow 5-10 minutes for PCWSR data to accumulate. "
           "Check hardware, if you do not expect this correct.\n");
       }
+  } else if  ( ( err = strncmp(station, "onewire", 6)) == 0 ) { 
+      if ( onewirestation.status.is_present == 1) {
+        snprintf( rbuf, NBUFF, readstat( "onewire"));
+      } else {
+        snprintf( rbuf, NBUFF, "No ONEWIRE weatherstation found.\n"
+          "Check hardware, if you do not expect this correct.\n");
+      }
   }
   return(rbuf);
 }
-
 
 
 /* tnusage : print handling instructions for telnet access wthd */
@@ -208,6 +214,7 @@ tnusage (int exitcode, char *error, char *addl) {
     snprintf(s, SBUFF, "wthd commands:\n"
              "\t\tshow\n"
              "\t\texec\n"
+             "\t\tquit\n"
              "\t\treload\n"
              "\t\trestart\n"
              "\t\thelp\n"
@@ -413,7 +420,7 @@ showcmd( char *args) {
     } else if ( is_pcwsr == 1) {
       snprintf(rbuf, NBUFF, readdb("pcwsr"));
     } else if ( is_onewire == 1) {
-      snprintf(rbuf, NBUFF, "showcmd: show data onewire)");
+      snprintf(rbuf, NBUFF, readdb("onewire"));
     } else {
       snprintf(rbuf, NBUFF, tnusage(1,"","")); 
     }

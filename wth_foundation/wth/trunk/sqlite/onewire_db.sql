@@ -132,3 +132,14 @@ CREATE TABLE sensorupdate
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       last_update DATE NOT NULL
     );
+INSERT INTO sensorupdate VALUES (1, 0);
+INSERT INTO sensorupdate VALUES (2, 0);
+INSERT INTO sensorupdate VALUES (3, 0);
+INSERT INTO sensorupdate VALUES (4, 0);
+INSERT INTO sensorupdate VALUES (5, 0);
+INSERT INTO sensorupdate VALUES (6, 0);
+INSERT INTO sensorupdate VALUES (7, 0);
+INSERT INTO sensorupdate VALUES (8, 0);
+INSERT INTO sensorupdate VALUES (9, 0);
+INSERT INTO sensorupdate VALUES (10, 0);
+INSERT INTO sensorupdate VALUES (11, 0);

@@ -294,29 +294,33 @@ echoconfig ( char *station) {
       "ws2000 configuration\n");
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\tdevice\t\t%s\n",ws2000station.config.device);
+      "\tdevice\t\t\t%s\n",ws2000station.config.device);
     strncat(t,s, strlen(s));
+    if ( strncmp( ws2000station.config.device, "n.a.", 4) == 0) 
+      return(t);
     snprintf(s, TBUFF, 
       "\tdatabase\t\t%s\n",ws2000station.config.dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\trrdpath\t\t%s\n",ws2000station.config.rrdpath);
+      "\trrdpath\t\t\t%s\n",ws2000station.config.rrdpath);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\tmonitor\t\t%s\n",ws2000station.config.monitor);
+      "\tmonitor\t\t\t%s\n",ws2000station.config.monitor);
     strncat(t,s, strlen(s));
   } else if ( ( err = strncmp( station, "pcwsr", 5)) == 0 ) {
     snprintf(s, TBUFF, 
       "pcwsr configuration\n");
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\tdevice\t\t%s\n",pcwsrstation.config.device);
+      "\tdevice\t\t\t%s\n",pcwsrstation.config.device);
     strncat(t,s, strlen(s));
+    if ( strncmp( pcwsrstation.config.device, "n.a.", 4) == 0) 
+      return(t);
     snprintf(s, TBUFF,
       "\tdatabase\t\t%s\n",pcwsrstation.config.dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\trrdpath\t\t%s\n",pcwsrstation.config.rrdpath);
+      "\trrdpath\t\t\t%s\n",pcwsrstation.config.rrdpath);
     strncat(t,s, strlen(s));
   } else if ( ( err = strncmp( station, "onewire", 5)) == 0 ) {
     snprintf(s, TBUFF, 
@@ -325,14 +329,16 @@ echoconfig ( char *station) {
     snprintf(s, TBUFF, 
       "\tdevice\t\t\t%s\n",onewirestation.config.device);
     strncat(t,s, strlen(s));
+    if ( strncmp( onewirestation.config.device, "n.a.", 4) == 0) 
+      return(t);
     snprintf(s, TBUFF,
       "\tdatabase\t\t%s\n",onewirestation.config.dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\trrdpath\t\t%s\n",onewirestation.config.rrdpath);
+      "\trrdpath\t\t\t%s\n",onewirestation.config.rrdpath);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\tmeasurement cycle\t%d\n",onewirestation.config.mcycle);
+      "\tmeasurement cycles\t%d\n",onewirestation.config.mcycle);
     strncat(t,s, strlen(s));
   } 
   return(t);
@@ -341,7 +347,7 @@ echoconfig ( char *station) {
 Sigfunc *
 signal(int signo, Sigfunc *func)
 {
-	struct sigaction	act, oact;
+	struct sigaction act, oact;
 
 	act.sa_handler = func;
 	sigemptyset(&act.sa_mask);

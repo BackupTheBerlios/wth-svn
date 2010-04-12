@@ -97,8 +97,10 @@ main ( int argc, char **argv )
   /* PCWSR thread */
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
     if ( ( ret = pthread_create( &ptid, NULL, pcwsr_hd, NULL) == 0)) {
+        pcwsrstation.status.is_present = 1;
 	syslog(LOG_INFO, "wthd: creating PCWSR thread: success\n");
     } else {
+        pcwsrstation.status.is_present = -1;
 	syslog(LOG_ALERT,"wthd: error! Can't create PCWSR thread\n");
     }
     syslog(LOG_DEBUG,"wthd: pcwsrstation.config.device: %s\n", 
@@ -108,8 +110,10 @@ main ( int argc, char **argv )
   /* WS2000 thread */
   if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
     if ( ( ret = pthread_create( &wtid, NULL, ws2000_hd, NULL) == 0)) {
+      ws2000station.status.is_present = 1;
       syslog(LOG_DEBUG, "wthd: creating WS2000 thread: success");
     } else {
+      ws2000station.status.is_present = -1;
       syslog(LOG_ALERT,"wthd: error! Can't create WS2000 thread");
     } 
     syslog(LOG_DEBUG, "wthd: ws2000station.config.device: %s\n", 
@@ -122,8 +126,10 @@ main ( int argc, char **argv )
     onewirestation.config.device);
   if ( strncmp( onewirestation.config.device, "/dev/", 5) == 0) {
     if ( ( ret = pthread_create( &owtid, NULL, onewire_hd, NULL) == 0)) {
+      onewirestation.status.is_present = 1;
       syslog(LOG_DEBUG, "wthd: creating 1-Wire thread: success");
     } else {
+      onewirestation.status.is_present = -1;
       syslog(LOG_ALERT,"wthd: error! Can't create 1-Wire thread");
     } 
     syslog(LOG_DEBUG, "wthd: onewirestation.config.device: %s\n", 
