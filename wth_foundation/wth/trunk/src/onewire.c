@@ -219,9 +219,11 @@ onewire_hd( void *arg) {
   struct timezone tz;
   struct timeval  tv;
   struct mset *mlist_p[MAXSENSMEAS];
+  /*
   time_t pstatime;
   struct tm *pstatm;
   struct rusage pstat;
+  */
 
   syslog( LOG_DEBUG, "onewire_hd: start of execution");
 
@@ -273,7 +275,8 @@ onewire_hd( void *arg) {
 
         /* DS2438 */
         if ( strncmp(echo_familycode(serialnum), "26",1) == 0 ) {
-          /* read VSENS */
+
+          /* read DS2438 VSENS */
           vsens = ReadVsens( 0, VSENS, serialnum, port);
           if ( ( rslt  = sensdevpar( "VSENS+", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -284,7 +287,7 @@ onewire_hd( void *arg) {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
-          /* read VAD */
+          /* read DS2438 VAD */
           svdd = 0;
           SetupAtoD( portnum, svdd, serialnum);
           vad = ReadAtoD( portnum, svdd, serialnum);
@@ -296,10 +299,11 @@ onewire_hd( void *arg) {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
-          /* read VDD */
+          /* read DS2438 VDD */
           svdd = 1;
           SetupAtoD( portnum, svdd, serialnum);
           vdd = ReadAtoD( portnum, svdd, serialnum);
+
           if ( ( rslt = sensdevpar( "VDD", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VDD): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
@@ -308,7 +312,7 @@ onewire_hd( void *arg) {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
-          /* read temperature */
+          /* read DS2438 temperature */
           temp2438 = Get_Temperature( portnum, serialnum);
           if ( ( rslt = sensdevpar( "Temperature", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: ds2438(Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -318,7 +322,7 @@ onewire_hd( void *arg) {
             syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
           }
 
-          /* humidity */
+          /* humidity - derived quantity calculated from vad and vdd */
           if ( ( rslt = sensdevpar( "Humidity", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG,
               "onewire_hd: DS2438(Humidity): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -335,7 +339,7 @@ onewire_hd( void *arg) {
             }
           }
 
-          /* pressure */
+          /* pressure - derived quantity calculated from vad and vdd */
           if ( ( rslt = sensdevpar( "Pressure", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG,
               "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -370,6 +374,7 @@ onewire_hd( void *arg) {
 	      "%f DS1820/DS1920 serialnum: %s Temperature conversion error", 
 	      mtime, echo_serialnum( serialnum)); 
           }
+
           if ( ( rslt = sensdevpar( "Temperature", echo_serialnum(serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG, 
               "onewire_hd: DS1820/DS1920 (Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -377,12 +382,6 @@ onewire_hd( void *arg) {
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, temp10);
           }
         }
-        time(&pstatime); pstatm = gmtime(&pstatime);
-        rslt = getrusage( RUSAGE_SELF, &pstat);
-        syslog(LOG_DEBUG, "wcmd_i: memory check: %lu : "
-          "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-          (long int)pstatime, pstat.ru_maxrss,
-          pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
 
         /* find the next device */
         rslt = owNext( portnum, TRUE, FALSE);

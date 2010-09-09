@@ -305,11 +305,13 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
            (char *)sqlite3_column_text(qcomp, 4), 
            (char *)sqlite3_column_text(qcomp, 5));
     */
+    /*
     ssdp->sensorname     = malloc(sizeof(char)*TBUFF+1); 
     ssdp->par_name       = malloc(sizeof(char)*TBUFF+1);
     ssdp->devicetyp      = malloc(sizeof(char)*TBUFF+1);
     ssdp->familycode     = malloc(sizeof(char)*TBUFF+1);
     ssdp->serialnum      = malloc(sizeof(char)*TBUFF+1);
+    */
     ssdp->sensor_meas_no = sqlite3_column_int(qcomp, 0);
     strncpy(ssdp->sensorname, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
     strncpy(ssdp->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  

@@ -196,11 +196,11 @@ typedef struct senspar {
 
 typedef struct sensdevpar {
   int sensor_meas_no;
-  char *sensorname;
-  char *par_name;
-  char *devicetyp;
-  char *familycode;
-  char *serialnum;
+  char sensorname[TBUFF+1];
+  char par_name[TBUFF+1];
+  char devicetyp[TBUFF+1];
+  char familycode[TBUFF+1];
+  char serialnum[TBUFF+1];
 } sensdevpar_t;
 
 typedef struct ws2000stat {
