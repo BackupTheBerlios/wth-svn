@@ -121,13 +121,14 @@ INSERT INTO sensordevparameters VALUES ( 2, 1, 2); -- windsensor and average_ove
 INSERT INTO sensordevparameters VALUES ( 3, 1, 3); -- windsensor and low_battery
 INSERT INTO sensordevparameters VALUES ( 4, 1, 4); -- windsensor and wind_direction
 INSERT INTO sensordevparameters VALUES ( 5, 1, 5); -- windsensor and gust_windspeed
-INSERT INTO sensordevparameters VALUES ( 6, 1, 2, 1); -- HTSsensor and DS1820 and Temperature
-
-INSERT INTO sensordevparameters VALUES ( 7, 2, 4, 1); -- Barometersensor and DS2438 and Temperature
-INSERT INTO sensordevparameters VALUES ( 8, 2, 4, 4); -- Barometersensor and DS2438 and VSENS
-INSERT INTO sensordevparameters VALUES ( 9, 2, 4, 2); -- Barometersensor and DS2438 and VAD
-INSERT INTO sensordevparameters VALUES (10, 2, 4, 3); -- Barometersensor and DS2438 and VDD
-INSERT INTO sensordevparameters VALUES (11, 2, 4, 7); -- Barometersensor and DS2438 and Pressure
+INSERT INTO sensordevparameters VALUES ( 6, 1, 6); -- windsensor and average_windspeed
+INSERT INTO sensordevparameters VALUES ( 7, 1, 7); -- windsensor and chill_nodata
+INSERT INTO sensordevparameters VALUES ( 8, 1, 8); -- windsensor and chill_overrange
+INSERT INTO sensordevparameters VALUES ( 9, 1, 9); -- windsensor and wind_chill
+INSERT INTO sensordevparameters VALUES ( 10, 1, 5); -- windsensor and gust_windspeed
+INSERT INTO sensordevparameters VALUES ( 11, 1, 5); -- windsensor and gust_windspeed
+INSERT INTO sensordevparameters VALUES ( 12, 1, 5); -- windsensor and gust_windspeed
+INSERT INTO sensordevparameters VALUES ( 13, 1, 5); -- windsensor and gust_windspeed
 -- 
 -- Table sensordata
 -- ----------------
