@@ -185,6 +185,29 @@ CREATE TABLE sensordata
       FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
     );
 -- 
+--
+-- 
+CREATE TABLE sensorstatus
+    (
+      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      statusset_date DATE NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      low_battery INTEGER NOT NULL,
+      channel_no INTEGER NOT NULL,
+      gust_over INTEGER NOT NULL,
+      average_over INTEGER NOT NULL,
+      chill_nodata INTEGER NOT NULL,
+      chill_over INTEGER NOT NULL,
+      rate_over INTEGER NOT NULL,
+      total_over INTEGER NOT NULL,
+      yesterday_over INTEGER NOT NULL,
+      dew_under INTEGER NOT NULL,
+      over_under INTEGER NOT NULL,
+      weather_status INTEGER NOT NULL,
+      sealevel_offset FLOAT NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
+    );
+-- 
 -- Table sensorupdate
 -- ------------------
 -- contains information about last measured date
