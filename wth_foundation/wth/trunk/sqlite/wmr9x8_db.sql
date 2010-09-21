@@ -78,37 +78,27 @@ CREATE TABLE parametername
       gain FLOAT NOT NULL,
       offset FLOAT NOT NULL
     );
-INSERT INTO parametername VALUES ( 1, 'Windgust overrange', '', 1.000, 0.000);
-INSERT INTO parametername VALUES ( 2, 'Average windspeed overrange', '', 1.000, 0.000);
-INSERT INTO parametername VALUES ( 3, 'Low battery', 'boolean' );
-INSERT INTO parametername VALUES ( 4, 'Wind direction', 'degree', 1.000, 0.000);
-INSERT INTO parametername VALUES ( 5, 'Gust windspeed', 'm/sec^2', 1.000, 0.000);
-INSERT INTO parametername VALUES ( 6, 'Average windspeed', 'm/sec^2', 1.000, 0.000);
-INSERT INTO parametername VALUES ( 7, 'Chill nodata', 'boolean');
-INSERT INTO parametername VALUES ( 8, 'Chill overrange', 'boolean');
-INSERT INTO parametername VALUES ( 9, 'Windchill', 'degC', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 10, 'Rainrate overrate', 'boolean' );
-INSERT INTO parametername VALUES ( 11, 'Raintotal overrange', 'boolean' );
-INSERT INTO parametername VALUES ( 12, 'Yesterday overrange', 'boolean' );
-INSERT INTO parametername VALUES ( 13, 'Current rainrate', 'mm/hr', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 14, 'Total rainfall', 'mm', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 15, 'Yesterday rainfall', 'mm', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 16, 'Total startdate', 'dd/mm/yyyy' );
-INSERT INTO parametername VALUES ( 17, 'Channel number', 'number' );
-INSERT INTO parametername VALUES ( 18, 'Dew underrange', 'boolean' );
-INSERT INTO parametername VALUES ( 19, 'Temperature', 'degC', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 20, 'Over/underrange', 'boolean' );
-INSERT INTO parametername VALUES ( 21, 'Humidity', '% rel.hum.', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 22, 'Dew temperature', 'degC', 1.000, 0.000 );
-INSERT INTO parametername VALUES ( 23, 'Barometric pressure', 'mbar', 1.000, 0.000 ); 
-INSERT INTO parametername VALUES ( 24, 'Weather status' );
-INSERT INTO parametername VALUES ( 25, 'Sealevel offset', 'mbar' );
+INSERT INTO parametername VALUES ( 1, 'Wind direction', 'degree', 1.000, 0.000);
+INSERT INTO parametername VALUES ( 2, 'Gust windspeed', 'm/sec^2', 1.000, 0.000);
+INSERT INTO parametername VALUES ( 3, 'Average windspeed', 'm/sec^2', 1.000, 0.000);
+INSERT INTO parametername VALUES ( 4, 'Windchill', 'degC', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 5, 'Current rainrate', 'mm/hr', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 6, 'Total rainfall', 'mm', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 7, 'Yesterday rainfall', 'mm', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 8, 'Total startdate', 'dd/mm/yyyy' );
+INSERT INTO parametername VALUES ( 9, 'Channel number', 'number' );
+INSERT INTO parametername VALUES ( 10, 'Temperature', 'degC', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 11, 'Humidity', '% rel.hum.', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 12, 'Dew temperature', 'degC', 1.000, 0.000 );
+INSERT INTO parametername VALUES ( 13, 'Barometric pressure', 'mbar', 1.000, 0.000 ); 
+INSERT INTO parametername VALUES ( 14, 'Sealevel offset', 'mbar' );
+
  
--- Table sensordeviceparameters
+-- Table sensor_parameter
 -- -----------------------
 -- relation of table sensorname to table parametername
 -- 
-CREATE TABLE sensordevparameters
+CREATE TABLE sensor_parameter
     (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
@@ -116,58 +106,94 @@ CREATE TABLE sensordevparameters
       FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
       FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no)
     );
-INSERT INTO sensordevparameters VALUES ( 1, 1, 1); -- windsensor and gust_over
-INSERT INTO sensordevparameters VALUES ( 2, 1, 2); -- windsensor and average_over
-INSERT INTO sensordevparameters VALUES ( 3, 1, 3); -- windsensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 4, 1, 4); -- windsensor and wind_direction
-INSERT INTO sensordevparameters VALUES ( 5, 1, 5); -- windsensor and gust_windspeed
-INSERT INTO sensordevparameters VALUES ( 6, 1, 6); -- windsensor and average_windspeed
-INSERT INTO sensordevparameters VALUES ( 7, 1, 7); -- windsensor and chill_nodata
-INSERT INTO sensordevparameters VALUES ( 8, 1, 8); -- windsensor and chill_overrange
-INSERT INTO sensordevparameters VALUES ( 9, 1, 9); -- windsensor and wind_chill
-INSERT INTO sensordevparameters VALUES ( 10, 2, 10); -- rainsensor and rate_overrange 
-INSERT INTO sensordevparameters VALUES ( 11, 2, 11); -- rainsensor and total_overrange 
-INSERT INTO sensordevparameters VALUES ( 12, 2, 3); -- rainsensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 13, 2, 12); -- rainsensor and yesterday_overrange
-INSERT INTO sensordevparameters VALUES ( 14, 2, 13); -- rainsensor and current_rainrate 
-INSERT INTO sensordevparameters VALUES ( 15, 2, 14); -- rainsensor and total_rainfall
-INSERT INTO sensordevparameters VALUES ( 16, 2, 15); -- rainsensor and yesterday_rainfall 
-INSERT INTO sensordevparameters VALUES ( 17, 2, 16); -- rainsensor and total_startdate 
-INSERT INTO sensordevparameters VALUES ( 18, 3, 17); -- th_sensor and channel_no
-INSERT INTO sensordevparameters VALUES ( 19, 3, 18); -- th_sensor and dew_underrange
-INSERT INTO sensordevparameters VALUES ( 20, 3, 3); -- th_sensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 21, 3, 19); -- th_sensor and temperature
-INSERT INTO sensordevparameters VALUES ( 22, 3, 20); -- th_sensor and over_underrange
-INSERT INTO sensordevparameters VALUES ( 23, 3, 21); -- th_sensor and humidity
-INSERT INTO sensordevparameters VALUES ( 24, 3, 22); -- th_sensor and dew_temperature
-INSERT INTO sensordevparameters VALUES ( 25, 4, 18); -- mushroom_sensor and dew_underrange
-INSERT INTO sensordevparameters VALUES ( 26, 4, 3); -- mushroom_sensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 27, 4, 19); -- mushroom_sensor and temperature
-INSERT INTO sensordevparameters VALUES ( 28, 4, 20); -- mushroom_sensor and over_underrange
-INSERT INTO sensordevparameters VALUES ( 29, 4, 21); -- mushroom_sensor and humidity
-INSERT INTO sensordevparameters VALUES ( 30, 4, 22); -- mushroom_sensor and dew_temperature
-INSERT INTO sensordevparameters VALUES ( 31, 5, 17); -- t_sensor and channel_no
-INSERT INTO sensordevparameters VALUES ( 32, 5, 3); -- t_sensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 33, 5, 19); -- t_sensor and temperature
-INSERT INTO sensordevparameters VALUES ( 34, 5, 20); -- t_sensor and over_underrange
-INSERT INTO sensordevparameters VALUES ( 35, 6, 18); -- thb_sensor and dew_underrange
-INSERT INTO sensordevparameters VALUES ( 36, 6, 3); -- thb_sensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 37, 6, 19); -- thb_sensor and temperature
-INSERT INTO sensordevparameters VALUES ( 38, 6, 20); -- thb_sensor and over_underrange
-INSERT INTO sensordevparameters VALUES ( 39, 6, 21); -- thb_sensor and humidity
-INSERT INTO sensordevparameters VALUES ( 40, 6, 22); -- thb_sensor and dew_temperature
-INSERT INTO sensordevparameters VALUES ( 41, 6, 23); -- thb_sensor and barometric_pressure
-INSERT INTO sensordevparameters VALUES ( 42, 6, 24); -- thb_sensor and weather_status
-INSERT INTO sensordevparameters VALUES ( 43, 6, 25); -- thb_sensor and sealevel_offset
-INSERT INTO sensordevparameters VALUES ( 44, 7, 18); -- thb_new_sensor and dew_underrange
-INSERT INTO sensordevparameters VALUES ( 45, 7, 3); -- thb_new_sensor and low_battery
-INSERT INTO sensordevparameters VALUES ( 46, 7, 19); -- thb_new_sensor and temperature
-INSERT INTO sensordevparameters VALUES ( 47, 7, 20); -- thb_new_sensor and over_underrange
-INSERT INTO sensordevparameters VALUES ( 48, 7, 21); -- thb_new_sensor and humidity
-INSERT INTO sensordevparameters VALUES ( 49, 7, 22); -- thb_new_sensor and dew_temperature
-INSERT INTO sensordevparameters VALUES ( 50, 7, 23); -- thb_new_sensor and barometric_pressure
-INSERT INTO sensordevparameters VALUES ( 51, 7, 24); -- thb_new_sensor and weather_status
-INSERT INTO sensordevparameters VALUES ( 52, 7, 25); -- thb_new_sensor and sealevel_offset
+INSERT INTO sensor_parameter VALUES ( 1, 1, 1); -- windsensor and wind_direction
+INSERT INTO sensor_parameter VALUES ( 2, 1, 2); -- windsensor and gust_windspeed
+INSERT INTO sensor_parameter VALUES ( 3, 1, 3); -- windsensor and average_windspeed
+INSERT INTO sensor_parameter VALUES ( 4, 1, 4); -- windsensor and wind_chill
+INSERT INTO sensor_parameter VALUES ( 5, 2, 5); -- rainsensor and current_rainrate 
+INSERT INTO sensor_parameter VALUES ( 6, 2, 6); -- rainsensor and total_rainfall
+INSERT INTO sensor_parameter VALUES ( 7, 2, 7); -- rainsensor and yesterday_rainfall 
+INSERT INTO sensor_parameter VALUES ( 8, 2, 8); -- rainsensor and total_startdate 
+INSERT INTO sensor_parameter VALUES ( 9, 3, 10); -- th_sensor and temperature
+INSERT INTO sensor_parameter VALUES ( 10, 3, 11); -- th_sensor and humidity
+INSERT INTO sensor_parameter VALUES ( 11, 3, 12); -- th_sensor and dew_temperature
+INSERT INTO sensor_parameter VALUES ( 12, 4, 10); -- mushroom_sensor and temperature
+INSERT INTO sensor_parameter VALUES ( 13, 4, 11); -- mushroom_sensor and humidity
+INSERT INTO sensor_parameter VALUES ( 14, 4, 12); -- mushroom_sensor and dew_temperature
+INSERT INTO sensor_parameter VALUES ( 15, 5, 10); -- t_sensor and temperature
+INSERT INTO sensor_parameter VALUES ( 17, 6, 10); -- thb_sensor and temperature
+INSERT INTO sensor_parameter VALUES ( 18, 6, 11); -- thb_sensor and humidity
+INSERT INTO sensor_parameter VALUES ( 19, 6, 12); -- thb_sensor and dew_temperature
+INSERT INTO sensor_parameter VALUES ( 20, 6, 13); -- thb_sensor and barometric_pressure
+INSERT INTO sensor_parameter VALUES ( 21, 6, 14); -- thb_sensor and sealevel_offset
+INSERT INTO sensor_parameter VALUES ( 22, 7, 10); -- thb_new_sensor and temperature
+INSERT INTO sensor_parameter VALUES ( 23, 7, 11); -- thb_new_sensor and humidity
+INSERT INTO sensor_parameter VALUES ( 24, 7, 12); -- thb_new_sensor and dew_temperature
+INSERT INTO sensor_parameter VALUES ( 25, 7, 13); -- thb_new_sensor and barometric_pressure
+INSERT INTO sensor_parameter VALUES ( 26, 7, 14); -- thb_new_sensor and sealevel_offset
+
+--
+-- Table statusname
+-- -------------------
+-- contains status of sensor, e.g.
+-- - over/underrange 
+-- - low battery
+-- 
+CREATE TABLE statusname
+    (
+      status_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      status_name VARCHAR(64) NOT NULL,
+      status_description VARCHAR(128) NOT NULL,
+    );
+INSERT INTO statusname VALUES ( 1, 'Windgust overrange', '');
+INSERT INTO statusname VALUES ( 2, 'Average windspeed overrange', '');
+INSERT INTO statusname VALUES ( 3, 'Low battery', 'Battery status' );
+INSERT INTO statusname VALUES ( 4, 'Chill nodata', '');
+INSERT INTO statusname VALUES ( 5, 'Chill overrange', '');
+INSERT INTO statusname VALUES ( 6, 'Rainrate overrate', '' );
+INSERT INTO statusname VALUES ( 7, 'Raintotal overrange', '' );
+INSERT INTO statusname VALUES ( 8, 'Yesterday overrange', '' );
+INSERT INTO statusname VALUES ( 9, 'Dew underrange', '' );
+INSERT INTO statusname VALUES ( 10, 'Over/underrange', '' );
+INSERT INTO statusname VALUES ( 11, 'Weather status' );
+
+
+-- Table sensor_status
+-- -----------------------
+-- relation of table sensorname to table statusname
+-- 
+CREATE TABLE sensor_status
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      status_no INTEGER NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
+      FOREIGN KEY (status_no) REFERENCES statusname (status_no)
+    );
+INSERT INTO sensor_status VALUES ( 1, 1, 1); -- windsensor and windgust_overrange
+INSERT INTO sensor_status VALUES ( 2, 1, 2); -- windsensor and averagewindspeed_overrange
+INSERT INTO sensor_status VALUES ( 3, 1, 3); -- windsensor and low_battery
+INSERT INTO sensor_status VALUES ( 4, 1, 4); -- windsensor and chill_nodata
+INSERT INTO sensor_status VALUES ( 4, 1, 5); -- windsensor and chill_overrange
+INSERT INTO sensor_status VALUES ( 5, 2, 6); -- rainsensor and rainrate_overrange 
+INSERT INTO sensor_status VALUES ( 6, 2, 7); -- rainsensor and raintotal_overrange
+INSERT INTO sensor_status VALUES ( 7, 2, 3); -- rainsensor and low_battery 
+INSERT INTO sensor_status VALUES ( 8, 2, 8); -- rainsensor and yesterday_overrange 
+INSERT INTO sensor_status VALUES ( 9, 3, 9);   -- th_sensor and dew_underrange
+INSERT INTO sensor_status VALUES ( 10, 3, 3);  -- th_sensor and low_battery
+INSERT INTO sensor_status VALUES ( 11, 3, 10); -- th_sensor and over_underrange
+INSERT INTO sensor_status VALUES ( 12, 4, 9);  -- mushroom_sensor and dew_underrange
+INSERT INTO sensor_status VALUES ( 13, 4, 3);  -- mushroom_sensor and low_battery
+INSERT INTO sensor_status VALUES ( 14, 4, 10); -- mushroom_sensor and over_underrange
+INSERT INTO sensor_status VALUES ( 15, 5, 3);  -- t_sensor and low_battery
+INSERT INTO sensor_status VALUES ( 15, 5, 10); -- t_sensor and over_underrange
+INSERT INTO sensor_status VALUES ( 16, 6, 9);  -- thb_sensor and dew_underrange
+INSERT INTO sensor_status VALUES ( 17, 6, 3);  -- thb_sensor and low_battery
+INSERT INTO sensor_status VALUES ( 18, 6, 10); -- thb_sensor and over_underrange
+INSERT INTO sensor_status VALUES ( 22, 7, 19); -- thb_new_sensor and dew_underrange
+INSERT INTO sensor_status VALUES ( 23, 7, 21); -- thb_new_sensor and low_battery
+INSERT INTO sensor_status VALUES ( 24, 7, 22); -- thb_new_sensor and over_underrange
+
 -- 
 -- Table sensordata
 -- ----------------
