@@ -8,6 +8,8 @@
 #include <sys/time.h>
 #include <termios.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/signal.h>
@@ -31,7 +33,7 @@ main(int argc, char *argv[])
 					/* This is for experimental support of SunOS */
 	} else  {
 		strcat(devname, argv[1]);
-		if ((fd = open(devname, O_RDONLY| O_NOCTTY )) < 0) {
+		if ((fd = open(devname, O_RDONLY| O_NOCTTY | O_NONBLOCK )) < 0) {
 			fprintf(stderr, "couldn't open device: %s\n", devname);
 			exit(1);
 		}
