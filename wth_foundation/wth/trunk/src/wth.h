@@ -232,6 +232,14 @@ typedef struct onewirestat {
   int is_present;   /* flag if station is attached */
 } onewirestat_t;
 
+typedef struct wmr9x8stat {
+  time_t lastread;  /* last status read date */
+  int numsens;      /* internal number of sensors */
+  int ndats;        /* number of datasets retrieved */
+  int is_present;   /* flag if station is attached */
+  unsigned char wmrrecord[MAXMSGLEN]; /* holds last wmr9x8 record */
+} wmr9x8stat_t;
+
 typedef struct wsconf {
   int mcycle;
   char dbfile[TBUFF+1];
@@ -258,6 +266,12 @@ typedef struct onewire {
   wsconf_t config;
   sensor_t sensor[MAXSENSORS];
 } onewire_t;
+
+typedef struct wmr9x8 {
+  wmr9x8stat_t status;
+  wsconf_t config;
+  sensor_t sensor[MAXSENSORS];
+} wmr9x8_t;
 
 typedef struct conf {
   int command;
@@ -287,6 +301,13 @@ int daemon_proc;          /* set nonzero by daemon_init() */
 sqlite3 *ws2000db;
 sqlite3 *pcwsrdb;
 sqlite3 *onewiredb;
+sqlite3 *wmr9x8db;
+
+ws2000_t  ws2000station;
+pcwsr_t   pcwsrstation;
+onewire_t onewirestation;
+wmr9x8_t wmr9x8station;
+conf_t   wsconf;
 
 int wthd_init();
 int echodata( unsigned char *data, int mdat);
@@ -317,6 +338,7 @@ int daemon_init( );
 void *pcwsr_hd( void *arg);
 void *ws2000_hd( void *arg);
 void *onewire_hd( void *arg);
+void *wmr9x8_hd( void *arg);
 void *cmd_hd( void *arg);
 int docmd( int sockfd);
 
@@ -334,11 +356,6 @@ int wcmd();
 int readdata( int fd, unsigned char *data, int *ndat);
 ws2000key_t *c( int n);
 int wstrlen( unsigned char *s);
-
-ws2000_t  ws2000station;
-pcwsr_t   pcwsrstation;
-onewire_t onewirestation;
-conf_t   wsconf;
 
 char *tnstat( char *station);
 char *tnusage (int exitcode, char *error, char *addl);
@@ -368,3 +385,6 @@ int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
+
+int shuffdat( unsigned char *cdat, unsigned char *rdat, int len);
+int wmr9x8rd( int rfd, unsigned char *data, int *ndat);

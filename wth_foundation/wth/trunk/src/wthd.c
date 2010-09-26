@@ -36,7 +36,7 @@ int
 main ( int argc, char **argv ) 
 {
   int op, ret, nobg;
-  pthread_t ctid, ptid, wtid, owtid, stoptid;
+  pthread_t ctid, ptid, wtid, owtid, wmrtid, stoptid;
   sigset_t signals_to_block;
 
   char *lockfile = WS2000LOCK;
@@ -135,6 +135,21 @@ main ( int argc, char **argv )
     syslog(LOG_DEBUG, "wthd: onewirestation.config.device: %s\n", 
       onewirestation.config.device);
   } else { printf("wthd: no 1-Wire port configured\n"); }
+
+  /* WMR9x8 thread */
+  printf("wthd: wmr9x8.config.device: \"%s\"\n", 
+    wmr9x8station.config.device);
+  if ( strncmp( wmr9x8station.config.device, "/dev/", 5) == 0) {
+    if ( ( ret = pthread_create( &wmrtid, NULL, wmr9x8_hd, NULL) == 0)) {
+      wmr9x8station.status.is_present = 1;
+      syslog(LOG_DEBUG, "wthd: creating wmr9x8 thread: success");
+    } else {
+      wmr9x8station.status.is_present = -1;
+      syslog(LOG_ALERT,"wthd: error! Can't create wmr9x8 thread");
+    } 
+    syslog(LOG_DEBUG, "wthd: wmr9x8.config.device: %s\n", 
+      wmr9x8station.config.device);
+  } else { printf("wthd: no WMR9x8 port configured\n"); }
 
 
   /* thread to handle interactive commands */

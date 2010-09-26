@@ -1,61 +1,29 @@
 /* 
-  sio_test.c
+  wmr9x8.c
 
-  testing serial I/O with wmr9x8 weatherstation
+  wmr9x8 handler implemented as POSIX thread
 
   $Id$
-  Volker Jahns, volker@thalreit.de
+  $Revision$
+
+  Copyright (C) 2010 Volker Jahns <volker@thalreit.de>
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <time.h>
-
-#define BENCHMARK 1
-#define TBUFF 16
-
-/*
-  bitprint 
-
-  utility function to print bits of 8-bit byte
-*/
-int 
-bitprint ( int byte, char *s_reg ) {
-  int x;
-  struct timezone tz;
-  struct timeval  tv;
-
-  gettimeofday(&tv, &tz);
-  printf("%5s | %lu.%lu : #", s_reg, ( long unsigned int)tv.tv_sec, tv.tv_usec);
-  for( x = 7; x > -1; x-- )
-    printf( "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
-  printf( "b\n" );
-  return(0);
-}
-
-
-/* echodata
-  
-   print out raw data frame reveived from weather station 
-
-*/
-int
-echodata(unsigned char *data, int mdat) {
-    int i;
-
-    printf("echodata : length dataframe : %d\n",mdat);
-    for ( i = 0; i < mdat; i++ ) {
-      printf("echodata : byte[%d] : %02x : ", i, data[i]); bitprint( data[i], " ");
-    }
-
-    return(0);
-} 
+#include "wth.h"
 
 
 int 
@@ -115,7 +83,7 @@ shuffdat( unsigned char *cdat, unsigned char *rdat, int len) {
 }
 
 int 
-readdata( int rfd, unsigned char *data, int *ndat) {
+wmr9x8rd( int rfd, unsigned char *data, int *ndat) {
   int err = -1;
   int sync, cnt;
   unsigned char schr;
@@ -153,36 +121,24 @@ readdata( int rfd, unsigned char *data, int *ndat) {
 
 
 
-int 
-main (int argc, char **argv)
-{
-  int rfd, tset, i, j;
+void *
+wmr9x8_hd( void *arg) {
+  int rfd, tset, i;
   int err, mdat;
   static unsigned char data[TBUFF+1];
   struct termios tp, op;
 
-  /* test loop to check how long it takes to open/close the port */
-  for ( j = 0; j < BENCHMARK; j++) {
-
   rfd = open("/dev/ttyd0", O_RDWR | O_NOCTTY | O_NONBLOCK | O_NDELAY);
-  
-  printf("open\t\t: errno %d\n", errno);
   if (rfd == -1)
   {
-    perror("open: couldn't open /dev/ttyd0");
-  }
-  else {
+    syslog(LOG_ALERT, "wmr9x8_hd: couldn't open /dev/ttyd0");
+  } else {
     fcntl(rfd, F_SETFL, 0);
   }
 
   /* get terminal attributes */
   tcgetattr(rfd, &op);
   tcgetattr(rfd, &tp);
-  printf("tcgetattr\t: errno %d\n", errno);
-  printf("tcgetattr\t: current settings\n");
-  printf("tcgetattr\t: iflag - 0%o; oflag - 0%o; cflag - 0%o; lflag - 0%o\n",
-    tp.c_iflag, tp.c_oflag, tp.c_cflag, tp.c_lflag);
-
 
   /* set terminal attr */
   cfsetispeed(&tp, 9600);
@@ -207,50 +163,26 @@ main (int argc, char **argv)
   tp.c_cflag |= CSTOPB;
   tp.c_cflag |= CSIZE; 
   
-
   tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
   tp.c_cc[VMIN]=0;
   tp.c_cc[VTIME]=1;
 
   tcsetattr(rfd, TCSANOW, &tp);
-  printf("tcsetattr\t: errno %d\n", errno);
-  printf("tcsetattr\t: current settings\n");
-  printf("tcsetattr\t: iflag - 0%o; oflag - 0%o; cflag - 0%o; lflag - 0%o\n",
-    tp.c_iflag, tp.c_oflag, tp.c_cflag, tp.c_lflag);
-
   tcgetattr(rfd, &tp);
-  printf("tcgetattr\t: errno %d\n", errno);
-  printf("tcgetattr\t: current settings\n");
-  printf("tcgetattr\t: iflag - 0%o; oflag - 0%o; cflag - 0%o; lflag - 0%o\n",
-    tp.c_iflag, tp.c_oflag, tp.c_cflag, tp.c_lflag);
-  
 
   /* raise DTR and RTS */
   tset |= TIOCM_DTR;
   tset |= TIOCM_RTS;
   ioctl(rfd, TIOCMSET, &tset);
 
-  /* read weatherstation */
-  err = readdata( rfd, data, &mdat);
-
-  /* lower DTR and RTS on serial line */
-  printf("ioctl\t\t: lowering DTR and RTS voltage\n");
-  ioctl(rfd, TIOCMGET, &tset);
-  tset &= ~TIOCM_DTR;
-  tset &= ~TIOCM_RTS;
-  ioctl(rfd, TIOCMSET, &tset);
+  /* read WMR 9x8 weatherstation */
+  err = wmr9x8rd( rfd, data, &mdat);
 
   /* reset terminal attributes */
   tcsetattr(rfd, TCSANOW, &op);
   tcgetattr(rfd, &tp);
-  printf("tcgetattr\t: errno %d\n", errno);
-  printf("tcgetattr\t: current settings\n");
-  printf("tcgetattr\t: iflag - 0%o; oflag - 0%o; cflag - 0%o; lflag - 0%o\n",
-    tp.c_iflag, tp.c_oflag, tp.c_cflag, tp.c_lflag);
 
   close(rfd);
   printf("close\t\t: errno: %d\n", errno);
-  }
-  return(err);
 }

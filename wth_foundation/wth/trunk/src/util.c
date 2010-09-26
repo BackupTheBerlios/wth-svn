@@ -76,10 +76,15 @@ wthd_init( ) {
   strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
   strncpy( pcwsrstation.config.device, "n.a.", TBUFF);
 
-  /* ONEWIRE */
+  /* 1-WIRE */
   strncpy(onewirestation.config.dbfile, "onewire.db", TBUFF);
   strncpy(onewirestation.config.device, "n.a.", TBUFF);
   onewirestation.config.mcycle = 10;
+
+  /* WMR9x8 */
+  strncpy(wmr9x8station.config.dbfile, "wmr9x8.db", TBUFF);
+  strncpy(wmr9x8station.config.device, "n.a.", TBUFF);
+  wmr9x8station.config.mcycle = 10;
 
   err = readconfig();
   printf("%s", echoconfig( "onewirestation"));
@@ -235,6 +240,7 @@ readconfig( ) {
         } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
 	  strncpy( ws2000station.config.rrdpath, strdup(value), SBUFF);
 	  printf("ws2000.rrdpath: \"%s\"\n", value);
+
         } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
 	  printf("pcwsr.device: \"%s\"\n", value);
 	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
@@ -247,6 +253,7 @@ readconfig( ) {
         } else if ( strcasecmp( name, "pcwsr.rrdpath" ) == 0 ) {
 	  strncpy( pcwsrstation.config.rrdpath, strdup(value), SBUFF);
 	  printf("pcwsr.rrdpath: \"%s\"\n", value);
+
         } else if ( strcasecmp( name, "onewire.device" ) == 0 ) {
 	  printf("onewire.device: \"%s\"\n", value);
 	  strncpy(onewirestation.config.device, value, MAXMSGLEN);
@@ -259,6 +266,19 @@ readconfig( ) {
         } else if ( strcasecmp( name, "onewire.mcycle" ) == 0 ) {
 	  printf("onewire.mcycle: \"%s\"\n", value);
 	  onewirestation.config.mcycle = atoi(value);
+
+        } else if ( strcasecmp( name, "wmr9x8.device" ) == 0 ) {
+	  printf("wmr9x8.device: \"%s\"\n", value);
+	  strncpy(wmr9x8station.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "wmr9x8.dbfile" ) == 0 ) {
+	  printf("wmr9x8.dbfile: \"%s\"\n", value);
+	  strncpy(wmr9x8station.config.dbfile, strdup(value), TBUFF);
+        } else if ( strcasecmp( name, "wmr9x8.rrdpath" ) == 0 ) {
+	  printf("wmr9x8.rrdpath: \"%s\"\n", value);
+	  strncpy(wmr9x8station.config.rrdpath, strdup(value), TBUFF);
+        } else if ( strcasecmp( name, "wmr9x8.mcycle" ) == 0 ) {
+	  printf("wmr9x8.mcycle: \"%s\"\n", value);
+	  wmr9x8station.config.mcycle = atoi(value);
         } else {
 	  printf("unknown option '%s' inf configuration file\n", name );
           return(-1);
