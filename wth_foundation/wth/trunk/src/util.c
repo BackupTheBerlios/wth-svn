@@ -102,21 +102,21 @@ wthd_init( ) {
 int
 echodata(unsigned char *data, int mdat) {
     int i;
-    char frame[NBUFF] = "";
-    char sf[3] = "";
+    char frame[TBUFF] = {'\0'};
+    char sf[4];
 
     syslog(LOG_DEBUG, "echodata : length dataframe : %d\n",mdat);
 
-    /* for better readability label each byte in frame */    
+    /* for better readability label each byte in frame */  
     for ( i = 0; i < mdat; i++ ) {
-      snprintf(sf, 4, "%2d:",i);
-      strncat(frame, sf, 4);
+      snprintf(sf, 4, "%02d:",i);
+      strncat(frame, sf, 3);
     }
     syslog(LOG_DEBUG, "echodata : %s\n", frame);    
     strcpy(frame, "");
 
     for ( i = 0; i < mdat; i++ ) {
-      snprintf(sf, 4, "%2x:",data[i]);
+      snprintf(sf, 4, "%02x:",data[i]);
       strncat(frame, sf, 4);
     }
 

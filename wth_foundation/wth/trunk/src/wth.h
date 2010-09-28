@@ -386,5 +386,6 @@ int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
 
-int shuffdat( unsigned char *cdat, unsigned char *rdat, int len);
-int wmr9x8rd( int rfd, unsigned char *data, int *ndat);
+int shuffdat( unsigned char *data, int ndat);
+int wmr9x8dac( unsigned char *data, int ndat);
+int wmr9x8rd( int rfd);
