@@ -25,6 +25,197 @@
 
 #include "wth.h"
 
+/*
+  wmr9x8_hd
+
+  POSIX thread to handle WMR9x8 weatherstation
+
+  opens port
+  call to data reading subroutine
+
+*/
+void *
+wmr9x8_hd( void *arg) {
+  int rfd, err;
+  struct termios tp, op;
+
+  syslog( LOG_DEBUG, "wmr9x8_hd: start of execution");
+
+  /* initialize serial port */
+  if ( initwmr9x8(&rfd, &tp, &op) == -1 )
+    return( ( void *) &failure);
+  
+  wmr9x8station.status.is_present = 1;
+
+  /* read WMR 9x8 weatherstation */
+  err = wmr9x8rd( rfd);
+
+  closewmr9x8(rfd, &op);
+
+  return( ( void *) &success);
+}
+
+/*
+  wmr9x8rd
+
+  reading data records from serial port
+  data acquisition to database
+
+*/
+int 
+wmr9x8rd( int rfd) {
+  int err = -1;
+  int sync, ndat;
+  unsigned char schr;
+  static unsigned char data[TBUFF+1];
+
+  sync = 0; ndat = 0;
+  for (;;) {
+    err = getschar( rfd, &schr);
+    if ( err == 1) {
+      data[ndat] = schr;
+      ndat++;
+    } else {
+      syslog(LOG_DEBUG, "wmr9x8rd: could not read 1 char err: %d\n", err);
+    }
+
+    if ( schr == 0xff) {
+      sync++;
+    }
+
+    if ( sync == 2) {
+      syslog(LOG_DEBUG, "wmr9x8rd: header sync received\n");
+      shuffdat( data, ndat);
+      //syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
+      //echodata( data, ndat);
+
+      wmr9x8dac( data, ndat);
+      sync = 0; ndat = 0;
+    }
+  }
+
+  return(err); 
+}
+
+/*
+  wmr9x8dac
+
+  data acquisition
+
+*/
+int
+wmr9x8dac( unsigned char *data, int ndat) {
+  int err;
+  unsigned char devtype;
+
+  syslog(LOG_DEBUG, "wmr9x8dac: data record");
+  echodata( data, ndat);
+
+  devtype = data[2];
+  syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);
+
+  if ( devtype == 0x00) 
+    wind_rd( data); 
+  
+  if ( devtype == 0x01) 
+    rain_rd( data); 
+  
+  if ( devtype == 0x02) 
+    thin_rd( data); 
+  
+  if ( devtype == 0x03) 
+    thout_rd( data); 
+  
+  if ( devtype == 0x04) 
+    tin_rd( data); 
+  
+  if ( devtype == 0x05) 
+    thb_rd( data); 
+  
+  if ( devtype == 0x06) 
+    thbnew_rd( data); 
+  
+  if ( devtype == 0x0e) 
+    minute_rd( data); 
+  
+  if ( devtype == 0x0f) 
+    clock_rd( data); 
+  
+  return(err);
+}
+
+int
+wind_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"wind_rd: data acquisition of wind data");
+  return err;
+}
+
+int
+rain_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"rain_rd: data acquisition of rain data");
+  return err;
+}
+
+int
+thin_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"thin_rd: data acquisition of indoor temperature/humidity data");
+  return err;
+}
+
+int
+thout_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"thout_rd: data acquisition of outdoor temperature/humidity data");
+  return err;
+}
+
+int
+tin_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"tin_rd: data acquisition of indoor temperature data");
+  return err;
+}
+
+int
+thb_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"thb_rd: data acquisition of indoor temperature/humdity/barometer wind data");
+  return err;
+}
+
+int
+thbnew_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"thbnew_rd: data acquisition of indoor temperature/humdity/barometer wind data");
+  return err;
+}
+
+int
+minute_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"minute_rd: data acquisition of minute data");
+  return err;
+}
+
+int
+clock_rd( unsigned char *data) {
+  int err;
+
+  syslog( LOG_DEBUG,"clock_rd: data acquisition of clock data");
+  return err;
+}
+
 /*  initwmr9x8
 
   opens serial port for communication
@@ -252,125 +443,3 @@ shuffdat( unsigned char *data, int ndat) {
   return(0);
 }
 
-int
-wmr9x8dac( unsigned char *data, int ndat) {
-  int err;
-
-  return(err);
-}
-
-
-int 
-wmr9x8rd( int rfd) {
-  int err = -1;
-  int sync, ndat;
-  unsigned char schr;
-  unsigned char data[TBUFF+1];
-
-  sync = 0; ndat = 0;
-  for (;;) {
-    err = getschar( rfd, &schr);
-    if ( err == 1) {
-      printf("wmr9x8rd: err: %d schr : %02x\n", err, schr);
-      data[ndat] = schr;
-      ndat++;
-    } else {
-      printf("wmr9x8rd: could not read 1 char err: %d\n", err);
-    }
-
-    if ( schr == 0xff) {
-      sync++;
-    }
-
-    if ( sync == 2) {
-      printf("wmr9x8rd: header sync received\n");
-      //shuffdat( cdat, rdat, cnt);
-      printf("raw data\n");
-      echodata( data, ndat);
-
-      printf("corrected data\n");
-      shuffdat( &data, ndat);
-      echodata( data, ndat);
-      sync = 0; ndat = 0;
-    }
-  }
-
-  return(err); 
-}
-
-
-
-void *
-wmr9x8_hd( void *arg) {
-  int rfd, tset, i;
-  int err, mdat;
-  struct termios tp, op;
-
-  syslog( LOG_DEBUG, "wmr9x8_hd: start of execution");
-
-  /* initialize serial port */
-  if ( initwmr9x8(&rfd, &tp, &op) == -1 )
-    return(-1);
-  
-  wmr9x8station.status.is_present = 1;
-
-  /*
-  rfd = open("/dev/ttyd0", O_RDWR | O_NOCTTY | O_NONBLOCK | O_NDELAY);
-  if (rfd == -1)
-  {
-    syslog(LOG_ALERT, "wmr9x8_hd: couldn't open /dev/ttyd0");
-  } else {
-    fcntl(rfd, F_SETFL, 0);
-  }
-  */
-
-  /* get terminal attributes */
-  tcgetattr(rfd, &op);
-  tcgetattr(rfd, &tp);
-
-  /* set terminal attr */
-  cfsetispeed(&tp, 9600);
-  cfsetospeed(&tp, 9600);
-
-  tp.c_iflag = 0;
-  tp.c_oflag = 0;
-  tp.c_cflag = 0;
-  tp.c_lflag = 0;
-
-  for ( i = 0; i < NCCS; i++) {
-	tp.c_cc[i] = 0;
-  }
-
-  tp.c_iflag &= (IXON | IXOFF | IXANY);
-  
-  tp.c_cflag |= PARENB;
-  tp.c_cflag &= ~PARODD;
-  tp.c_cflag |= CLOCAL;
-  tp.c_cflag |= CREAD;
-  tp.c_cflag |= CS8;
-  tp.c_cflag |= CSTOPB;
-  tp.c_cflag |= CSIZE; 
-  
-  tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-
-  tp.c_cc[VMIN]=0;
-  tp.c_cc[VTIME]=1;
-
-  tcsetattr(rfd, TCSANOW, &tp);
-  tcgetattr(rfd, &tp);
-
-  /* raise DTR and RTS */
-  tset |= TIOCM_DTR;
-  tset |= TIOCM_RTS;
-  ioctl(rfd, TIOCMSET, &tset);
-
-  /* read WMR 9x8 weatherstation */
-  err = wmr9x8rd( rfd);
-
-  /* reset terminal attributes */
-  tcsetattr(rfd, TCSANOW, &op);
-  tcgetattr(rfd, &tp);
-
-  close(rfd);
-  printf("close\t\t: errno: %d\n", errno);
-}

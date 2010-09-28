@@ -386,6 +386,15 @@ int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
 
+int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
+int closewmr9x8( int fd, struct termios *oldtio);
 int shuffdat( unsigned char *data, int ndat);
+int getschar (int fd, unsigned char *schar);
 int wmr9x8dac( unsigned char *data, int ndat);
+int wind_rd( unsigned char *data);
+int rain_rd( unsigned char *data);
+int thin_rd( unsigned char *data);
+int thout_rd( unsigned char *data);
+int thb_rd( unsigned char *data);
+int thbnew_rd( unsigned char *data);
 int wmr9x8rd( int rfd);
