@@ -56,43 +56,6 @@ char
 }
 
 /*
-  bitprint 
-
-  utility function to print bits of 8-bit byte
-*/
-int 
-bitprint ( int byte, char *s_reg ) {
-  int x;
-  struct timezone tz;
-  struct timeval  tv;
-
-  gettimeofday(&tv, &tz);
-  syslog(LOG_INFO, "%5s | %lu.%lu : #", s_reg, 
-	 (long unsigned int) tv.tv_sec, (long unsigned int)tv.tv_usec);
-  for( x = 7; x > -1; x-- )
-    syslog(LOG_INFO, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
-  return(0);
-}
-
-/*
-  longprint
-
-  utility function to print bits of 16-bit byte
-*/
-int 
-longprint ( int byte, char *s_reg ) {
-  int x;
-  struct timezone tz;
-  struct timeval  tv;
-
-  gettimeofday(&tv, &tz);
-  syslog(LOG_INFO, "%5s | %lu.%lu : #", s_reg, 
-	 (long unsigned int) tv.tv_sec, (long unsigned int) tv.tv_usec);
-  for( x = 15; x > -1; x-- )
-    syslog(LOG_INFO, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
-  return(0);
-}
-/*
    echo_serialnum
 
    returns serial number of 1-Wire device in char array

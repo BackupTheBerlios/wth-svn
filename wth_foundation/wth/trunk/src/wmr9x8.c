@@ -24,6 +24,15 @@
 */
 
 #include "wth.h"
+#define WINDLEN 11
+#define RAINLEN 16
+#define THINLEN 9
+#define THOUTLEN 9
+#define TINLEN 7
+#define THBLEN 13
+#define THBNEWLEN 14
+#define MINLEN 5
+#define CLOCKLEN 9
 
 /*
   wmr9x8_hd
@@ -111,108 +120,633 @@ wmr9x8dac( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "wmr9x8dac: data record");
   echodata( data, ndat);
 
+  err = checksum( data, ndat);
+
   devtype = data[2];
   syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);
 
-  if ( devtype == 0x00) 
-    wind_rd( data); 
+  if ( devtype == 0x00 && ndat == WINDLEN) 
+    wind_dac( data); 
   
-  if ( devtype == 0x01) 
-    rain_rd( data); 
+  if ( devtype == 0x01 && ndat == RAINLEN) 
+    rain_dac( data); 
   
-  if ( devtype == 0x02) 
-    thin_rd( data); 
+  if ( devtype == 0x02 && ndat == THINLEN) 
+    thin_dac( data); 
   
-  if ( devtype == 0x03) 
-    thout_rd( data); 
+  if ( devtype == 0x03 && ndat == THOUTLEN) 
+    thout_dac( data); 
   
-  if ( devtype == 0x04) 
-    tin_rd( data); 
+  if ( devtype == 0x04 && ndat == TINLEN) 
+    tin_dac( data); 
   
-  if ( devtype == 0x05) 
-    thb_rd( data); 
+  if ( devtype == 0x05 && ndat == THBLEN) 
+    thb_dac( data); 
   
-  if ( devtype == 0x06) 
-    thbnew_rd( data); 
+  if ( devtype == 0x06 && ndat == THBNEWLEN) 
+    thbnew_dac( data); 
   
-  if ( devtype == 0x0e) 
-    minute_rd( data); 
+  if ( devtype == 0x0e && ndat == MINLEN) 
+    minute_dac( data); 
   
-  if ( devtype == 0x0f) 
-    clock_rd( data); 
+  if ( devtype == 0x0f && ndat == CLOCKLEN) 
+    clock_dac( data); 
   
   return(err);
 }
 
+/*
+  wind_dac
+  windsensor
+*/
 int
-wind_rd( unsigned char *data) {
+wind_dac( unsigned char *data) {
   int err;
 
-  syslog( LOG_DEBUG,"wind_rd: data acquisition of wind data");
+  unsigned char gust_overrange;
+  unsigned char average_overrange;
+  unsigned char low_battery;
+  int wind_direction;
+  float gust_windspeed;
+  float average_windspeed;
+  unsigned char chill_nodata;
+  unsigned char chill_overrange;
+  unsigned char sign;
+  int windchill;
+  time_t dataset_date;
+
+  syslog( LOG_DEBUG,"wind_dac: data acquisition of wind data");
+
+  time(&dataset_date);
+
+  gust_overrange    = getbits( data[3], 4, 1);
+  average_overrange = getbits( data[3], 5, 1);
+  low_battery       = getbits( data[3], 6, 1);
+  syslog(LOG_DEBUG,"wind_dac: gust_overrange: %d\n", gust_overrange);
+  syslog(LOG_DEBUG,"wind_dac: average_overrange: %d\n", average_overrange);
+  syslog(LOG_DEBUG,"wind_dac: low_battery: %d\n", low_battery);
+
+  wind_direction =      lownibble(data[4]) + 
+                   10 * highnibble(data[4]) + 
+                  100 * lownibble(data[5]);
+  syslog(LOG_DEBUG,"wind_dac: wind_direction: %d\n", wind_direction);
+
+  gust_windspeed =  0.1 * highnibble(data[5]) +
+                    1.0 * lownibble(data[6]) +
+                   10.0 * highnibble(data[6]);
+  syslog(LOG_DEBUG,"wind_dac: gust_windspeed: %f\n", gust_windspeed);
+
+  average_windspeed =  0.1 * lownibble(data[7]) +
+                       1.0 * highnibble(data[7]) +
+                      10.0 * lownibble(data[8]);
+  syslog(LOG_DEBUG,"wind_dac: average_windspeed: %f\n", average_windspeed);
+
+  chill_nodata    = getbits( data[8], 5, 1);
+  chill_overrange = getbits( data[8], 6, 1);
+  sign            = getbits( data[8], 7, 1);
+
+  syslog(LOG_DEBUG,"wind_dac: chill_nodata: %d\n", chill_nodata);
+  syslog(LOG_DEBUG,"wind_dac: chill_overrange: %d\n", chill_overrange);
+  syslog(LOG_DEBUG,"wind_dac: sign: %d\n", sign);
+  windchill =  1.0  * lownibble(data[9]) +
+                10.0 * highnibble(data[9]);
+  if ( sign == 1) 
+    windchill = - windchill;
+
+  syslog(LOG_DEBUG,"wind_dac: windchill: %d\n", windchill); 
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("windsensor", "gust_overrange", dataset_date, (unsigned long int)gust_overrange, wmr9x8db);
+  statval_db("windsensor", "average_overrange", dataset_date, (unsigned long int)average_overrange, wmr9x8db);
+  statval_db("windsensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db( "windsensor", "wind_direction", dataset_date, (float)wind_direction, wmr9x8db);
+  measval_db( "windsensor", "gust_windspeed", dataset_date, (float)gust_windspeed, wmr9x8db);
+  measval_db( "windsensor", "average_windspeed", dataset_date, (float)average_windspeed, wmr9x8db);
+  measval_db( "windsensor", "windchill", dataset_date, (float)windchill, wmr9x8db);
+
+  statval_db("windsensor", "chill_nodata", dataset_date, (unsigned long int)chill_nodata, wmr9x8db);
+  statval_db("windsensor", "chill_overrange", dataset_date, (unsigned long int)chill_overrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+  return err;
+}
+
+/*
+  rain_dac
+  rainsensor
+*/
+int
+rain_dac( unsigned char *data) {
+  int err;
+  unsigned char rate_overrange;
+  unsigned char total_overrange;
+  unsigned char low_battery;
+  unsigned char yesterday_overrange;
+
+  float current_rainrate;
+  float total_rainfall;
+  float yesterday_rainfall;
+
+  struct tm *total_startdate;
+  time_t startdate;
+  int t_minute;
+  int t_hour;
+  int t_day;
+  int t_month;
+  int t_year;
+  time_t dataset_date;
+  char tbuf[TBUFF];
+
+  syslog( LOG_DEBUG,"rain_dac: data acquisition of rain data");
+  time(&dataset_date);
+  time(&startdate);
+  total_startdate = gmtime(&startdate);
+
+  rate_overrange      = getbits( data[3], 4, 1);
+  total_overrange     = getbits( data[3], 5, 1);
+  low_battery         = getbits( data[3], 6, 1);
+  yesterday_overrange = getbits( data[3], 7, 1);
+
+  current_rainrate    =   1.0 * lownibble( data[4]) +
+                         10.0 * highnibble( data[4]) +
+                        100.0 * lownibble( data[5]);
+
+  total_rainfall      =   0.1 * highnibble(data[5]) +
+                          1.0 * lownibble(data[6]) +
+                         10.0 * highnibble(data[6]) +
+                        100.0 * lownibble(data[7]) +
+                       1000.0 * highnibble(data[7]);
+
+  yesterday_rainfall  =   1.0 * lownibble(data[8]) +
+                         10.0 * highnibble(data[8]) +
+                        100.0 * lownibble(data[9]) +
+                       1000.0 * highnibble(data[9]);
+
+  t_minute            =         lownibble( data[10]) + 
+                           10 * highnibble(data[10]);
+
+  t_hour              =         lownibble( data[11]) + 
+                           10 * highnibble(data[11]);
+
+  t_day               =         lownibble( data[12]) + 
+                           10 * highnibble(data[12]);
+
+  t_month             =         lownibble( data[13]) + 
+                           10 * highnibble(data[13]);
+
+  t_year              =         lownibble( data[14]) + 
+                           10 * highnibble(data[14]);
+
+  total_startdate->tm_sec  = 0;
+  total_startdate->tm_min  = t_minute;
+  total_startdate->tm_hour = t_hour;
+  total_startdate->tm_mday = t_day;
+  total_startdate->tm_mon  = t_month - 1;
+  total_startdate->tm_year = t_year;
+  startdate = mktime( total_startdate);
+  strftime(tbuf, sizeof(tbuf), "%x %X", total_startdate);
+
+  syslog(LOG_DEBUG, "rain_dac: rate_overrange: %d\n", rate_overrange);
+  syslog(LOG_DEBUG, "rain_dac: total_overrange: %d\n", total_overrange);
+  syslog(LOG_DEBUG, "rain_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG, "rain_dac: yesterday_overrange: %d\n", yesterday_overrange);
+
+  syslog(LOG_DEBUG, "rain_dac: current_rainrate: %f\n", current_rainrate);
+  syslog(LOG_DEBUG, "rain_dac: total_rainfall: %f\n", total_rainfall);
+  syslog(LOG_DEBUG, "rain_dac: yesterday_rainfall: %f\n", yesterday_rainfall);
+
+  syslog(LOG_DEBUG, "rain_dac: t_minute: %d\n", t_minute);
+  syslog(LOG_DEBUG, "rain_dac: t_hour: %d\n", t_hour);
+  syslog(LOG_DEBUG, "rain_dac: t_day: %d\n", t_day);
+  syslog(LOG_DEBUG, "rain_dac: t_month: %d\n", t_month);
+  syslog(LOG_DEBUG, "rain_dac: t_year: %d\n", t_year);
+  syslog(LOG_DEBUG, "rain_dac: total_startdate: %lu\n", (long unsigned int)startdate);
+  syslog(LOG_DEBUG, "rain_dac: total_startdate: %s\n", tbuf);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("rainsensor", "rate_overrange", dataset_date, (unsigned long int)rate_overrange, wmr9x8db);
+  statval_db("rainsensor", "total_overrange", dataset_date, (unsigned long int)total_overrange, wmr9x8db);
+  statval_db("rainsensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_db("rainsensor", "yesterday_overrange", dataset_date, (unsigned long int)yesterday_overrange, wmr9x8db);
+  measval_db( "rainsensor", "current_rainrate", dataset_date, (float)current_rainrate, wmr9x8db);
+  measval_db( "rainsensor", "total_rainfall", dataset_date, (float)total_rainfall, wmr9x8db);
+  measval_db( "rainsensor", "yesterday_rainfall", dataset_date, (float)yesterday_rainfall, wmr9x8db);
+  statval_db("rainsensor", "total_startdate", dataset_date, (unsigned long int)startdate, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
+  return err;
+}
+
+/*
+  thin_dac
+
+  temperature, humidity indoor sensor 
+  untested 
+*/
+int
+thin_dac( unsigned char *data) {
+  int err;
+  unsigned char dew_underrange;
+  unsigned char low_battery;
+  unsigned char over_underrange;
+  unsigned char sign;
+  float temperature;
+  float humidity;
+  float dew_temperature;
+  time_t dataset_date;
+
+  syslog( LOG_DEBUG,"thin_dac: data acquisition of indoor temperature/humidity data");
+  time(&dataset_date);
+  dew_underrange  = getbits(data[3], 4, 1);
+  low_battery     = getbits(data[3], 6, 1);
+
+  temperature     =  0.1 * lownibble(data[4]) +
+                     1.0 * highnibble(data[4]) +
+                    10.0 * lownibble(data[5]) +
+                   100.0 * getbits(data[5], 5, 2);
+ 
+  over_underrange = getbits(data[5], 6, 1); 
+  sign            = getbits(data[5], 7, 1); 
+  if ( sign == 1) 
+    temperature = -temperature;
+
+  humidity        =  1.0 * lownibble(data[6]) +
+                    10.0 * highnibble(data[6]);
+
+  dew_temperature =  1.0 * lownibble(data[7]) +
+                    10.0 * highnibble(data[7]);
+
+  syslog(LOG_DEBUG, "thin_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_DEBUG, "thin_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG, "thin_dac: temperature: %f\n", temperature);
+  syslog(LOG_DEBUG, "thin_dac: humidity: %f\n", humidity);
+  syslog(LOG_DEBUG, "thin_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_DEBUG, "thin_dac: over_underrange: %d\n", over_underrange);
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("thin_sensor", "dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
+  statval_db("thin_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db( "thin_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
+  measval_db( "thin_sensor", "humidity", dataset_date, (float)humidity, wmr9x8db);
+  measval_db( "thin_sensor", "dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
+  statval_db("thin_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
+  return err;
+}
+
+/*
+  thout_dac
+  temperature, humidity outdoor sensor
+*/
+int
+thout_dac( unsigned char *data) {
+  int err;
+  unsigned char dew_underrange;
+  unsigned char low_battery;
+  unsigned char over_underrange;
+  unsigned char sign;
+  float temperature;
+  float humidity;
+  float dew_temperature;
+  time_t dataset_date;
+
+  syslog( LOG_DEBUG,"thout_dac: data acquisition of outdoor temperature/humidity data");
+  time(&dataset_date);
+  dew_underrange  = getbits(data[3], 4, 1);
+  low_battery     = getbits(data[3], 6, 1);
+
+  temperature     =  0.1 * lownibble(data[4]) +
+                     1.0 * highnibble(data[4]) +
+                    10.0 * lownibble(data[5]) +
+                   100.0 * getbits(data[5], 5, 2);
+ 
+  over_underrange = getbits(data[5], 6, 1); 
+  sign            = getbits(data[5], 7, 1); 
+  if ( sign == 1) 
+    temperature = -temperature;
+
+  humidity        =  1.0 * lownibble(data[6]) +
+                    10.0 * highnibble(data[6]);
+
+  dew_temperature =  1.0 * lownibble(data[7]) +
+                    10.0 * highnibble(data[7]);
+
+  syslog(LOG_DEBUG,"thout_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_DEBUG,"thout_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG,"thout_dac: temperature: %f\n", temperature);
+  syslog(LOG_DEBUG,"thout_dac: humidity: %f\n", humidity);
+  syslog(LOG_DEBUG,"thout_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_DEBUG,"thout_dac: over_underrange: %d\n", over_underrange);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("thout_sensor", "dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
+  statval_db("thout_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db( "thout_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
+  measval_db( "thout_sensor", "humidity", dataset_date, (float)humidity, wmr9x8db);
+  measval_db( "thout_sensor", "dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
+  statval_db("thout_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
+  return err;
+}
+
+/*
+  tin_dac
+  temperature indoor sensor
+  untested
+*/
+int
+tin_dac( unsigned char *data) {
+  int err;
+  unsigned char low_battery;
+  unsigned char over_underrange;
+  unsigned char sign;
+  float temperature;
+  time_t dataset_date;
+
+  syslog( LOG_DEBUG,"tin_dac: data acquisition of indoor temperature data");
+  time(&dataset_date);
+
+  temperature     =  0.1 * lownibble(data[4]) +
+                     1.0 * highnibble(data[4]) +
+                    10.0 * lownibble(data[5]) +
+                   100.0 * getbits(data[5], 5, 2);
+ 
+  over_underrange = getbits(data[5], 6, 1); 
+  sign            = getbits(data[5], 7, 1); 
+  if ( sign == 1) 
+    temperature = -temperature;
+
+  syslog(LOG_DEBUG,"tin_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG,"tin_dac: temperature: %f\n", temperature);
+  syslog(LOG_DEBUG,"tin_dac: over_underrange: %d\n", over_underrange);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("tin_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db("tin_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
+  statval_db("tin_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
+  return err;
+}
+
+/*
+  thb_dac
+  temperature, humidity, barometric pressure sensor
+  devicetype 0x05 - old version
+
+  untested
+*/
+int
+thb_dac( unsigned char *data) {
+  int err;
+  unsigned char dew_underrange;
+  unsigned char low_battery;
+  float temperature;
+  float humidity;
+  float pressure;
+  float dew_temperature;
+  unsigned char sign;
+  unsigned char over_underrange;
+  unsigned char weatherstatus;
+  int sealevel_offset;
+  time_t dataset_date;
+
+  syslog( LOG_DEBUG,"thb_dac: data acquisition of indoor temperature/humdity/barometer  data");
+  time(&dataset_date);
+  dew_underrange = getbits( data[3], 4,1);
+  low_battery    = getbits( data[3], 6,1);
+  temperature    = 0.1 * lownibble(data[4]) +
+                   1.0 * highnibble(data[4]) +
+                  10.0 * lownibble(data[5]) +
+                 100.0 * getbits(data[5], 4,2);
+
+  over_underrange = getbits(data[5], 6, 1);
+  sign            = getbits(data[5], 7, 1);
+
+  humidity        = 1.0 * lownibble(data[6]) +
+                   10.0 * highnibble(data[6]);
+
+  dew_temperature = 1.0 * lownibble(data[7]) +
+                   10.0 * highnibble(data[7]);
+
+  pressure        = 795.0 + 1.0 * data[8];
+
+  weatherstatus   = lownibble(data[9]);
+
+  sealevel_offset = 0.1 * lownibble(data[10]) +
+                    1.0 * highnibble(data[10]) +
+                   10.0 * lownibble(data[11]) +
+                  100.0 * highnibble(data[11]);
+
+  syslog(LOG_DEBUG, "thb_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_DEBUG, "thb_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG, "thb_dac: temperature: %f\n", temperature);
+  syslog(LOG_DEBUG, "thb_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_DEBUG, "thb_dac: humidity: %f\n", humidity);
+  syslog(LOG_DEBUG, "thb_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_DEBUG, "thb_dac: weatherstatus: %x\n", weatherstatus);
+  syslog(LOG_DEBUG, "thb_dac: sealevel_offset: %d\n", sealevel_offset);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("thb_sensor","dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
+  statval_db("thb_sensor","low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db("thb_sensor","temperature", dataset_date, (float)temperature, wmr9x8db);
+  measval_db("thb_sensor","humidity", dataset_date, (float)humidity, wmr9x8db);
+  measval_db("thb_sensor","dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
+  measval_db("thb_sensor","pressure", dataset_date, (float)pressure, wmr9x8db);
+  statval_db("thb_sensor","weatherstatus", dataset_date, (unsigned long int)weatherstatus, wmr9x8db);
+  statval_db("thb_sensor","over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
+
+  return err;
+}
+
+/*
+  thb_dac
+  temperature, humidity, barometric pressure sensor
+  devicetype 0x06 - new version
+*/
+int
+thbnew_dac( unsigned char *data) {
+  int err;
+  unsigned char dew_underrange;
+  unsigned char low_battery;
+  float temperature;
+  float humidity;
+  float pressure;
+  float dew_temperature;
+  unsigned char sign;
+  unsigned char over_underrange;
+  unsigned char weatherstatus;
+  int sealevel_offset;
+  time_t dataset_date;
+
+  syslog(LOG_DEBUG,"thbnew_dac: data acquisition of indoor temperature/humdity/barometer data");
+  time(&dataset_date);
+  dew_underrange = getbits( data[3], 4,1);
+  low_battery    = getbits( data[3], 6,1);
+  temperature    = 0.1 * lownibble(data[4]) +
+                   1.0 * highnibble(data[4]) +
+                  10.0 * lownibble(data[5]) +
+                 100.0 * getbits(data[5], 4,2);
+
+  over_underrange = getbits(data[5], 6, 1);
+  sign            = getbits(data[5], 7, 1);
+  if ( sign == 1 ) 
+    temperature = -temperature;
+
+  humidity        = 1.0 * lownibble(data[6]) +
+                   10.0 * highnibble(data[6]);
+
+  dew_temperature = 1.0 * lownibble(data[7]) +
+                   10.0 * highnibble(data[7]);
+
+  pressure        = 600.0 + 1.0 * ( data[8] + ( getbits(data[9], 0, 1) << 8));
+
+  weatherstatus   = highnibble(data[9]);
+
+  sealevel_offset = 0.1 * highnibble(data[10]) +
+                    1.0 * lownibble(data[11]) +
+                   10.0 * highnibble(data[11]) +
+                  100.0 * lownibble(data[12]) +
+                 1000.0 * highnibble(data[12]);
+
+  syslog(LOG_DEBUG,"thbnew_sensor: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_DEBUG,"thbnew_sensor: low_battery: %d\n", low_battery);
+  syslog(LOG_DEBUG,"thbnew_sensor: temperature: %f\n", temperature);
+  syslog(LOG_DEBUG,"thbnew_sensor: over_underrange: %d\n", over_underrange);
+  syslog(LOG_DEBUG,"thbnew_sensor: humidity: %f\n", humidity);
+  syslog(LOG_DEBUG,"thbnew_sensor: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_DEBUG,"thbnew_sensor: pressure: %f\n", pressure);
+  syslog(LOG_DEBUG,"thbnew_sensor: weatherstatus: %d\n", weatherstatus);
+  syslog(LOG_DEBUG,"thbnew_sensor: sealevel_offset: %d\n", sealevel_offset);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  statval_db("thbnew_sensor","dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
+  statval_db("thbnew_sensor","low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  measval_db("thbnew_sensor","temperature", dataset_date, (float)temperature, wmr9x8db);
+  measval_db("thbnew_sensor","humidity", dataset_date, (float)humidity, wmr9x8db);
+  measval_db("thbnew_sensor","dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
+  measval_db("thbnew_sensor","pressure", dataset_date, (float)pressure, wmr9x8db);
+  statval_db("thbnew_sensor","weatherstatus", dataset_date, (unsigned long int)weatherstatus, wmr9x8db);
+  statval_db("thbnew_sensor","over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+
+  sqlite3_close( wmr9x8db);
+
+
   return err;
 }
 
 int
-rain_rd( unsigned char *data) {
+minute_dac( unsigned char *data) {
   int err;
+  unsigned char onedigit;
+  unsigned char tendigit;
+  int minute;
+  unsigned char low_battery;
 
-  syslog( LOG_DEBUG,"rain_rd: data acquisition of rain data");
+ 
+  syslog( LOG_DEBUG,"minute_dac: data acquisition of minute data");
+  onedigit = lownibble( data[3]);
+  tendigit = getbits( data[3],6,3);
+  minute   =      onedigit + 
+             10 * tendigit;
+  syslog(LOG_DEBUG, "minute_dac: minute: %d\n", minute);
+
+  low_battery = getbits( data[3],7,1);
+  syslog(LOG_DEBUG, "minute_dac: low_battery: %d\n", low_battery);
+
   return err;
 }
 
 int
-thin_rd( unsigned char *data) {
+clock_dac( unsigned char *data) {
   int err;
+  int minute;
+  unsigned char low_battery;
+  int hour;
+  int day;
+  int month;
+  int year;
+  time_t dataset_date;
 
-  syslog( LOG_DEBUG,"thin_rd: data acquisition of indoor temperature/humidity data");
-  return err;
-}
+  syslog( LOG_DEBUG,"clock_dac: data acquisition of clock data");
+  time(&dataset_date);
 
-int
-thout_rd( unsigned char *data) {
-  int err;
+  minute      = 1 * lownibble(data[3]) +
+               10 * highnibble(data[3]);
 
-  syslog( LOG_DEBUG,"thout_rd: data acquisition of outdoor temperature/humidity data");
-  return err;
-}
+  low_battery = getbits(data[3], 7, 1);
+  hour        = 1 * lownibble(data[4]) +
+               10 * highnibble(data[4]);
 
-int
-tin_rd( unsigned char *data) {
-  int err;
+  day         = 1 * lownibble(data[5]) +
+               10 * highnibble(data[5]);
 
-  syslog( LOG_DEBUG,"tin_rd: data acquisition of indoor temperature data");
-  return err;
-}
+  month       = 1 * lownibble(data[6]) +
+               10 * highnibble(data[6]);
 
-int
-thb_rd( unsigned char *data) {
-  int err;
+  year        = 1 * lownibble(data[7]) +
+               10 * highnibble(data[7]);
 
-  syslog( LOG_DEBUG,"thb_rd: data acquisition of indoor temperature/humdity/barometer wind data");
-  return err;
-}
+  printf("clock: hour:minute %d:%d\n", hour, minute);
+  printf("clock: day.month.year %d.%d.%d\n", day, month, year);
 
-int
-thbnew_rd( unsigned char *data) {
-  int err;
-
-  syslog( LOG_DEBUG,"thbnew_rd: data acquisition of indoor temperature/humdity/barometer wind data");
-  return err;
-}
-
-int
-minute_rd( unsigned char *data) {
-  int err;
-
-  syslog( LOG_DEBUG,"minute_rd: data acquisition of minute data");
-  return err;
-}
-
-int
-clock_rd( unsigned char *data) {
-  int err;
-
-  syslog( LOG_DEBUG,"clock_rd: data acquisition of clock data");
   return err;
 }
 
@@ -443,3 +977,212 @@ shuffdat( unsigned char *data, int ndat) {
   return(0);
 }
 
+int
+checksum ( unsigned char *data, int ndat) {
+  int err;
+
+  return(err);
+}
+
+int
+measval_db( char *sensorname, char *parametername, time_t dataset_date, float mval, sqlite3 *wmr9x8db) {
+  int err;
+  char *errmsg;
+  int rowcnt, sensor_no, parameter_no, sensor_meas_no;
+  char query[SBUFF+1];
+  sqlite3_stmt *qcomp;
+
+  /* select sensor_no */
+  snprintf(query, SBUFF, 
+    "SELECT sensor_no FROM sensorname WHERE sensor_name = '%s'",
+    sensorname);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "measval_db: rror: select sensor_no: err: %d : sqlite_errmsg: %s\n", 
+            err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "measval_db : sensorname: %s sensor_no: %d", sensorname, sqlite3_column_int(qcomp, 0));
+    sensor_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+  /* select parameter_no of parametername */
+  snprintf(query, SBUFF, 
+    "SELECT parameter_no FROM parametername WHERE parameter_name = '%s'",
+    parametername);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "measval_db: error: select parameter_no of %s: err: %d : sqlite_errmsg: %s\n", 
+            parametername, err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "measval_db : parametername: %s parameter_no: %d", parametername, sqlite3_column_int(qcomp, 0));
+    parameter_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+  /* select sens_meas_no of windsensor and wind_direction */
+  snprintf(query, SBUFF, 
+    "SELECT sensor_meas_no FROM sensor_parameter WHERE sensor_no = %d AND parameter_no = %d",
+    sensor_no, parameter_no);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "measval_db: error: select sensor_meas_no of %s and %s: err: %d : sqlite_errmsg: %s\n", 
+            sensorname, parametername, err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "measval_db : sensor_meas_no: %d", sqlite3_column_int(qcomp, 0));
+    sensor_meas_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+ /* insert data values */
+  snprintf(query, SBUFF, 
+    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
+    (long unsigned int)dataset_date, sensor_meas_no, (double)mval); 
+  err = sqlite3_exec( wmr9x8db, query, NULL, NULL, &errmsg);
+  if ( err) { 
+    syslog(LOG_DEBUG,
+      "measval_db: error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(wmr9x8db));
+  }
+  if ( errmsg != NULL) {
+    sqlite3_free( errmsg);
+    errmsg = NULL;
+  }
+
+  /* insert date when last data has been updated */
+  snprintf(query, SBUFF, 
+    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
+    (long unsigned int)dataset_date, sensor_meas_no); 
+  err = sqlite3_exec( wmr9x8db, query, NULL, NULL, &errmsg);
+  if ( err) { 
+    syslog(LOG_DEBUG, 
+      "measval_db: error: update sensor date: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(wmr9x8db));
+  }
+  if ( errmsg != NULL) {
+    sqlite3_free( errmsg);
+    errmsg = NULL;
+  }
+
+  /* clean up and close */
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "measval_db: error database handling: err: %d : sqlite_errmsg: %s\n", 
+            err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  return err;
+}
+
+int
+statval_db( char *sensorname, char *statusname, time_t dataset_date, long unsigned int sval, sqlite3 *wmr9x8db) {
+  int err;
+  char *errmsg;
+  int rowcnt, sensor_no, status_no, sensor_meas_no;
+  char query[SBUFF+1];
+  sqlite3_stmt *qcomp;
+
+  /* select sensor_no */
+  snprintf(query, SBUFF, 
+    "SELECT sensor_no FROM sensorname WHERE sensor_name = '%s'",
+    sensorname);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "statval_db: rror: select sensor_no: err: %d : sqlite_errmsg: %s\n", 
+            err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "statval_db : sensorname: %s sensor_no: %d", sensorname, sqlite3_column_int(qcomp, 0));
+    sensor_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+  /* select status_no of statusname */
+  snprintf(query, SBUFF, 
+    "SELECT status_no FROM statusname WHERE status_name = '%s'",
+    statusname);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "statval_db: error: select status_no of %s: err: %d : sqlite_errmsg: %s\n", 
+            statusname, err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "statval_db : statusname: %s status_no: %d", statusname, sqlite3_column_int(qcomp, 0));
+    status_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+  /* select sens_meas_no of sensorname and statusname */
+  snprintf(query, SBUFF, 
+    "SELECT sensor_meas_no FROM sensor_status WHERE sensor_no = %d AND status_no = %d",
+    sensor_no, status_no);
+
+  err = sqlite3_prepare( wmr9x8db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "statval_db: error: select sensor_meas_no of %s and %s: err: %d : sqlite_errmsg: %s\n", 
+            sensorname, statusname, err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    syslog(LOG_DEBUG, "statval_db : sensor_meas_no: %d", sqlite3_column_int(qcomp, 0));
+    sensor_meas_no   = sqlite3_column_int(qcomp,0); 
+    rowcnt++;
+  }
+  err = sqlite3_finalize(qcomp);
+
+ /* insert status values */
+  snprintf(query, SBUFF, 
+    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
+    (long unsigned int)dataset_date, sensor_meas_no, (long unsigned int)sval); 
+  err = sqlite3_exec( wmr9x8db, query, NULL, NULL, &errmsg);
+  if ( err) { 
+    syslog(LOG_DEBUG,
+      "statval_db: error: insert status data: err: %d : sqlite_errmsg: %s\n", 
+      err, sqlite3_errmsg(wmr9x8db));
+  }
+  if ( errmsg != NULL) {
+    sqlite3_free( errmsg);
+    errmsg = NULL;
+  }
+
+  /* clean up and close */
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "statval_db: error database handling: err: %d : sqlite_errmsg: %s\n", 
+            err, sqlite3_errmsg(wmr9x8db));
+    return(err);
+  }
+
+  return err;
+}

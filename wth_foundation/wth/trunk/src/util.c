@@ -128,16 +128,84 @@ echodata(unsigned char *data, int mdat) {
 /* 
    getbits
 
-   transfrom bytes of weather station data to BCD, otherwise picking single
-   or group of bits.
-
+   return bit field of length n at position p of unsigned char x 
+   as unsigned char 
 */
 unsigned char
 getbits(unsigned char x, int p, int n) {
   return ( x>>(p+1-n)) & ~(~0 <<n);
 }
 
+/* 
+   lownibble
 
+   return low nibble of unsigned char x ( BCD)
+*/
+unsigned char
+lownibble(unsigned char x) {
+  return  x & ~0xf0;
+}
+
+/* 
+   highnibble
+
+   return high nibble of unsigned char x ( BCD)
+*/
+unsigned char
+highnibble(unsigned char x) {
+  return ( x>>4) & ~0xf0;
+}
+
+/*
+  bitprint 
+
+  utility function to print bits of 8-bit byte
+*/
+int 
+bitprint ( int byte, char *s_reg ) {
+  int x;
+  char frame[TBUFF+1];
+  char sbuf[2];
+  struct timezone tz;
+  struct timeval  tv;
+
+  gettimeofday(&tv, &tz);
+  snprintf(frame, TBUFF, "%5s | %lu.%lu : #", s_reg, 
+	 (long unsigned int) tv.tv_sec, (long unsigned int) tv.tv_usec);
+  for( x = 7; x > -1; x-- ) {
+    snprintf( sbuf, 2, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
+    strncat( frame, sbuf, 2);
+  }
+  strncat(frame,"b", 2);
+  syslog(LOG_DEBUG, "%s", frame);
+
+  return(0);
+}
+
+/*
+  longprint
+
+  utility function to print bits of 16-bit byte
+*/
+int 
+longprint ( int byte, char *s_reg ) {
+  int x;
+  char frame[TBUFF+1];
+  char sbuf[2];
+  struct timezone tz;
+  struct timeval  tv;
+
+  gettimeofday(&tv, &tz);
+  snprintf(frame, 24, "%5s | %lu.%lu : #", s_reg, 
+	 (long unsigned int) tv.tv_sec, (long unsigned int) tv.tv_usec);
+  for( x = 15; x > -1; x-- ) {
+    snprintf(sbuf, 1, "%i", (byte & 1 << x ) > 0 ? 1 : 0 );
+    strncat(frame, sbuf, 2);
+  }
+  strncat(frame,"b", 2);
+  syslog( LOG_DEBUG, "%s", frame);
+  return(0);
+}
 
 char *
 mkmsg2( const char *fmt, ...) {
