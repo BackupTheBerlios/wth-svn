@@ -36,7 +36,7 @@ int
 main ( int argc, char **argv ) 
 {
   int op, ret, nobg;
-  pthread_t ctid, ptid, wtid, owtid, wmrtid, stoptid;
+  pthread_t ctid, ptid, wtid, owtid, wmrtid, umtid, stoptid;
   sigset_t signals_to_block;
 
   char *lockfile = WS2000LOCK;
@@ -150,6 +150,20 @@ main ( int argc, char **argv )
       syslog(LOG_ALERT,"wthd: error! Can't create wmr9x8 thread");
     } 
   } else { syslog(LOG_INFO,"wthd: no WMR9x8 port configured\n"); }
+
+  /* ULTIMETER thread */
+  if ( strncmp( umeterstation.config.device, "/dev/", 5) == 0) {
+    syslog(LOG_INFO,"wthd: ULTIMETER weatherstation configured");
+    syslog(LOG_DEBUG, "wthd: umeterstation.config.device: %s\n", 
+      umeterstation.config.device);
+    if ( ( ret = pthread_create( &umtid, NULL, umeter_hd, NULL) == 0)) {
+      umeterstation.status.is_present = 1;
+      syslog(LOG_DEBUG, "wthd: creating umeter thread: success");
+    } else {
+      umeterstation.status.is_present = -1;
+      syslog(LOG_ALERT,"wthd: error! Can't create ULTIMETER thread");
+    } 
+  } else { syslog(LOG_INFO,"wthd: no ULTIMETER port configured\n"); }
 
 
   /* thread to handle interactive commands */

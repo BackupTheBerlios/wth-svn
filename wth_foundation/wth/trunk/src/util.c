@@ -84,10 +84,13 @@ wthd_init( ) {
   /* WMR9x8 */
   strncpy(wmr9x8station.config.dbfile, "wmr9x8.db", TBUFF);
   strncpy(wmr9x8station.config.device, "n.a.", TBUFF);
-  wmr9x8station.config.mcycle = 10;
+
+  /* ULTIMETER */
+  strncpy(umeterstation.config.dbfile, "umeter.db", TBUFF);
+  strncpy(umeterstation.config.device, "n.a.", TBUFF);
 
   err = readconfig();
-  printf("%s", echoconfig( "onewirestation"));
+  //printf("%s", echoconfig( "onewirestation"));
   printf("wthd_init: readconfig done\n");
 
   return(err);
@@ -347,6 +350,20 @@ readconfig( ) {
         } else if ( strcasecmp( name, "wmr9x8.mcycle" ) == 0 ) {
 	  printf("wmr9x8.mcycle: \"%s\"\n", value);
 	  wmr9x8station.config.mcycle = atoi(value);
+
+        } else if ( strcasecmp( name, "umeter.device" ) == 0 ) {
+	  printf("umeter.device: \"%s\"\n", value);
+	  strncpy(umeterstation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "umeter.dbfile" ) == 0 ) {
+	  printf("umeter.dbfile: \"%s\"\n", value);
+	  strncpy(umeterstation.config.dbfile, strdup(value), TBUFF);
+        } else if ( strcasecmp( name, "umeter.rrdpath" ) == 0 ) {
+	  printf("umeter.rrdpath: \"%s\"\n", value);
+	  strncpy(umeterstation.config.rrdpath, strdup(value), TBUFF);
+        } else if ( strcasecmp( name, "umeter.mcycle" ) == 0 ) {
+	  printf("umeter.mcycle: \"%s\"\n", value);
+	  umeterstation.config.mcycle = atoi(value);
+
         } else {
 	  printf("unknown option '%s' inf configuration file\n", name );
           return(-1);

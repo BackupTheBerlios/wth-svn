@@ -11,7 +11,7 @@
    $Id: wth.h 177 2008-06-10 15:19:08Z vjahns $
    $Revision: 177 $
 
-   Copyright 2009 Volker Jahns, <volker@thalreit.de>
+   Copyright 2009,2010 Volker Jahns, <volker@thalreit.de>
  
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -77,6 +77,7 @@
 #define PCWSRLEN    8
 #define MAXMSGLEN   256
 #define MAXQUERYLEN 1024
+#define UMBAUDRATE  2400
 
 /* from unp.h */
 #define LISTENQ     1024    /* 2nd argument to listen() */
@@ -240,6 +241,14 @@ typedef struct wmr9x8stat {
   unsigned char wmrrecord[MAXMSGLEN]; /* holds last wmr9x8 record */
 } wmr9x8stat_t;
 
+typedef struct umeterstat {
+  time_t lastread;  /* last status read date */
+  int numsens;      /* internal number of sensors */
+  int ndats;        /* number of datasets retrieved */
+  int is_present;   /* flag if station is attached */
+  unsigned char umrecord[MAXMSGLEN]; /* holds last ultimeter record */
+} umeterstat_t;
+
 typedef struct wsconf {
   int mcycle;
   char dbfile[TBUFF+1];
@@ -273,6 +282,12 @@ typedef struct wmr9x8 {
   sensor_t sensor[MAXSENSORS];
 } wmr9x8_t;
 
+typedef struct umeter {
+  umeterstat_t status;
+  wsconf_t config;
+  sensor_t sensor[MAXSENSORS];
+} umeter_t;
+
 typedef struct conf {
   int command;
   int argcmd;
@@ -302,11 +317,14 @@ sqlite3 *ws2000db;
 sqlite3 *pcwsrdb;
 sqlite3 *onewiredb;
 sqlite3 *wmr9x8db;
+sqlite3 *umeterdb;
 
 ws2000_t  ws2000station;
 pcwsr_t   pcwsrstation;
 onewire_t onewirestation;
-wmr9x8_t wmr9x8station;
+wmr9x8_t  wmr9x8station;
+umeter_t  umeterstation;
+
 conf_t   wsconf;
 
 int wthd_init();
@@ -408,3 +426,10 @@ int measval_db( char *sensorname, char *parametername,
   time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
   time_t dataset_date, long unsigned int sval, sqlite3 *database);
+
+
+int initumeter (int *pfd, struct termios *newtio,struct termios *oldtio);
+int closeumeter( int fd, struct termios *oldtio);
+int umeter_rd( int rfd);
+void *umeter_hd( void *arg);
+
