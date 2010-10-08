@@ -15,6 +15,9 @@
 -- Copyright (C) 2010 Volker Jahns, volker@thalreit.de
 --
 
+--
+-- table sensordata holds all measured values
+--
 CREATE TABLE sensordata
     (
       dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -26,23 +29,10 @@ CREATE TABLE sensordata
 
 CREATE INDEX sdidx2 ON sensordata(dataset_date);
 
-CREATE TABLE sensorstatus
-    (
-      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      statusset_date DATE NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      sensor_status INTEGER NOT NULL,
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
-    );
 
-CREATE INDEX ssidx ON sensorstatus(sensor_no, statusset_date,sensor_status);
-
-CREATE TABLE sensorupdate
-    (
-      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      last_update DATE NOT NULL
-    );
-
+--
+-- table sensornames with all sensors
+--
 CREATE TABLE sensornames
     (
       sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -56,6 +46,10 @@ INSERT INTO sensornames VALUES ('4','Indoor Humidity Sensor');               -- 
 INSERT INTO sensornames VALUES ('5','Outdoor Humidity/Temperature Sensor');  -- T/H Sensor (optional)
 INSERT INTO sensornames VALUES ('6','Indoor Temperator/Barometer Sensor');   -- Indoor T/Pressure (inside display unit)
 
+
+--
+-- table parameternames with all physical parameters
+--
 CREATE TABLE parameternames
   (
     parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -85,7 +79,10 @@ INSERT INTO parameternames VALUES ('17','Current Outdoor Humidity','% rel.hum.')
 INSERT INTO parameternames VALUES ('18','5 Minute Windspeed Average','m s-1');
 
 
-
+--
+-- relation of parameter to sensor
+-- i.e which physical parameter is measured in which sensor 
+--
 CREATE TABLE sensorparameters
   (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -125,6 +122,11 @@ INSERT INTO sensorparameters VALUES ('20','6','16'); -- Indoor T/Pressure sensor
 --
 -- table sensorupdate
 --
+CREATE TABLE sensorupdate
+    (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      last_update DATE NOT NULL
+    );
 
 INSERT INTO sensorupdate VALUES ('1','0');
 INSERT INTO sensorupdate VALUES ('2','0');
