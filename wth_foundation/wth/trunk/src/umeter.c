@@ -63,7 +63,7 @@ int
 datalogger_rd( unsigned char * datalogdata, int ndat) {
 
   int  base=16;
-  unsigned char umeterstr[5];
+  char umeterstr[5];
 
   unsigned int temp_out;
   unsigned int rain_total;
@@ -83,12 +83,16 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
+  time_t dataset_date;
 
   printf("datalog_rd: data: %s\n", datalogdata);
-  strncpy(umeterstr, (const char *)(datalogdata+2), 5); 
+  time(&dataset_date);
+
+  strncpy(umeterstr, (const char * )(datalogdata+2), 5); 
   umeterstr[4] = 0;
   windspeed = strtol(umeterstr, NULL, base);
   printf("windspeed: %d\n", windspeed);
+  measval_db( "windsensor", "Windspeed", dataset_date, (float)windspeed, umeterdb);
 
   strncpy(umeterstr, (const char *)(datalogdata+6), 5); 
   umeterstr[4] = 0;
@@ -166,11 +170,11 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
 */
 int
 packet_rd( unsigned char * packetdata, int ndat) {
-
+  int err;
   int  base=16;
 
-  unsigned char umeterstr[5];
-  unsigned char umeterlstr[9];
+  char umeterstr[5];
+  char umeterlstr[9];
   /* parameters of packet mode */
   unsigned int windspeed_peak;
   unsigned int winddir_peak;
@@ -191,17 +195,27 @@ packet_rd( unsigned char * packetdata, int ndat) {
   struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
+  time_t dataset_date;
 
   /*
     parse data in packetmode
   */
   printf("packetdata: '%s'\n", packetdata);
+  time(&dataset_date);
+
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( umeterstation.config.dbfile, &umeterdb))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      umeterstation.config.dbfile, sqlite3_errmsg(umeterdb));
+    return(err);
+  }
 
   strncpy(umeterstr, (const char *)(packetdata+5), 5); 
   umeterstr[4] = 0;
   printf("umeterstr: '%s'\n", umeterstr);
   windspeed_peak = strtol(umeterstr, NULL, base);
   printf("windspeed_peak: %d\n", windspeed_peak);
+  measval_db( "windsensor", "Windspeed", dataset_date, (float)windspeed_peak, umeterdb);
 
   strncpy(umeterstr, (const char *)(packetdata+9), 5); 
   umeterstr[4] = 0;
@@ -281,6 +295,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   windspeed_avg = strtol(umeterstr, NULL, base);
   printf("windspeed_avg: %d\n", windspeed_avg);
 
+  sqlite3_close( umeterdb);
   return(0);
 }
 

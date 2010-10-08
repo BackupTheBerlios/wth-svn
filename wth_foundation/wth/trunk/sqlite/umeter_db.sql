@@ -24,7 +24,7 @@ CREATE TABLE sensordata
       dataset_date DATE NOT NULL,
       sensor_meas_no INTEGER NOT NULL,
       meas_value FLOAT NOT NULL,
-      FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
+      FOREIGN KEY (sensor_meas_no) REFERENCES sensor_parameter (sensor_meas_no)
     );
 
 CREATE INDEX sdidx2 ON sensordata(dataset_date);
@@ -33,91 +33,91 @@ CREATE INDEX sdidx2 ON sensordata(dataset_date);
 --
 -- table sensornames with all sensors
 --
-CREATE TABLE sensornames
+CREATE TABLE sensorname
     (
       sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensorname VARCHAR(255) NOT NULL
+      sensor_name VARCHAR(255) NOT NULL
     );
 
-INSERT INTO sensornames VALUES ('1','Wind Sensor');                          -- Wind Sensor
-INSERT INTO sensornames VALUES ('2','Temperature Sensor');                   -- Temperature Sensor
-INSERT INTO sensornames VALUES ('3','Rain Gauge');                           -- Rain Gauge
-INSERT INTO sensornames VALUES ('4','Indoor Humidity Sensor');               -- Indoor Humidity Sensor ( optional)
-INSERT INTO sensornames VALUES ('5','Outdoor Humidity/Temperature Sensor');  -- T/H Sensor (optional)
-INSERT INTO sensornames VALUES ('6','Indoor Temperator/Barometer Sensor');   -- Indoor T/Pressure (inside display unit)
+INSERT INTO sensorname VALUES ('1','Wind Sensor');                          -- Wind Sensor
+INSERT INTO sensorname VALUES ('2','Temperature Sensor');                   -- Temperature Sensor
+INSERT INTO sensorname VALUES ('3','Rain Gauge');                           -- Rain Gauge
+INSERT INTO sensorname VALUES ('4','Indoor Humidity Sensor');               -- Indoor Humidity Sensor ( optional)
+INSERT INTO sensorname VALUES ('5','Outdoor Humidity/Temperature Sensor');  -- T/H Sensor (optional)
+INSERT INTO sensorname VALUES ('6','Indoor Temperator/Barometer Sensor');   -- Indoor T/Pressure (inside display unit)
 
 
 --
 -- table parameternames with all physical parameters
 --
-CREATE TABLE parameternames
+CREATE TABLE parametername
   (
     parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     parameter_name VARCHAR(64) NOT NULL,
     parameter_unit VARCHAR(64) NOT NULL
   );
 -- datalogger mode parameters
-INSERT INTO parameternames VALUES ('1','Wind Speed','m s-1');
-INSERT INTO parameternames VALUES ('2','Wind Direction','deg');
-INSERT INTO parameternames VALUES ('3','Outdoor Temp','deg C');
-INSERT INTO parameternames VALUES ('4','Rain Longterm Total','mm');
-INSERT INTO parameternames VALUES ('5','Barometer','hPa');
-INSERT INTO parameternames VALUES ('6','Indoor temp','deg C');
-INSERT INTO parameternames VALUES ('7','Outdoor Humidity','% rel.hum.');
-INSERT INTO parameternames VALUES ('8','Indoor Humidity','% rel.hum');
-INSERT INTO parameternames VALUES ('9','Today Rain Total','mm');
-INSERT INTO parameternames VALUES ('10','1 Minute Windspeed Average','m s-1');
+INSERT INTO parametername VALUES ('1','Wind Speed','m s-1');
+INSERT INTO parametername VALUES ('2','Wind Direction','deg');
+INSERT INTO parametername VALUES ('3','Outdoor Temp','deg C');
+INSERT INTO parametername VALUES ('4','Rain Longterm Total','mm');
+INSERT INTO parametername VALUES ('5','Barometer','hPa');
+INSERT INTO parametername VALUES ('6','Indoor temp','deg C');
+INSERT INTO parametername VALUES ('7','Outdoor Humidity','% rel.hum.');
+INSERT INTO parametername VALUES ('8','Indoor Humidity','% rel.hum');
+INSERT INTO parametername VALUES ('9','Today Rain Total','mm');
+INSERT INTO parametername VALUES ('10','1 Minute Windspeed Average','m s-1');
 -- packetmode parameters
-INSERT INTO parameternames VALUES ('11','Windspeed Peak 5 Minute','m s-1');
-INSERT INTO parameternames VALUES ('12','Direction of Windspeed Peak','deg');
-INSERT INTO parameternames VALUES ('13','Current Outdoor Temp','deg C');
+INSERT INTO parametername VALUES ('11','Windspeed Peak 5 Minute','m s-1');
+INSERT INTO parametername VALUES ('12','Direction of Windspeed Peak','deg');
+INSERT INTO parametername VALUES ('13','Current Outdoor Temp','deg C');
 
-INSERT INTO parameternames VALUES ('14','Current Barometer','hPa');
-INSERT INTO parameternames VALUES ('15','Barometer Delta','hPa');
-INSERT INTO parameternames VALUES ('16','Barometer Correction Factor','');
-INSERT INTO parameternames VALUES ('17','Current Outdoor Humidity','% rel.hum.');
-INSERT INTO parameternames VALUES ('18','5 Minute Windspeed Average','m s-1');
+INSERT INTO parametername VALUES ('14','Current Barometer','hPa');
+INSERT INTO parametername VALUES ('15','Barometer Delta','hPa');
+INSERT INTO parametername VALUES ('16','Barometer Correction Factor','');
+INSERT INTO parametername VALUES ('17','Current Outdoor Humidity','% rel.hum.');
+INSERT INTO parametername VALUES ('18','5 Minute Windspeed Average','m s-1');
 
 
 --
 -- relation of parameter to sensor
 -- i.e which physical parameter is measured in which sensor 
 --
-CREATE TABLE sensorparameters
+CREATE TABLE sensor_parameter
   (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
       parameter_no INTEGER NOT NULL,
       FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+      FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
   );
 
 
-INSERT INTO sensorparameters VALUES ('1','1','1');   -- Windsensor and Wind Speed
-INSERT INTO sensorparameters VALUES ('2','1','2');   -- Windsensor and Wind Direction 
-INSERT INTO sensorparameters VALUES ('3','1','10');  -- Windsensor and 1 Minute Windspeed Average 
-INSERT INTO sensorparameters VALUES ('4','1','11');  -- Windsensor and Windspeed Peak 5 Minute
-INSERT INTO sensorparameters VALUES ('5','1','12');  -- Windsensor and Direction of Windspeed Peak
-INSERT INTO sensorparameters VALUES ('6','1','18');  -- Windsensor and 5 Minute Windspeed Average
+INSERT INTO sensor_parameter VALUES ('1','1','1');   -- Windsensor and Wind Speed
+INSERT INTO sensor_parameter VALUES ('2','1','2');   -- Windsensor and Wind Direction 
+INSERT INTO sensor_parameter VALUES ('3','1','10');  -- Windsensor and 1 Minute Windspeed Average 
+INSERT INTO sensor_parameter VALUES ('4','1','11');  -- Windsensor and Windspeed Peak 5 Minute
+INSERT INTO sensor_parameter VALUES ('5','1','12');  -- Windsensor and Direction of Windspeed Peak
+INSERT INTO sensor_parameter VALUES ('6','1','18');  -- Windsensor and 5 Minute Windspeed Average
 
-INSERT INTO sensorparameters VALUES ('7','2','3');   -- Temperatursensor and Outdoor Temp
-INSERT INTO sensorparameters VALUES ('8','2','13');  -- Temperatursensor and Current Outdoor Temp
+INSERT INTO sensor_parameter VALUES ('7','2','3');   -- Temperatursensor and Outdoor Temp
+INSERT INTO sensor_parameter VALUES ('8','2','13');  -- Temperatursensor and Current Outdoor Temp
 
-INSERT INTO sensorparameters VALUES ('9','3','4');   -- Raingauge and Rain Long Term Total
-INSERT INTO sensorparameters VALUES ('10','3','9');  -- Raingauge and Today Rain Total
+INSERT INTO sensor_parameter VALUES ('9','3','4');   -- Raingauge and Rain Long Term Total
+INSERT INTO sensor_parameter VALUES ('10','3','9');  -- Raingauge and Today Rain Total
 
-INSERT INTO sensorparameters VALUES ('11','4','8');  -- Indoor Humiditysensor and Indoor Humidity
+INSERT INTO sensor_parameter VALUES ('11','4','8');  -- Indoor Humiditysensor and Indoor Humidity
 
-INSERT INTO sensorparameters VALUES ('12','5','3');  -- Outdoor H/T Sensor and Outdoor Temp
-INSERT INTO sensorparameters VALUES ('13','5','7');  -- Outdoor H/T Sensor and Outdoor Humidity
-INSERT INTO sensorparameters VALUES ('14','5','13'); -- Outdoor H/T Sensor and Current Outdoor Temp
-INSERT INTO sensorparameters VALUES ('15','5','17'); -- Outdoor H/T Sensor and Current Outdoor Humidity
+INSERT INTO sensor_parameter VALUES ('12','5','3');  -- Outdoor H/T Sensor and Outdoor Temp
+INSERT INTO sensor_parameter VALUES ('13','5','7');  -- Outdoor H/T Sensor and Outdoor Humidity
+INSERT INTO sensor_parameter VALUES ('14','5','13'); -- Outdoor H/T Sensor and Current Outdoor Temp
+INSERT INTO sensor_parameter VALUES ('15','5','17'); -- Outdoor H/T Sensor and Current Outdoor Humidity
 
-INSERT INTO sensorparameters VALUES ('16','6','5');  -- Indoor T/Pressure sensor and Barometer
-INSERT INTO sensorparameters VALUES ('17','6','6');  -- Indoor T/Pressure sensor and Indoor Temperature
-INSERT INTO sensorparameters VALUES ('18','6','14'); -- Indoor T/Pressure sensor and Current Barometer
-INSERT INTO sensorparameters VALUES ('19','6','15'); -- Indoor T/Pressure sensor and Barometer Delta
-INSERT INTO sensorparameters VALUES ('20','6','16'); -- Indoor T/Pressure sensor and Barometer Correction Factor
+INSERT INTO sensor_parameter VALUES ('16','6','5');  -- Indoor T/Pressure sensor and Barometer
+INSERT INTO sensor_parameter VALUES ('17','6','6');  -- Indoor T/Pressure sensor and Indoor Temperature
+INSERT INTO sensor_parameter VALUES ('18','6','14'); -- Indoor T/Pressure sensor and Current Barometer
+INSERT INTO sensor_parameter VALUES ('19','6','15'); -- Indoor T/Pressure sensor and Barometer Delta
+INSERT INTO sensor_parameter VALUES ('20','6','16'); -- Indoor T/Pressure sensor and Barometer Correction Factor
 
 --
 -- table sensorupdate
