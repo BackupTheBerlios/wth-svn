@@ -4,10 +4,13 @@
 -- create SQLITE database for ULTIMETER weatherstation
 --
 --
---
 -- SQLITE Database description for 
 --   Peetbros ULTIMETER Weatherstation
 --
+-- includes 
+--   all possible sensors
+--   parameters of datalogger and 
+--   parameters of packet mode
 --
 -- Copyright (C) 2010 Volker Jahns, volker@thalreit.de
 --
@@ -125,5 +128,25 @@ INSERT INTO sensorparameters VALUES ('20','6','16'); -- Indoor T/Pressure sensor
 
 INSERT INTO sensorupdate VALUES ('1','0');
 INSERT INTO sensorupdate VALUES ('2','0');
+INSERT INTO sensorupdate VALUES ('3','0');
+INSERT INTO sensorupdate VALUES ('4','0');
+INSERT INTO sensorupdate VALUES ('5','0');
 
+INSERT INTO sensorupdate VALUES ('6','0');
+INSERT INTO sensorupdate VALUES ('7','0');
+INSERT INTO sensorupdate VALUES ('8','0');
+INSERT INTO sensorupdate VALUES ('9','0');
+INSERT INTO sensorupdate VALUES ('10','0');
+
+INSERT INTO sensorupdate VALUES ('11','0');
+INSERT INTO sensorupdate VALUES ('12','0');
+INSERT INTO sensorupdate VALUES ('13','0');
+INSERT INTO sensorupdate VALUES ('14','0');
+INSERT INTO sensorupdate VALUES ('15','0');
+
+INSERT INTO sensorupdate VALUES ('16','0');
+INSERT INTO sensorupdate VALUES ('17','0');
+INSERT INTO sensorupdate VALUES ('18','0');
+INSERT INTO sensorupdate VALUES ('19','0');
+INSERT INTO sensorupdate VALUES ('20','0');
 
