@@ -55,6 +55,236 @@ umeter_hd( void *arg) {
 }
 
 /*
+  datalogger_rd
+
+  reading data records with ULTIMETER in data logger mode
+*/
+int
+datalogger_rd( unsigned char * datalogdata, int ndat) {
+
+  int  base=16;
+  unsigned char umeterstr[5];
+
+  unsigned int temp_out;
+  unsigned int rain_total;
+  unsigned int baro;
+  unsigned int humid_out;
+  unsigned int rain_today;
+  unsigned int windspeed_avg;
+  unsigned int windspeed;
+  unsigned int winddir;
+  unsigned int temp_in;
+  unsigned int humid_in;
+  int day_of_year;
+  int min_of_day;
+
+  time_t clock;
+  int minute, hour, year;
+  struct tm tm;
+  struct tm *ptm;
+  char buf[TBUFF+1];
+
+  printf("datalog_rd: data: %s\n", datalogdata);
+  strncpy(umeterstr, (const char *)(datalogdata+2), 5); 
+  umeterstr[4] = 0;
+  windspeed = strtol(umeterstr, NULL, base);
+  printf("windspeed: %d\n", windspeed);
+
+  strncpy(umeterstr, (const char *)(datalogdata+6), 5); 
+  umeterstr[4] = 0;
+  winddir = strtol(umeterstr, NULL, base);
+  printf("winddir: %d\n", winddir);
+
+  strncpy(umeterstr, (const char *)(datalogdata+10), 5); 
+  umeterstr[4] = 0;
+  temp_out = strtol(umeterstr, NULL, base);
+  printf("temp_out: %d\n", temp_out);
+
+  strncpy(umeterstr, (const char *)(datalogdata+14), 5); 
+  umeterstr[4] = 0;
+  rain_total = strtol(umeterstr, NULL, base);
+  printf("rain_total: %d\n", rain_total);
+
+  strncpy(umeterstr, (const char *)(datalogdata+18), 5); 
+  umeterstr[4] = 0;
+  baro = strtol(umeterstr, NULL, base);
+  printf("baro pressure: %d\n", baro);
+
+  strncpy(umeterstr, (const char *)(datalogdata+22), 5); 
+  umeterstr[4] = 0;
+  temp_in = strtol(umeterstr, NULL, base);
+  printf("temp_in: %d\n", temp_in);
+
+  strncpy(umeterstr, (const char *)(datalogdata+26), 5); 
+  umeterstr[4] = 0;
+  humid_out = strtol(umeterstr, NULL, base);
+  printf("humid_out: %d\n", humid_out);
+
+  strncpy(umeterstr, (const char *)(datalogdata+30), 5); 
+  umeterstr[4] = 0;
+  humid_in = strtol(umeterstr, NULL, base);
+  printf("humid_in: %d\n", humid_in);
+
+  strncpy(umeterstr, (const char *)(datalogdata+34), 5); 
+  umeterstr[4] = 0;
+  day_of_year = strtol(umeterstr, NULL, base);
+  printf("day_of_year: %d\n", day_of_year);
+
+  strncpy(umeterstr, (const char *)(datalogdata+38), 5); 
+  umeterstr[4] = 0;
+  min_of_day = strtol(umeterstr, NULL, base);
+  printf("min_of_day: %d\n", min_of_day);
+
+  strncpy(umeterstr, (const char *)(datalogdata+42), 5); 
+  umeterstr[4] = 0;
+  rain_today = strtol(umeterstr, NULL, base);
+  printf("rain_today: %d\n", rain_today);
+
+  strncpy(umeterstr, (const char *)(datalogdata+46), 5); 
+  umeterstr[4] = 0;
+  windspeed_avg = strtol(umeterstr, NULL, base);
+  printf("windspeed_avg: %d\n", windspeed_avg);
+
+  memset(&tm, 0, sizeof(struct tm ));
+  time(&clock);
+  ptm = gmtime(&clock);
+  year = 1900 + ptm->tm_year;
+  minute  = min_of_day % 60;
+  hour = min_of_day / 60;
+  snprintf(buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year, hour, minute);
+  strptime(buf,"%Y %j %H:%M:%S", &tm);
+  strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
+  puts(buf);
+
+  return(0);
+}
+
+/*
+  packet_rd
+
+  reading data records with ULTIMETER in packet mode
+*/
+int
+packet_rd( unsigned char * packetdata, int ndat) {
+
+  int  base=16;
+
+  unsigned char umeterstr[5];
+  unsigned char umeterlstr[9];
+  /* parameters of packet mode */
+  unsigned int windspeed_peak;
+  unsigned int winddir_peak;
+  unsigned int temp_out;
+  unsigned int rain_total;
+  unsigned int baro;
+  unsigned int baro_chg;
+  unsigned int baro_corr; // 8 bytes
+  unsigned int humid_out;
+  unsigned int rain_today;
+  unsigned int windspeed_avg;
+
+  int day_of_year;
+  int min_of_day;
+
+  time_t clock;
+  int minute, hour, year;
+  struct tm tm;
+  struct tm *ptm;
+  char buf[TBUFF+1];
+
+  /*
+    parse data in packetmode
+  */
+  printf("packetdata: '%s'\n", packetdata);
+
+  strncpy(umeterstr, (const char *)(packetdata+5), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  windspeed_peak = strtol(umeterstr, NULL, base);
+  printf("windspeed_peak: %d\n", windspeed_peak);
+
+  strncpy(umeterstr, (const char *)(packetdata+9), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  winddir_peak = strtol(umeterstr, NULL, base);
+  printf("winddir_peak: %d\n", winddir_peak);
+
+  strncpy(umeterstr, (const char *)(packetdata+13), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  temp_out = strtol(umeterstr, NULL, base);
+  printf("temp_out: %d\n", temp_out);
+
+  strncpy(umeterstr, (const char *)(packetdata+17), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  rain_total = strtol(umeterstr, NULL, base);
+  printf("rain_total: %d\n", rain_total);
+
+  strncpy(umeterstr, (const char *)(packetdata+21), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  baro = strtol(umeterstr, NULL, base);
+  printf("baro: %d\n", baro);
+
+  strncpy(umeterstr, (const char *)(packetdata+25), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  baro_chg = strtol(umeterstr, NULL, base);
+  printf("baro_chg: %d\n", baro_chg);
+
+  strncpy(umeterlstr, (const char *)(packetdata+29), 9); 
+  umeterlstr[8] = 0;
+  printf("umeterlstr: '%s'\n", umeterlstr);
+  baro_corr = strtol(umeterlstr, NULL, base);
+  printf("baro_corr: %d\n", baro_corr);
+
+  strncpy(umeterstr, (const char *)(packetdata+37), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  humid_out = strtol(umeterstr, NULL, base);
+  printf("humid_out: %d\n", humid_out);
+
+  strncpy(umeterstr, (const char *)(packetdata+41), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  day_of_year = strtol(umeterstr, NULL, base);
+  printf("day_of_year: %d\n", day_of_year);
+
+  strncpy(umeterstr, (const char *)(packetdata+45), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  min_of_day = strtol(umeterstr, NULL, base);
+  printf("min_of_day: %d\n", min_of_day);
+
+  memset(&tm, 0, sizeof(struct tm ));
+  time(&clock);
+  ptm = gmtime(&clock);
+  year = 1900 + ptm->tm_year;
+  minute  = min_of_day % 60;
+  hour = min_of_day / 60;
+
+  snprintf(buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year+1, hour, minute);
+  strptime(buf,"%Y %j %H:%M:%S", &tm);
+  strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
+  puts(buf);
+
+  strncpy(umeterstr, (const char *)(packetdata+49), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  rain_today = strtol(umeterstr, NULL, base);
+  printf("rain_today: %d\n", rain_today);
+
+  strncpy(umeterstr, (const char *)(packetdata+53), 5); 
+  umeterstr[4] = 0;
+  printf("umeterstr: '%s'\n", umeterstr);
+  windspeed_avg = strtol(umeterstr, NULL, base);
+  printf("windspeed_avg: %d\n", windspeed_avg);
+
+  return(0);
+}
+
+/*
   umeter_rd
 
   reading data records from serial port
@@ -65,13 +295,30 @@ int
 umeter_rd( int rfd) {
   int err = -1;
   int ndat;
-  static unsigned char data[255];
+  static unsigned char data[TBUFF+1];
+
+  const char dataloghd[3] = "!!";
+  const char packethd[6] = "$ULTW";
+  int dataloglen = 51; /* NL is ignored, thus record size is 48 hex bytes + 2 header bytes + carriage return */
+  int packetlen  = 58; /* NL is ignored, thus record size is 52 hex bytes + 5 header bytes + carriage */
+
 
   for (;;) {
-    ndat = read(rfd,data,255); 
+    ndat = read(rfd,data,1024); 
     data[ndat-1]=0;
-    if ( ndat == 51) 
-      printf("data: '%s' : %d\n", data, ndat-1);
+
+    if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
+          && ( ndat == dataloglen) ) {
+      printf("umeter_rd: datalogger mode\n");
+      datalogger_rd( data, ndat);
+      //printf("umeter_rd: data: %s\n", data);
+    } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
+          && ( ndat ==packetlen )) {
+      printf("umeter_rd: packet mode\n");
+      packet_rd( data, ndat);
+    } else {
+      printf("data (garbage): '%s' : %d\n", data, ndat);
+    }
   }
   return(err); 
 }
@@ -101,7 +348,7 @@ initumeter (int *pfd, struct termios *newtio,
   memset(newtio, 0, sizeof(*newtio)); 
         
   newtio->c_cflag =  CS8 | CLOCAL | CREAD;
-  newtio->c_iflag = IGNPAR | ICRNL;
+  newtio->c_iflag = IGNPAR | IGNCR | ICRNL;
   newtio->c_oflag = 0;
   newtio->c_lflag = ICANON;
 
