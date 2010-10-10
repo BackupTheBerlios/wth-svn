@@ -314,8 +314,10 @@ umeter_rd( int rfd) {
 
   const char dataloghd[3] = "!!";
   const char packethd[6] = "$ULTW";
-  int dataloglen = 51; /* NL is ignored, thus record size is 48 hex bytes + 2 header bytes + carriage return */
-  int packetlen  = 58; /* NL is ignored, thus record size is 52 hex bytes + 5 header bytes + carriage */
+  int dataloglen = 51; /* NL is ignored */
+                               /*  thus record size is 48 hex bytes + 2 header bytes + carriage return */
+  int packetlen  = 58; /* NL is ignored */
+                               /* thus record size is 52 hex bytes + 5 header bytes + carriage */
 
 
   for (;;) {
@@ -326,7 +328,7 @@ umeter_rd( int rfd) {
           && ( ndat == dataloglen) ) {
       printf("umeter_rd: datalogger mode\n");
       datalogger_rd( data, ndat);
-      //printf("umeter_rd: data: %s\n", data);
+      
     } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
           && ( ndat ==packetlen )) {
       printf("umeter_rd: packet mode\n");

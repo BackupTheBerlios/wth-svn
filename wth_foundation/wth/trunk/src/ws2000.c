@@ -199,7 +199,7 @@ wcmd ( ) {
       ws2000station.status.ndats = ws2000station.status.ndats + 1;
     }
     syslog(LOG_INFO, "wcmd: data available");
-    return(0);
+    return(err);
   } 
 
 
@@ -358,7 +358,7 @@ wcmd ( ) {
       else {
 	if ( ( err = datex(data, ndat)) == -1) {
 	  syslog(LOG_CRIT, "wcmd: error extracting data frame");
-	  return(0);
+	  return(err);
 	}
 	ws2000station.status.ndats++;
       }
@@ -367,7 +367,7 @@ wcmd ( ) {
       wsconf.command = 2;
       if ( ( err = getcd( data, &ndat)) == -1) {
 	syslog(LOG_CRIT,"wcmd: error data reception");
-	return(0);
+	return(err);
       }
 
       /* stop if DLE no data available, */
@@ -1073,8 +1073,16 @@ datex ( unsigned char *data, int ndat) {
       syslog(LOG_DEBUG,
         "datex: sensor #%d ws2000station.sensor[%d].status: %d\n",
         i,i, ws2000station.sensor[i].status);
-      newdb( dataset_date, i, new);
-      writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+      err = newdb( dataset_date, i, new);
+      if ( err != 0 ) {
+        syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
+        return(-1);
+      }
+      err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+      if ( err != 0 ) {
+        syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
+        return(-1);
+      }
     } else {
       syslog(LOG_DEBUG,"datex: sensor #%d temperature/humidity not found\n", i);
     }
@@ -1090,8 +1098,16 @@ datex ( unsigned char *data, int ndat) {
     meas_value[0]   = Hi + Lo;
     sensor_meas_no[0] = 17;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    newdb( dataset_date, 9, new);
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    err =newdb( dataset_date, 9, new);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
+      return(-1);
+    }
+    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
+      return(-1);
+    }
     syslog(LOG_DEBUG,
 	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
            "meas_value: %f new: %d\n", 
@@ -1116,7 +1132,11 @@ datex ( unsigned char *data, int ndat) {
 
     /* wind new flag */
     new = getbits ( data[27], 7, 1);
-    newdb( dataset_date, 10, new);
+    err = newdb( dataset_date, 10, new);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
+      return(-1);
+    }
     syslog(LOG_DEBUG,
      "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
      (long int)dataset_date, meas_value[0], new);
@@ -1140,7 +1160,11 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,
       "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value[2]);
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
+      return(-1);
+    }
   } else {
     syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
   } 
@@ -1185,8 +1209,16 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
     /* write database */
-    newdb( dataset_date, 11, new); 
-    writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    err = newdb( dataset_date, 11, new); 
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
+      return(-1);
+    }
+    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
+      return(-1);
+    }
   } else {
     syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
   }

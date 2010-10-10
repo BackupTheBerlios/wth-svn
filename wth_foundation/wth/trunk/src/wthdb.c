@@ -177,7 +177,7 @@ newdb( long statusset_date, int sensor_no, int new_flag)
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  char *errmsg;
+  //char *errmsg;
 
   err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
   syslog(LOG_DEBUG, 
@@ -187,7 +187,7 @@ newdb( long statusset_date, int sensor_no, int new_flag)
   if ( err) {
     syslog( LOG_ALERT, "newdb: failed to open database %s. error: %s\n", 
     ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    free( errmsg);
+    //free( errmsg);
     return (-1);
   } else {
     syslog(LOG_DEBUG, "newdb: sqlite3_open: OK\n");
@@ -201,7 +201,7 @@ newdb( long statusset_date, int sensor_no, int new_flag)
     syslog(LOG_ALERT,
 	   "newdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
 	   err, sqlite3_errmsg(ws2000db));
-    free(errmsg);
+    //free(errmsg);
   }
   /* cleanup and close */
   sqlite3_close( ws2000db);
