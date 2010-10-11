@@ -1,0 +1,216 @@
+#!/usr/bin/perl
+
+#
+# copy WS2000 wth data from logfile of old format to ws2000 sqlite database
+#
+
+use strict;
+use DBI;
+use Getopt::Std;
+
+my $WTH_LOGFILE="wthlog";
+my $DBFILE="ws2000.db";
+my $DEBUG = 0;
+
+my ($sens_meas_no, $sens_no, $query);
+my %options;
+my $rows;
+my $lcnt;
+
+my $oldSensorNo;
+my $oldSensorName;
+my $oldStatus;
+my $datasetDate;
+my $oldSign;
+my $measValue;
+my $dummy;
+
+my @sensors = ( 0,1,2,3,4,5,8,9,16,17,18,19,20,21,22);
+
+my %sensorAssign = (
+    0 => {
+	name           => "Sensor1",
+        parameter      => "Temperature",
+        sensor_meas_no => "1",
+        sensor_no      => "1",
+        status_log     => "yes",
+    },
+    1 => {
+	name           => "Sensor1",
+        parameter      => "Humidity",
+        sensor_meas_no => "2",
+        sensor_no      => "1",
+        status_log     => "no",
+    },
+    2 => {
+	name           => "Sensor2",
+        parameter      => "Temperature",
+        sensor_meas_no => "3",
+        sensor_no      => "2",
+        status_log     => "yes",
+    },
+    3 => {
+	name           => "Sensor2",
+        parameter      => "Humidity",
+        sensor_meas_no => "4",
+        sensor_no      => "2",
+        status_log     => "no",
+    },
+    4 => {
+	name           => "Sensor3",
+        parameter      => "Temperature",
+        sensor_meas_no => "5",
+        sensor_no      => "3",
+        status_log     => "yes",   
+    },
+    5 => {
+	name           => "Sensor3",
+        parameter      => "Humidity",
+        sensor_meas_no => "6",
+        sensor_no      => "3",
+        status_log     => "no",
+    },
+    8 => {
+	name           => "Sensor5",
+        parameter      => "Temperature",
+        sensor_meas_no => "9",
+        sensor_no      => "5",
+        status_log     => "yes",
+    },
+    9 => {
+	name           => "Sensor5",
+        parameter      => "Humidity",
+        sensor_meas_no => "10",
+        sensor_no      => "5",
+        status_log     => "no",
+    },
+    16 => {
+	name           =>"Rainsensor",
+	parameter      => "Preciptation",
+        sensor_meas_no => "17",
+        sensor_no      => "9",
+        status_log     => "yes",
+    },
+    17 => {
+	name           =>"Windsensor",
+	parameter      => "Windspeed",
+        sensor_meas_no => "18",
+        sensor_no      => "10",
+        status_log     => "yes",
+    },
+    18 => {
+	name           =>"Windsensor",
+	parameter      => "Winddirection",
+        sensor_meas_no => "19",
+        sensor_no      => "10",
+        status_log     => "no",
+    },
+    19 => {
+	name           =>"Windsensor",
+	parameter      => "Winddir. variance",
+        sensor_meas_no => "20",
+        sensor_no      => "10",
+        status_log     => "no",
+    },
+    20 => {
+	name           => "Indoorsensor",
+        parameter      => "Pressure",
+        sensor_meas_no => "21",
+        sensor_no      => "11",
+        status_log     => "yes",
+    },
+    21 => {
+	name           => "Indoorsensor",
+        parameter      => "Temperature",
+        sensor_meas_no => "22",
+        sensor_no      => "11",
+        status_log     => "no",
+    },
+    22 => {
+	name           => "Indoorsensor",
+        parameter      => "Humidity",
+        sensor_meas_no => "23",
+        sensor_no      => "11",
+        status_log     => "no",
+    }
+    );
+
+
+sub check_valid_sens {
+   my $check_sensor_no = shift( @_);
+   my $sensor_no;
+   print "check_valid_sens: check $check_sensor_no\n";
+   foreach $sensor_no ( @sensors) {
+     if ( $check_sensor_no == $sensor_no) {
+	print "Sensor found: \$sensor_no: $sensor_no\n";
+        return 1;
+     }
+   }
+   print "WARNING: Sensor not found: \$sensor_no: $oldSensorNo\n";
+   return 0;
+}
+
+
+getopts("hf:",\%options);
+if ( defined $options{h} ) {
+  print "Usage: update_db -f <wthlog_file>\n";
+  print "\tconvert logfile in old logformat to sqlite database\n";
+  exit;
+}
+
+if ( defined $options{f} ) {
+  $WTH_LOGFILE=$options{f};
+} 
+
+print "Working on wthlog file \"$WTH_LOGFILE\"\n";
+
+
+open (WTHLOG, "< $WTH_LOGFILE") 
+  or die "can't open old wth logfile: \"$WTH_LOGFILE\": $!";
+check_valid_sens(1000);
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=$DBFILE","","")
+  or die ("Can't get DB handle: $DBI::Errstr");
+
+while ( <WTHLOG> ) {
+  if ( /^[0-9]/ ) {
+    $lcnt++;
+    ($oldSensorNo, $oldSensorName, $oldStatus, 
+     $dummy, $datasetDate, $oldSign, $measValue) = split;
+
+    # negative temperatures
+    if ( $oldSensorName eq "temp" ) {
+      if ( $oldSign == 1) {
+	$measValue = -$measValue;
+      }
+    }
+
+    # insert into sqlite database
+    print "Operating on line# $lcnt : ";
+    print "$oldSensorNo $oldSensorName $datasetDate $measValue : ";
+    print "$sensorAssign{$oldSensorNo}{'name'}: ";
+    print "$datasetDate $sensorAssign{$oldSensorNo}{'sensor_meas_no'} " .
+          "$measValue\n";
+
+    if ( check_valid_sens( $oldSensorNo) == 1 ) {
+      print "OK defined: oldSensorNo: $oldSensorNo\n";
+    if  ( ( $rows = $dbh->do(" INSERT INTO sensordata VALUES (NULL, $datasetDate, $sensorAssign{$oldSensorNo}{'sensor_meas_no'}, $measValue) ")) != 1 ) {
+	print STDERR "ERROR: \$sensorAssign{\$oldSensorNo}{'name'}: $sensorAssign{$oldSensorNo}{'name'}, ";
+        print STDERR "\$datasetDate $datasetDate, \$sensorAssign{\$oldSensorNo}{'sensor_meas_no'}: $sensorAssign{$oldSensorNo}{'sensor_meas_no'} " .  " \$measValue: $measValue";
+	print STDERR "| \$dbh->do failure: $!\n";
+    };
+    if ( $sensorAssign{$oldSensorNo}{'status_log'} eq "yes" ) {
+      print "status: $datasetDate, $sensorAssign{$oldSensorNo}{'sensor_no'}, $oldStatus\n";
+      if ( ( $rows = $dbh->do(" INSERT INTO sensorstatus VALUES (NULL, $datasetDate, $sensorAssign{$oldSensorNo}{'sensor_no'}, $oldStatus)")) != 1 ) {
+        print STDERR "ERROR: status: \$datasetDate: $datasetDate, \$sensorAssign{\$oldSensorAssign{\$oldSensorNo}: $sensorAssign{$oldSensorNo}{'sensor_no'},:  \$oldStatus: $oldStatus\n";
+        print STDERR "ERROR: \$dbh->do failure: $!\n";
+      }
+    }
+
+    } else {
+      print "WARNING not defined in configuration: oldSensorNo: $oldSensorNo\n";
+    }
+  }
+}
+
+close WTHLOG;

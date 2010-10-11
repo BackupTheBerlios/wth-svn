@@ -1,0 +1,53 @@
+wth - experimental test release 
+
+release 0.5.1
+- information on status, data, configuration and remote execution of ws2000
+commands available at port 2000
+- bug fixes
+- configuration file wth.conf reworked
+
+release 0.5.0
+- logging to rrd and sqlite databases
+- rrdtool mason integration for deployment on apache
+- data logging improved, now respects the sensor new flag
+- incorporates support for both WS2000 weatherstation by Lacrosse and PC weatherstationreceiver by ELV
+- wthc removed
+- postgres support removed
+
+release 0.4.6
+- using absolute pressure, was before:
+  absolute pressure (in hPa) minus 200 (hPa)
+
+release 0.4.5
+- bugfix segmentation fault
+- SI units default, but can now do US units
+
+release	0.4.4
+- postgres support for data storage
+- web interface using php       
+- changed atmospheric pressure value. earlier versions print
+  pressure value as ( absolute pressure - 200 hPa ). now the
+  printed value _is_ the absolute atmospheric pressure. This
+  value must be modified for normalization to sealevel.
+- wthc startup script added
+
+release 0.4.3
+- added new option to set time using internal DCF77 receiver
+- wind deviation data now read (documentation leak)
+
+release 0.4.2
+- added xmlrpc support, this includes new client and server software
+
+release 0.4.1
+- config file problem fixed - wouldn't read any config file
+- version.h fixed
+
+release 0.4
+- uses GNU style build
+- better seperation of functions into library. Now uses one
+  library which high-level interface for communication over
+  serial line or network
+- telnet access to tcp server
+- created manual pages for wthc and wthd
+- configuration file
+

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+Usage () {
+  echo "Usage: `basename $0` <-p processID>" 
+}
+
+PARSE=`getopt "p:" "$@"` 
+eval set -- "$PARSE"
+if [ $? != 0 ]; then
+    Usage
+    exit
+fi
+
+while :
+do
+    case "$1" in
+    -p) shift; 
+        PID="$1"; 
+        ;;
+    --) break ;;
+    esac
+    shift
+done
+shift
+
+while [ 1 ]; do
+  date
+  ps -p $PID -O rss,vsz,tsiz,%mem,%cpu,pagein,nsigs,start
+  sleep 1800
+done
