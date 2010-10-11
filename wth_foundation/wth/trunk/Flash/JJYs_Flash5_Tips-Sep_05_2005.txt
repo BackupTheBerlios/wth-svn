@@ -1,0 +1,126 @@
+JJY's Flash5 Tips, September 5, 2005:
+
+ 1) When using actionScript to control a movie clip be certain the
+    name of the item being controlled appears in the "Name" field of the
+    "Instance" panel when the item is selected.  Otherwise the
+    actionScript will not be able to reference it.
+
+
+
+ 2) In this example two pointers named "needle2" and "needle3" are
+    controlled via actionScript.  At first only needle2 will be visible.
+    The name of this flash object was barometer.swf.  By referring to it
+    as...
+
+
+       barometer.swf?angle=30&anga=1&anglea
+
+    You can control the angle the pointer points in, and whether or
+    not needle3 is shown.  By referring to it as...
+
+
+       barometer.swf?angle=30&anga=1&anglea&barh=25&barg=90...&bara=100
+
+    You can control how the bar-graph is displayed.  Using the example
+    above...
+
+      
+       bar24 scaled to 25%
+       bar20 scaled to 90%
+       bar00 scaled to 100%
+
+    ifFrameLoaded (1) {
+	_root["needle3"]._visible = 0;
+	//_root["needle3"]._rotation = 0;
+	//Get the angle data from the FlashVars variable angle
+	_root["needle2"]._rotation = _root.angle;
+	//_root["needle"]._rotation = needleAngle;
+	//needle._rotation = 90;
+	if(anga){
+		_root["needle3"]._visible = 1;
+		_root["needle3"]._rotation = _root.anglea;
+	}
+	//Adjust the bargraph
+	_root["bar24"]._yscale = _root.barh;
+	_root["bar20"]._yscale = _root.barg;
+	_root["bar16"]._yscale = _root.barf;
+	_root["bar12"]._yscale = _root.bare;
+	_root["bar08"]._yscale = _root.bard;
+	_root["bar04"]._yscale = _root.barc;
+	_root["bar01"]._yscale = _root.barb;
+	_root["bar00"]._yscale = _root.bara;
+   }
+
+
+ 3) In this example I use actionScript to dynamically generate
+    instances, i.e., copies, of objects that can be controlled.
+
+
+
+    ifFrameLoaded (1) {
+      _root["needle3"]._visible = 0;
+      //Get the angle data from the FlashVars variable angle
+      _root["needle2"]._rotation = _root.angle;
+      //_root["needle"]._rotation = 90;
+      if(_root.anga){
+	   _root["needle3"]._visible = 1;
+	   _root["needle3"]._rotation = _root.anglea;
+      }
+      if(_root.angb){
+	   _root["needle3"].duplicateMovieClip("needle4",level);
+	   level++;
+	   _root["needle4"]._rotation = _root.angleb;
+      }
+      if(_root.angc){
+	   _root["needle3"].duplicateMovieClip("needle5",level);
+	   level++;
+	   _root["needle5"]._rotation = _root.anglec;
+      }
+      if(_root.angd){
+	   _root["needle3"].duplicateMovieClip("needle6",level);
+	   level++;
+	   _root["needle6"]._rotation = _root.angled;
+      }
+    }
+
+
+    In each duplicate method the object "needle3" is being duplicated
+    and given a new name such as "needle4."  The object can then be
+    controlled in the same fashion as the original.
+
+
+
+ 4) If your using Flash 5 be sure to use something like the following
+    to refer to your .swf files using html...
+
+
+    <OBJECT classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
+    codebase="http://macromedia.com/cabs/swflash.cab#version=5,0,0,0"   
+    ID=speed WIDTH=180 HEIGHT=180>
+    <PARAM NAME=movie VALUE="speed.swf?angle=180&anga=13.6&anglea=261.6">
+    <PARAM NAME=quality VALUE="medium">
+    <PARAM NAME=bgcolor VALUE="white">
+    <EMBED src="speed.swf?angle=180&anga=13.6&anglea=261.6" 
+    bgcolor="white" WIDTH=180 HEIGHT=180 
+    TYPE="application/x-shockwave-flash">
+    </EMBED>
+    </OBJECT>
+
+
+    Note1: The "#version=5,0,0,0" is important for Windows Explorer to
+           function properly.
+
+
+    Note2: Arguments are being passed to the speed.swf file via the
+           query string after the URL, i.e., the
+           "?angle=180&anga=13.6&anglea=261.6" at the end of the URL.
+
+
+    Note3: Do not use FlashVars to send info to a flash file.  It is
+           unreliable with Windows Explorer and Flash 5.  Instead use
+           the query string method as in Note2 above.
+
+
+
+
+ 
