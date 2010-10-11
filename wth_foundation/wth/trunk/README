@@ -6,9 +6,11 @@ wth is a free software solution to read sensor data of
   -- Lacrosse Technology WS2010 or 
   -- WS2000 PC interface by Conrad (www.conrad.de) or ELV (www.elv.de) 
   -- PC weatherstation receiver made by ELV (ELV)
-- 1-Wire waetherstations
+- 1-Wire weatherstations
 - WMR 9x8 weatherstations
 - Peetbros Ultimeter weatherstations
+  -- datalogger mode
+  -- packet mode
 
 Compiling
 ---------
