@@ -1,38 +1,23 @@
 General
 -------
 
-wth is a free software solution to read weatherstation data
-of the 
-- Lacrosse Technology WS2010 or 
-- WS2000 PC interface by Conrad (www.conrad.de) or ELV (www.elv.de) 
-- PC weatherstation receiver made by ELV (ELV)
-
-which store data of 16 temperature, humidity and 
-pressure sensors, 1 wind sensor and 1 rainfall sensor. 
-
-A DCF77 receiver is built into the interface. The interface connects 
-thru the serial port to the computing equipment. The communication 
-protocol has been published by the manufacturer and is fully 
-implemented by the wth software.
-
-Pressure is logged as received, i.e. as an absolute pressure value.
-
-In order to change it to sealevel based value the following RRD CDEF 
-will do
-Thalreit HEIGHT = 456m
-Munich   HEIGHT = 530m
-456,8,/,press,+
-
-Pressure plots range from 970 - 1040 (Seewetter), 945 - 1055 (Barograph
-in Malberg, Meteorologie und Klimatologie)
-
+wth is a free software solution to read sensor data of 
+- WS2000 weatherstations 
+  -- Lacrosse Technology WS2010 or 
+  -- WS2000 PC interface by Conrad (www.conrad.de) or ELV (www.elv.de) 
+  -- PC weatherstation receiver made by ELV (ELV)
+- 1-Wire waetherstations
+- WMR 9x8 weatherstations
+- Peetbros Ultimeter weatherstations
 
 Compiling
 ---------
 Compiling wth uses GNU make
-Simply type
+Simply type on FreeBSD
+gmake
 
-gmake wthd
+Linux uses GNU make by default
+make
 
 
 Running
