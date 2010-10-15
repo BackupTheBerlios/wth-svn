@@ -1,0 +1,174 @@
+#!/bin/sh
+
+#
+# create RRD to hold wth data
+#
+
+#
+# WS2000 weatherstation
+#
+
+# Sensor1
+#
+rrdtool create ws2000/Sensor1.rrd \
+    --start 973709200 \
+    --step 300 \
+    DS:Temperature:GAUGE:600:-30:70 \
+    DS:Humidity:GAUGE:600:0:100 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+# Sensor3 
+rrdtool create ws2000/Sensor3.rrd \
+    --start 973709200 \
+    --step 300 \
+    DS:Temperature:GAUGE:600:-30:70 \
+    DS:Humidity:GAUGE:600:0:100 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+# Sensor5
+rrdtool create ws2000/Sensor5.rrd \
+    --start 973709200 \
+    --step 300 \
+    DS:Temperature:GAUGE:600:-30:70 \
+    DS:Humidity:GAUGE:600:0:100 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+# Rainsensor
+rrdtool create ws2000/Rainsensor.rrd \
+    --start 997479420 \
+    --step 300 \
+    DS:Rainfall:GAUGE:600:0:10000 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+# Windsensor
+rrdtool create ws2000/Windsensor.rrd \
+    --start 973709200 \
+    --step 300 \
+    DS:Windspeed:GAUGE:600:0:100 \
+    DS:Winddirection:GAUGE:600:0:360 \
+    DS:Windvariation:GAUGE:600:0:3 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+
+# Indoorsensor
+rrdtool create ws2000/Indoorsensor.rrd \
+    --start 973709200 \
+    --step 300 \
+    DS:Pressure:GAUGE:600:800:1100 \
+    DS:Temperature:GAUGE:600:-30:70 \
+    DS:Humidity:GAUGE:600:0:100 \
+    RRA:AVERAGE:0.5:1:576 \
+    RRA:AVERAGE:0.5:6:672 \
+    RRA:AVERAGE:0.5:24:732 \
+    RRA:AVERAGE:0.5:144:1460 \
+    RRA:AVERAGE:0.5:288:1825 \
+    RRA:AVERAGE:0.5:288:7300 \
+    RRA:LAST:0.5:1:1 
+
+
+#
+# Peetbros Ultimeter weatherstation
+#
+
+# Windsensor
+rrdtool create umeter/WindSensor.rrd \
+    --step 300 \
+  DS:windspeed_peak:GAUGE:600:0:300 \
+  DS:windspeed_avg:GAUGE:600:0:300 \
+  DS:winddir_peak:GAUGE:600:0:360 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
+
+# TemperatureSensor
+rrdtool create umeter/TemperatureSensor.rrd \
+    --step 300 \
+  DS:temp_out:GAUGE:600:-50:70 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
+
+# RainGauge
+rrdtool create umeter/RainGauge.rrd \
+    --step 300 \
+  DS:rain_total:GAUGE:600:0:2000 \
+  DS:rain_today:GAUGE:600:0:2000 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
+
+# IndoorHumditySensor
+rrdtool create umeter/IndoorHumiditySensor.rrd \
+    --step 300 \
+  DS:humid_in:GAUGE:600:0:100 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
+
+# OutdoorHumidity_TemperatureSensor.rrd
+rrdtool create umeter/OutdoorHumidity_TemperatureSensor.rrd \
+    --step 300 \
+  DS:temp_out:GAUGE:600:-50:70 \
+  DS:humid_out:GAUGE:600:0:100 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
+
+# IndoorTemperature_BraometerSensor.rrd
+rrdtool create umeter/IndoorTemperature_BarometerSensor.rrd \
+    --step 300 \
+  DS:temp_in:GAUGE:600:0:43 \
+  DS:baro:GAUGE:600:930:1070 \
+  DS:baro_chg:GAUGE:600:0:100 \
+  RRA:AVERAGE:0.5:1:576 \
+  RRA:AVERAGE:0.5:7:576 \
+  RRA:AVERAGE:0.5:30:576 \
+  RRA:AVERAGE:0.5:360:576 \
+  RRA:AVERAGE:0.5:1826:576 \
+  RRA:AVERAGE:0.5:3652:576 \
+  RRA:AVERAGE:0.5:7304:576
