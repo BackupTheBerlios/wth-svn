@@ -1215,6 +1215,8 @@ measval_db( char *sensorname, char *parametername,
     "SELECT sensor_no FROM sensorname WHERE sensor_name = '%s'",
     sensorname);
 
+  syslog(LOG_DEBUG, "measval_sb: query :\'%s\'", query);
+
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
@@ -1224,7 +1226,7 @@ measval_db( char *sensorname, char *parametername,
   }
   rowcnt = 0;
   while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "measval_db : sensorname: %s sensor_no: %d", 
+    syslog(LOG_DEBUG, "measval_db : sensorname: \'%s\' sensor_no: %d", 
               sensorname, sqlite3_column_int(qcomp, 0));
     sensor_no   = sqlite3_column_int(qcomp,0); 
     rowcnt++;
@@ -1242,13 +1244,13 @@ measval_db( char *sensorname, char *parametername,
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-            "measval_db: error: select parameter_no of %s: err: %d : sqlite_errmsg: %s\n", 
+            "measval_db: error: select parameter_no of \'%s\': err: %d : sqlite_errmsg: %s\n", 
             parametername, err, sqlite3_errmsg(wthdb));
     return(err);
   }
   rowcnt = 0;
   while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "measval_db : parametername: %s parameter_no: %d", 
+    syslog(LOG_DEBUG, "measval_db : parametername: \'%s\' parameter_no: %d", 
               parametername, sqlite3_column_int(qcomp, 0));
     parameter_no   = sqlite3_column_int(qcomp,0); 
     rowcnt++;
@@ -1266,7 +1268,7 @@ measval_db( char *sensorname, char *parametername,
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-            "measval_db: error: select sensor_meas_no of %s and %s: err: %d : sqlite_errmsg: %s\n", 
+            "measval_db: error: select sensor_meas_no of \'%s\' and \'%s\': err: %d : sqlite_errmsg: %s\n", 
             sensorname, parametername, err, sqlite3_errmsg(wthdb));
     return(err);
   }

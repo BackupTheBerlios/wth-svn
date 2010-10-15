@@ -1,208 +1,24 @@
-SQLITE Database description for WS2000 and Lacrosse Weatherstation
-
-create 
-table sensordata
-(
-datasetno INT PRIMARY KEY,
-datasetdate DATE,
-datasettime TIME,
-parameterno INT,
-parametervalue FLOAT
-)
+SQLITE Database description 
 
 
-create table
-sensorstatus
-(
-statusetno INT PRIMARY KEY,
-statusetdate DATE,
-statussettime TIME,
-sensorno INT,
-sensorstatus INT
-)
+The SQLITE database creation scripts are contained in this directory
 
-create table
-sensornames
-(
-sensorno INT PRIMARY KEY,
-sensorname VARCHAR(255)
-)
+for WS2000 and Lacrosse weatherstations
+- ws2000_db.sql
 
-create table
-parameternames
-(
-parameterno INT PRIMARY KEY,
-parametername VARCHAR(255)
-)
+for the PC weathersensor receiver
+- pcwsr_db.sql
 
+for 1-Wire weatherstations
+- onewire_db.sql
 
-create table
-sensorparameters
-(
-sensorparameterno INT PRIMARY KEY,
-sensorno INT,
-parameterno INT
-)
+for WMR 9x8 weatherstations
+- wmr9x8_db.sql
 
-WS2000 database schema
---
-sqlite> .schema
-CREATE TABLE parameternames
-    (
-      parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      parameter_name VARCHAR(64) NOT NULL,
-      parameter_unit VARCHAR(64) NOT NULL
-    );
-CREATE TABLE sensordata
-    (
-      dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      dataset_date DATE NOT NULL,
-      sensor_meas_no INTEGER NOT NULL,
-      meas_value FLOAT NOT NULL,
-      FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
-    );
-CREATE TABLE sensornames
-    (
-      sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensorname VARCHAR(255) NOT NULL
-    );
-CREATE TABLE sensornewflag
-    (
-      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      statusset_date DATE NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      new_flag INTEGER NOT NULL,
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
-    );
-CREATE TABLE sensorparameters
-    (
-      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      parameter_no INTEGER NOT NULL,
-      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
-    );
-CREATE TABLE sensorstatus
-    (
-      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      statusset_date DATE NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      sensor_status INTEGER NOT NULL,
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
-    );
-CREATE TABLE sensorupdate
-    (
-      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      last_update DATE NOT NULL
-    );
-CREATE TABLE ws2000status
-    (
-      wstatus_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      wstatus_date DATE NOT NULL,
-      interval_time INTEGER NOT NULL,
-      DCF_status INTEGER NOT NULL,
-      DCF_sync INTEGER NOT NULL,
-      HF_status INTEGER NOT NULL,
-      no_sensors INTERGER NOT NULL
-    );
-CREATE INDEX sdidx2 ON sensordata(dataset_date);
-CREATE INDEX ssidx ON sensorstatus(sensor_no, statusset_date,sensor_status);
---
+for PeetBros Ultimeter weatherstations
+- umeter_db.sql
 
+In order to create a database on the commandline type 
+e.g. for the Ultimeter station
 
-Datastructures of 1-wire sensors
-
-Sensorname
-Description
-Sensortyp
-Parametername
-Measure
-Serialnum
-Gain
-Offset
-
-Barometersensor
-Pressure Indoorsensor
-DS2438
-Pressure
-Vsens
-01:08:37:d9:07:00:00:a1 
-11.3
--2.7
-
-Sensor#		Sensorname		Description
-0		Temperaturesensor	Indoor temperature
-1		Humiditysensor		Indoor humidity
-2		Barometersensor		Indoor pressure
-3		Humiditysensor		Outdoor humidity
-4		Windspeedsensor		Windspeed
-
-1-Wire database schema
-----------------------
-Table parametername
---------------------
-contains name und unit of parameter, e.g. 
-- pressure 
-- mbar
-
-CREATE TABLE parametername
-    (
-      parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      parameter_name VARCHAR(64) NOT NULL,
-      unit VARCHAR(64) NOT NULL,
-      gain FLOAT NOT NULL,
-      offset FLOAT NOT NULL
-    );
-
-Table sensordata
-----------------
-contains 
-- time
-- instrument value ( e.g. value of voltage)
-- measured value ( the value of physical quantity)
-
-CREATE TABLE sensordata
-    (
-      dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      dataset_date DATE NOT NULL,
-      sensor_meas_no INTEGER NOT NULL,
-      instr_value FLOAT NOT NULL,
-      meas_value FLOAT NOT NULL,
-      FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
-    );
-
-Table sensorname
------------------
-contains name and serial number of sensor
-
-CREATE TABLE sensorname
-    (
-      sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensor_name VARCHAR(255) NOT NULL,
-      serialnum VARCHAR(255) NOT NULL
-    );
-
-Table sensorparameters
------------------------
-relation of table sensorname to table parametername
-
-CREATE TABLE sensorparameters
-    (
-      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      parameter_no INTEGER NOT NULL,
-      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
-      FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
-    );
-
-Table sensorupdate
-------------------
-contains information about last measured date
-
-CREATE TABLE sensorupdate
-    (
-      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      last_update DATE NOT NULL
-    );
-
-
+cat umeter_db.sql |sqlite3 umeter.db

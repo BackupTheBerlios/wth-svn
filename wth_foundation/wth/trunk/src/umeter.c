@@ -61,105 +61,187 @@ umeter_hd( void *arg) {
 */
 int
 datalogger_rd( unsigned char * datalogdata, int ndat) {
-
+  int err;
   int  base=16;
   char umeterstr[5];
+  int out_th_present = 0;
 
-  unsigned int temp_out;
-  unsigned int rain_total;
-  unsigned int baro;
-  unsigned int humid_out;
-  unsigned int rain_today;
-  unsigned int windspeed_avg;
-  unsigned int windspeed;
-  unsigned int winddir;
-  unsigned int temp_in;
-  unsigned int humid_in;
+  /* parameters in data logger mode */
+  float temp_out;
+  float rain_total;
+  float baro;
+  float humid_out;
+  float rain_today;
+  float windspeed_avg;
+  float windspeed;
+  float winddir;
+  float temp_in;
+  float humid_in;
   int day_of_year;
   int min_of_day;
 
-  time_t clock;
+  time_t umclock;
   int minute, hour, year;
   struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
   time_t dataset_date;
+  int tdiff;
 
   syslog(LOG_DEBUG, "datalog_rd: data: %s\n", datalogdata);
   time(&dataset_date);
 
+  /* open sqlite db file */
+  if ( ( err = sqlite3_open( umeterstation.config.dbfile, &umeterdb))) {
+    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
+      umeterstation.config.dbfile, sqlite3_errmsg(umeterdb));
+    return(err);
+  }
+
+  /* Wind Speed */
   strncpy(umeterstr, (const char * )(datalogdata+2), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   windspeed = strtol(umeterstr, NULL, base);
-  printf("windspeed: %d\n", windspeed);
-  measval_db( "windsensor", "Windspeed", dataset_date, (float)windspeed, umeterdb);
+  windspeed = (1.0/36.0)*windspeed; /* 0.1 kph to ms-1 */
+  syslog(LOG_DEBUG, "windspeed: %f\n", windspeed);
+  measval_db( "WindSensor", "Wind Speed", dataset_date, (float)windspeed, umeterdb);
 
+  /* Wind direction */
   strncpy(umeterstr, (const char *)(datalogdata+6), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   winddir = strtol(umeterstr, NULL, base);
-  printf("winddir: %d\n", winddir);
+  winddir = (360.0/255.0)*winddir; /* 0-255 to 0-360 deg */
+  syslog(LOG_DEBUG, "winddir: %f\n", winddir);
+  measval_db( "WindSensor", "Wind Direction", dataset_date, (float)winddir, umeterdb);
 
+  /* Outdoor temperature */
   strncpy(umeterstr, (const char *)(datalogdata+10), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   temp_out = strtol(umeterstr, NULL, base);
-  printf("temp_out: %d\n", temp_out);
+  temp_out = ((1.0/10.0)*temp_out -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  /* temperature data will not be written to database until it is clear that no TH sensor is installed */
+  syslog(LOG_DEBUG, "tempout: %f\n", temp_out);
 
+  /* Rain longterm total */
   strncpy(umeterstr, (const char *)(datalogdata+14), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   rain_total = strtol(umeterstr, NULL, base);
-  printf("rain_total: %d\n", rain_total);
+  rain_total = (25.4/10.0)*rain_total; /* 0.1in to mm */
+  syslog(LOG_DEBUG, "rain_total: %f\n", rain_total);
+  measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)rain_total, umeterdb);
 
+  /* Barometer */
   strncpy(umeterstr, (const char *)(datalogdata+18), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   baro = strtol(umeterstr, NULL, base);
-  printf("baro pressure: %d\n", baro);
+  baro = baro/10.0; /* 0.1mbar to mbar */
+  syslog(LOG_DEBUG, "baro: %f\n", baro);
+  measval_db( "IndoorTemperator_BarometerSensor", "Barometer", 
+	      dataset_date, (float)baro, umeterdb);
 
+  /* indoor temeprature */
   strncpy(umeterstr, (const char *)(datalogdata+22), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   temp_in = strtol(umeterstr, NULL, base);
-  printf("temp_in: %d\n", temp_in);
+  temp_in = ((1.0/10.0)*temp_in -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "temp_in: %f\n", temp_in);
+  measval_db( "IndoorTemperator_BarometerSensor", "Indoor temp", 
+	      dataset_date, (float)temp_in, umeterdb);
 
+  /* Outdoor humdity - if sensor is installed */
   strncpy(umeterstr, (const char *)(datalogdata+26), 5); 
   umeterstr[4] = 0;
-  humid_out = strtol(umeterstr, NULL, base);
-  printf("humid_out: %d\n", humid_out);
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
+  err = strncmp( umeterstr, "----", 4);
+  /* Temperature Sensor installed */
+  if ( err == 0 ) {
+    syslog(LOG_INFO, "No Outdoor Humidity/Temperature Sensor found");
+    measval_db( "TemperatureSensor", "Current Outdoor Temp", 
+		dataset_date, (float)temp_out, umeterdb);
+  } else /* Outdoor Humidity Temperature sensor installed */ {
+    out_th_present = 1;
+    humid_out = (float)strtol(umeterstr, NULL, base);
+    humid_out = (1.0/10.0)*humid_out; /* 0.1% to %rel.hum. */
+    measval_db( "OutdoorHumidity_TemperatureSensor", "Current Outdoor Temp", 
+		dataset_date, (float)temp_out, umeterdb);
+    measval_db( "OutdoorHumidity_TemperatureSensor", "Current Outdoor Humidity", 
+		dataset_date, (float)humid_out, umeterdb);
+    syslog(LOG_DEBUG, "humid_out: %f\n", humid_out); 
+  }
 
+  /* indoor humidity - if sensor is installed */
   strncpy(umeterstr, (const char *)(datalogdata+30), 5); 
   umeterstr[4] = 0;
-  humid_in = strtol(umeterstr, NULL, base);
-  printf("humid_in: %d\n", humid_in);
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
+  err = strncmp( umeterstr, "----", 4);
+  /* Indoor Humidity Sensor installed */
+  if ( err == 0 ) {
+    syslog(LOG_INFO, "No Indoor HumiditySensor found");
+  } else {
+    humid_in = strtol(umeterstr, NULL, base);
+    humid_in = (1.0/10.0)*humid_in; /* 0.1% to %rel.hum. */
+    syslog(LOG_DEBUG, "humid_in: %f\n", humid_in);
+    measval_db( "IndoorHumiditySensor", "Indoor Humidity", dataset_date, (float)humid_in, umeterdb);
+  }
 
+  /* day of year */
   strncpy(umeterstr, (const char *)(datalogdata+34), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   day_of_year = strtol(umeterstr, NULL, base);
-  printf("day_of_year: %d\n", day_of_year);
+  syslog(LOG_DEBUG, "day_of_year: %d\n", day_of_year);
 
+  /* minute of day */
   strncpy(umeterstr, (const char *)(datalogdata+38), 5); 
   umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   min_of_day = strtol(umeterstr, NULL, base);
-  printf("min_of_day: %d\n", min_of_day);
-
-  strncpy(umeterstr, (const char *)(datalogdata+42), 5); 
-  umeterstr[4] = 0;
-  rain_today = strtol(umeterstr, NULL, base);
-  printf("rain_today: %d\n", rain_today);
-
-  strncpy(umeterstr, (const char *)(datalogdata+46), 5); 
-  umeterstr[4] = 0;
-  windspeed_avg = strtol(umeterstr, NULL, base);
-  printf("windspeed_avg: %d\n", windspeed_avg);
+  syslog(LOG_DEBUG, "min_of_day: %d\n", min_of_day);
 
   memset(&tm, 0, sizeof(struct tm ));
-  time(&clock);
-  ptm = gmtime(&clock);
+  time(&umclock);
+  ptm = gmtime(&umclock);
   year = 1900 + ptm->tm_year;
   minute  = min_of_day % 60;
-  hour = min_of_day / 60;
-  snprintf(buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year, hour, minute);
+  hour = min_of_day / 60 - 1;
+
+  snprintf( buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year+1, hour, minute);
   strptime(buf,"%Y %j %H:%M:%S", &tm);
   strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
-  puts(buf);
+  syslog(LOG_DEBUG, "packet_rd: %s", buf);
 
+  umclock = mktime( &tm);
+  tdiff = ( int)(umclock - dataset_date);
+  syslog(LOG_DEBUG,"time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+  if ( abs(tdiff) > 3600 )
+    syslog(LOG_ALERT, "time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+
+  /* Today's rain total */
+  strncpy(umeterstr, (const char *)(datalogdata+42), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
+  rain_today = strtol(umeterstr, NULL, base);
+  rain_today = (25.4/10.0)*rain_today; /* 0.1in to mm */
+  syslog(LOG_DEBUG, "rain_today: %f\n", rain_today);
+  measval_db( "RainGauge", "Today Rain Total", dataset_date, (float)rain_today, umeterdb);
+
+  /* 1 Minute windspeed average */
+  strncpy(umeterstr, (const char *)(datalogdata+46), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
+  windspeed_avg = strtol(umeterstr, NULL, base);
+  windspeed_avg = (1.0/36.0)*windspeed_avg; /* 0.1 kph to ms-1 */
+  syslog(LOG_DEBUG, "windspeed_avg: %f\n", windspeed_avg);
+  measval_db( "WindSensor", "1 Minute Windspeed Average", 
+	      dataset_date, (float)windspeed_avg, umeterdb);
+
+  sqlite3_close( umeterdb);
   return(0);
 }
 
@@ -192,12 +274,13 @@ packet_rd( unsigned char * packetdata, int ndat) {
   int day_of_year;
   int min_of_day;
 
-  time_t clock;
+  time_t umclock;
   int minute, hour, year;
   struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
   time_t dataset_date;
+  long unsigned int tdiff;
 
   /*
     parse data in packetmode
@@ -218,14 +301,14 @@ packet_rd( unsigned char * packetdata, int ndat) {
   windspeed_peak = (float)strtol(umeterstr, NULL, base);
   windspeed_peak = (1.0/36.0)*windspeed_peak; /* 0.1 kph to ms-1 */
   syslog(LOG_DEBUG, "windspeed_peak: %f\n", windspeed_peak);
-  measval_db( "Wind Sensor", "Windspeed Peak 5 Minute", dataset_date, (float)windspeed_peak, umeterdb);
+  measval_db( "WindSensor", "Windspeed Peak 5 Minute", dataset_date, (float)windspeed_peak, umeterdb);
 
   strncpy(umeterstr, (const char *)(packetdata+9), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   winddir_peak = (float)strtol(umeterstr, NULL, base);
   winddir_peak = (360.0/255.0)*winddir_peak; /* 0-255 to 0-360 deg */
-  measval_db( "Wind Sensor", "Wind Direction", dataset_date, (float)winddir_peak, umeterdb);
+  measval_db( "WindSensor", "Wind Direction", dataset_date, (float)winddir_peak, umeterdb);
   syslog(LOG_DEBUG, "winddir_peak: %f\n", winddir_peak);
 
   strncpy(umeterstr, (const char *)(packetdata+13), 5); 
@@ -241,7 +324,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   rain_total = (float)strtol(umeterstr, NULL, base);
   rain_total = (25.4/10.0)*rain_total; /* 0.1in to mm */
-  measval_db( "Rain Gauge", "Rain Longterm Total", dataset_date, (float)rain_total, umeterdb);
+  measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)rain_total, umeterdb);
   syslog(LOG_DEBUG, "rain_total: %f\n", rain_total);
 
   strncpy(umeterstr, (const char *)(packetdata+21), 5); 
@@ -249,7 +332,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   baro = (float)strtol(umeterstr, NULL, base);
   baro = baro/10.0; /* 0.1mbar to mbar */
-  measval_db( "Indoor Temperator/Barometer Sensor", "Current Barometer", dataset_date, (float)baro, umeterdb);
+  measval_db( "IndoorTemperator_BarometerSensor", "Current Barometer", dataset_date, (float)baro, umeterdb);
   syslog(LOG_DEBUG, "baro: %f\n", baro);
 
   strncpy(umeterstr, (const char *)(packetdata+25), 5); 
@@ -257,14 +340,14 @@ packet_rd( unsigned char * packetdata, int ndat) {
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   baro_chg = (float)strtol(umeterstr, NULL, base); 
   baro_chg = baro_chg/10.0; /* 0.1mbar to mbar */
-  measval_db( "Indoor Temperator/Barometer Sensor", "Barometer Delta", dataset_date, (float)baro_chg, umeterdb);
+  measval_db( "IndoorTemperator_BarometerSensor", "Barometer Delta", dataset_date, (float)baro_chg, umeterdb);
   syslog(LOG_DEBUG, "baro_chg: %f\n", baro_chg);
 
   strncpy(umeterlstr, (const char *)(packetdata+29), 9); 
   umeterlstr[8] = 0;
   syslog(LOG_DEBUG, "umeterlstr: '%s'\n", umeterlstr);
   baro_corr = strtol(umeterlstr, NULL, base);
-  measval_db( "Indoor Temperator/Barometer Sensor", "Barometer Correction Factor", dataset_date, (float)baro_corr, umeterdb);
+  measval_db( "IndoorTemperator_BarometerSensor", "Barometer Correction Factor", dataset_date, (float)baro_corr, umeterdb);
   syslog(LOG_DEBUG, "baro_corr: %d\n", baro_corr);
 
   strncpy(umeterstr, (const char *)(packetdata+37), 5); 
@@ -274,59 +357,83 @@ packet_rd( unsigned char * packetdata, int ndat) {
   /* Temperature Sensor installed */
   if ( err == 0 ) {
     syslog(LOG_INFO, "No Outdoor Humidity/Temperature Sensor found");
-    measval_db( "Temperature Sensor", "Current Outdoor Temp", dataset_date, (float)temp_out, umeterdb);
+    measval_db( "TemperatureSensor", "Current Outdoor Temp", dataset_date, (float)temp_out, umeterdb);
   } else /* Outdoor Humidity Temperature sensor installed */ {
     out_th_present = 1;
     humid_out = (float)strtol(umeterstr, NULL, base);
     humid_out = (1.0/10.0)*humid_out; /* 0.1% to %rel.hum. */
-    measval_db( "Outdoor Humidity/Temperature Sensor", "Current Outdoor Temp", dataset_date, (float)temp_out, umeterdb);
-    measval_db( "Outdoor Humidity/Temperature Sensor", "Current Outdoor Humidity", dataset_date, (float)humid_out, umeterdb);
+    measval_db( "OutdoorHumidity_TemperatureSensor", "Current Outdoor Temp", dataset_date, (float)temp_out, umeterdb);
+    measval_db( "OutdoorHumidity_TemperatureSensor", "Current Outdoor Humidity", dataset_date, (float)humid_out, umeterdb);
     syslog(LOG_DEBUG, "humid_out: %f\n", humid_out); 
   }
 
-
+  /* day of year */
   strncpy(umeterstr, (const char *)(packetdata+41), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   day_of_year = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "day_of_year: %d\n", day_of_year);
 
+  /* minute of day */
   strncpy(umeterstr, (const char *)(packetdata+45), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   min_of_day = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "min_of_day: %d\n", min_of_day);
 
+
+
   memset(&tm, 0, sizeof(struct tm ));
-  time(&clock);
-  ptm = gmtime(&clock);
+  time(&umclock);
+  ptm = gmtime(&umclock);
   year = 1900 + ptm->tm_year;
   minute  = min_of_day % 60;
-  hour = min_of_day / 60;
+  hour = min_of_day / 60 -1 ;
 
   snprintf( buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year+1, hour, minute);
   strptime(buf,"%Y %j %H:%M:%S", &tm);
   strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
   syslog(LOG_DEBUG, "packet_rd: %s", buf);
 
+  umclock = mktime( &tm);
+  tdiff = ( int)(umclock - dataset_date);
+  syslog(LOG_DEBUG,"time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+  if ( abs(tdiff) > 3600 )
+    syslog(LOG_ALERT, "time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+
+  /* today's rain total */
   strncpy(umeterstr, (const char *)(packetdata+49), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   rain_today = (float)strtol(umeterstr, NULL, base);
   rain_today = (25.4/10.0)*rain_today; /* 0.1in to mm */
-
-  measval_db( "Rain Gauge", "Today Rain Total", dataset_date, (float)rain_total, umeterdb);
+  measval_db( "RainGauge", "Today Rain Total", dataset_date, (float)rain_total, umeterdb);
   syslog(LOG_DEBUG, "rain_today: %f\n", rain_today);
 
+  /* 5 Minute windspeed average */
   strncpy(umeterstr, (const char *)(packetdata+53), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: '%s'\n", umeterstr);
   windspeed_avg = (float)strtol(umeterstr, NULL, base);
   windspeed_avg = (1.0/36.0)*windspeed_avg; /* 0.1 kph to ms-1 */
-  measval_db( "Wind Sensor", "5 Minute Windspeed Average", dataset_date, (float)windspeed_avg, umeterdb);
+  measval_db( "WindSensor", "5 Minute Windspeed Average", 
+	      dataset_date, (float)windspeed_avg, umeterdb);
   syslog(LOG_DEBUG, "windspeed_avg: %f\n", windspeed_avg);
 
   sqlite3_close( umeterdb);
+  return(0);
+}
+
+/*
+  complete_rd
+
+  reading data records with ULTIMETER in complete mode
+*/
+int
+complete_rd( unsigned char * completedata, int ndat) {
+  int err;
+
+  syslog(LOG_DEBUG, "complete_rd: begin of execution");
   return(0);
 }
 
@@ -343,27 +450,36 @@ umeter_rd( int rfd) {
   int ndat;
   static unsigned char data[TBUFF+1];
 
-  const char dataloghd[3] = "!!";
-  const char packethd[6] = "$ULTW";
-  int dataloglen = 51; /* NL is ignored */
+  const char dataloghd[3]  = "!!";
+  const char packethd[6]   = "$ULTW";
+  const char complethd[5] = "&CR&";
+  int dataloglen  = 51; /* NL is ignored */
                                /*  thus record size is 48 hex bytes + 2 header bytes + carriage return */
-  int packetlen  = 58; /* NL is ignored */
+  int packetlen    = 58; /* NL is ignored */
                                /* thus record size is 52 hex bytes + 5 header bytes + carriage */
+  int completlen  = 457; /* NL is ignored */
+                               /* thus record size is 452 hex bytes + 4 header bytes + carriage */
 
 
   for (;;) {
     ndat = read(rfd,data,1024); 
     data[ndat-1]=0;
 
+    /* check data logger mode */
     if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
           && ( ndat == dataloglen) ) {
       syslog(LOG_DEBUG, "umeter_rd: datalogger mode\n");
       datalogger_rd( data, ndat);
-      
+      /* check packet mode */
     } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
           && ( ndat ==packetlen )) {
       syslog(LOG_DEBUG, "umeter_rd: packet mode\n");
       packet_rd( data, ndat);
+      /* check complete record mode */
+    } else if ( ( strncmp( (const char *)data, (const char *)complethd, 5) == 0) 
+          && ( ndat ==completlen )) {
+      syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
+      complete_rd( data, ndat);
     } else {
       syslog(LOG_DEBUG, "data (garbage): '%s' : %d\n", data, ndat);
     }

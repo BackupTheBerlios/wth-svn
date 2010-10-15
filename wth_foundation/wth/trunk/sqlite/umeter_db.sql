@@ -39,12 +39,12 @@ CREATE TABLE sensorname
       sensor_name VARCHAR(255) NOT NULL
     );
 
-INSERT INTO sensorname VALUES ('1','Wind Sensor');                          -- Wind Sensor
-INSERT INTO sensorname VALUES ('2','Temperature Sensor');                   -- Temperature Sensor
-INSERT INTO sensorname VALUES ('3','Rain Gauge');                           -- Rain Gauge
-INSERT INTO sensorname VALUES ('4','Indoor Humidity Sensor');               -- Indoor Humidity Sensor ( optional)
-INSERT INTO sensorname VALUES ('5','Outdoor Humidity/Temperature Sensor');  -- T/H Sensor (optional)
-INSERT INTO sensorname VALUES ('6','Indoor Temperator/Barometer Sensor');   -- Indoor T/Pressure (inside display unit)
+INSERT INTO sensorname VALUES ('1','WindSensor');                        -- Wind Sensor
+INSERT INTO sensorname VALUES ('2','TemperatureSensor');                 -- Temperature Sensor
+INSERT INTO sensorname VALUES ('3','RainGauge');                         -- Rain Gauge
+INSERT INTO sensorname VALUES ('4','IndoorHumiditySensor');              -- Indoor Humidity Sensor ( optional)
+INSERT INTO sensorname VALUES ('5','OutdoorHumidity_TemperatureSensor'); -- T/H Sensor (optional)
+INSERT INTO sensorname VALUES ('6','IndoorTemperator_BarometerSensor');  -- Indoor T/Pressure (inside display unit)
 
 
 --
