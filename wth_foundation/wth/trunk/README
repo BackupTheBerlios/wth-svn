@@ -21,6 +21,16 @@ gmake
 Linux uses GNU make by default
 make
 
+Installation
+------------
+make install
+
+
+Configuration
+-------------
+edit /usr/local/etc/wth/wth.conf to match
+your hardware setup
+
 
 Running
 -------

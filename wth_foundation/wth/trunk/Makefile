@@ -15,11 +15,18 @@ endif
 OBJDIR  = build_$(ARCH)
 SRCS    = wthd.c ws2000.c pcwsr.c util.c net.c cmd.c wthdb.c onewire.c ds2438.c crcutil.c ioutil.c owerr.c ownetu.c owtrnu.c ds2480ut.c linuxlnk.c owllu.c owsesu.c findtype.c atod26.c temp10.c wmr9x8.c umeter.c
 OBJS    = $(patsubst %c, $(OBJDIR)/%o, $(SRCS))
-WTHAPP  = $(OBJDIR)/wthd $(OBJDIR)/readconfig
+WTHAPP  = $(OBJDIR)/wthd 
 #$(info $(OBJS))
 
-CFLAGS  = -Wall
-#CC = gcc34
+INSTALL = /usr/bin/install -c
+
+DEFS = -DSQLITE_THREADSAFE=1
+CDEBUG = -g
+CFLAGS  = $(CDEBUG) -O0 -Wall $(DEFS) 
+LDFLAGS = -g
+
+prefix = /usr/local
+bindir = $(prefix)/bin
 
 ifneq (,$(findstring Darwin,$(ARCH)))
   #$(info This is Darwin)
@@ -50,6 +57,16 @@ $(OBJDIR)/wthd: $(OBJS)
 $(OBJDIR)/%.o: %.c wth.h
 	@mkdir -p build_$(ARCH)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
+
+install: $(WTHAPP)
+	$(INSTALL) $(WTHAPP) $(bindir)/$(binprefix)wthd
+	-test ! -f etc/wth/wth.conf || $(INSTALL) etc/wth/wth.conf /usr/local/etc/wth/wth.conf
+
+deinstall: $(WTHAPP)
+	@killall wthd
+	@rm /usr/local/bin/wthd
+	@rm /usr/local/etc/wth/wth.conf
+	@rmdir /usr/local/etc/wth
 
 clean:
 	@rm -fr $(WTHAPP) $(OBJDIR) *~
