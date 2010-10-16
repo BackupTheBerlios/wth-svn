@@ -4,7 +4,10 @@
 
   Volker jahns <volker@thalreit.de>
 */
-#include "../wthnew.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sqlite3.h>
+
 #define MAXQUERYLEN 256
 
 int
@@ -13,16 +16,11 @@ main ( int argc, char **argv) {
   int querylen =  MAXQUERYLEN;
   char query[MAXQUERYLEN];
   sqlite3 *ws2000db;
-  char *errmsg = 0;
   char *ws2000dbfile = "ws2000.db";
 
   /* open sqlite db file */
-  err = sqlite3_open( ws2000dbfile, &ws2000db);
-  printf("err: %d : sqlite_errmsg: %s\n", err, sqlite3_errmsg(ws2000db));
-  if ( err) {
-    fprintf( stderr, "Failed to open databse %s. Error: %s\n", 
-                     ws2000dbfile, sqlite3_errmsg(ws2000db));
-    free( errmsg);
+  if ( sqlite3_open( ws2000dbfile, &ws2000db) != SQLITE_OK) {
+    fprintf( stderr, "Failed to open database %s.\n", ws2000dbfile);
     return -1;
   } else {
     printf("sqlite3_open: no error: OK\n");
