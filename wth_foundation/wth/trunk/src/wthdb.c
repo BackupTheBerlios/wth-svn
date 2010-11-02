@@ -1220,7 +1220,7 @@ measval_db( char *sensorname, char *parametername,
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-            "measval_db: rror: select sensor_no: err: %d : sqlite_errmsg: %s\n", 
+            "measval_db: error: select sensor_no: err: %d : sqlite_errmsg: %s\n", 
             err, sqlite3_errmsg(wthdb));
     return(err);
   }

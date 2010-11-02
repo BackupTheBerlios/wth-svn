@@ -29,7 +29,6 @@
  
 */
 
-
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
@@ -428,9 +427,11 @@ int measval_db( char *sensorname, char *parametername,
 int statval_db( char *sensorname, char *statusname, 
   time_t dataset_date, long unsigned int sval, sqlite3 *database);
 
-
+void *umeter_hd( void *arg);
+int datalogger_rd( unsigned char * datalogdata, int ndat);
+int packet_rd( unsigned char * packetdata, int ndat);
+int complete_rd( unsigned char * completedata, int ndat);
+int umeter_rd( int rfd);
 int initumeter (int *pfd, struct termios *newtio,struct termios *oldtio);
 int closeumeter( int fd, struct termios *oldtio);
-int umeter_rd( int rfd);
-void *umeter_hd( void *arg);
 

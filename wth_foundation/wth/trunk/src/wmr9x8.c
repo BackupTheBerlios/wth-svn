@@ -120,7 +120,7 @@ wmr9x8dac( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "wmr9x8dac: data record");
   echodata( data, ndat);
 
-  err = checksum( data, ndat);
+  //err = checksum( data, ndat);
 
   devtype = data[2];
   syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);
@@ -361,6 +361,7 @@ rain_dac( unsigned char *data) {
 int
 thin_dac( unsigned char *data) {
   int err;
+  unsigned char channel_no;
   unsigned char dew_underrange;
   unsigned char low_battery;
   unsigned char over_underrange;
@@ -372,6 +373,7 @@ thin_dac( unsigned char *data) {
 
   syslog( LOG_DEBUG,"thin_dac: data acquisition of indoor temperature/humidity data");
   time(&dataset_date);
+  channel_no      = lownibble(data[3]);
   dew_underrange  = getbits(data[3], 4, 1);
   low_battery     = getbits(data[3], 6, 1);
 
@@ -489,6 +491,7 @@ thout_dac( unsigned char *data) {
 int
 tin_dac( unsigned char *data) {
   int err;
+  unsigned char channel_no;
   unsigned char low_battery;
   unsigned char over_underrange;
   unsigned char sign;
@@ -497,14 +500,17 @@ tin_dac( unsigned char *data) {
 
   syslog( LOG_DEBUG,"tin_dac: data acquisition of indoor temperature data");
   time(&dataset_date);
+  channel_no      = lownibble(data[3]);
+  low_battery     = getbits(data[3], 6, 1);
 
-  temperature     =  0.1 * lownibble(data[4]) +
-                     1.0 * highnibble(data[4]) +
-                    10.0 * lownibble(data[5]) +
-                   100.0 * getbits(data[5], 5, 2);
+  temperature     = 0.1 * lownibble(data[4]) +
+                    1.0 * highnibble(data[4]) +
+                   10.0 * lownibble(data[5]) +
+                  100.0 * getbits(data[5], 5, 2);
  
   over_underrange = getbits(data[5], 6, 1); 
-  sign            = getbits(data[5], 7, 1); 
+  sign                    = getbits(data[5], 7, 1); 
+
   if ( sign == 1) 
     temperature = -temperature;
 
@@ -524,7 +530,6 @@ tin_dac( unsigned char *data) {
   statval_db("tin_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
 
   sqlite3_close( wmr9x8db);
-
 
   return err;
 }
@@ -700,8 +705,8 @@ minute_dac( unsigned char *data) {
   int minute;
   unsigned char low_battery;
 
- 
   syslog( LOG_DEBUG,"minute_dac: data acquisition of minute data");
+  err = 0;
   onedigit = lownibble( data[3]);
   tendigit = getbits( data[3],6,3);
   minute   =      onedigit + 
@@ -726,6 +731,7 @@ clock_dac( unsigned char *data) {
   time_t dataset_date;
 
   syslog( LOG_DEBUG,"clock_dac: data acquisition of clock data");
+  err = 0;
   time(&dataset_date);
 
   minute      = 1 * lownibble(data[3]) +
@@ -979,8 +985,19 @@ shuffdat( unsigned char *data, int ndat) {
 
 int
 checksum ( unsigned char *data, int ndat) {
-  int err;
+  int i, err;
+  unsigned  char checksum;
 
+  for ( i = 0; i < ndat -1; i++ )
+    checksum = checksum + data[i];
+ 
+  if ( checksum != data [ndat-1] ) {
+    syslog(LOG_ALERT,"checksum error: in record: %x calculated: %x", 
+      checksum, data[ndat-1]); 
+    err = 1;
+  } 
+  syslog(LOG_DEBUG, "checksum calculated: %x", checksum);
+  syslog(LOG_DEBUG, "checksum: last data byte: %x", data[ndat-1]);
   return(err);
 }
 

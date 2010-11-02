@@ -142,10 +142,11 @@ docmd( int sockfd) {
 
     if ( token == NULL) {
       printf("docmd: token NULL\n");
-      snprintf(response, sizeof(response), tnusage(0, "", "")); 
+      snprintf(response, sizeof(response), "%s", (const char *)tnusage(0, "", "")); 
       Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token,"help",4)) == 0) {
-      snprintf(response, sizeof(response), "%s", tnhelp( sbuf));
+      printf("docmd: strlen(sbuf): %d\n",strlen(sbuf)); 
+      snprintf(response, sizeof(response), "%s", (const char *)tnhelp( sbuf));
       Write(sockfd, response, strlen(response));
     } else if ( ( err = strncmp( token, "exec",4)) == 0 ) {
       snprintf(response, sizeof(response), "%s", execmd( sbuf));
@@ -162,7 +163,7 @@ docmd( int sockfd) {
       break;
     } else {
       printf("docmd: provide HELP (unknown command)\n");
-      snprintf(response, sizeof(response), tnusage(0, "", "")); 
+      snprintf(response, sizeof(response), "%s", tnusage(0, "", "")); 
       Write(sockfd, response, strlen(response));
     }
     snprintf(response, sizeof(response), ">");
@@ -177,17 +178,18 @@ tnstat ( char *station) {
   int err;
   static char rbuf[NBUFF+1];
 
-  snprintf(rbuf, NBUFF, "");
+  memset( rbuf, 0, NBUFF); 
+  //snprintf(rbuf, NBUFF, "");
   if  ( ( err = strncmp( station, "ws2000", 5)) == 0) { 
     if ( ws2000station.status.is_present == 1) {
-      snprintf(rbuf, NBUFF, readstat( "ws2000"));
+      snprintf(rbuf, NBUFF, "%s", readstat( "ws2000"));
     } else { 
      snprintf( rbuf, TBUFF, "No WS2000 weatherstation attached.\n"
        "Please check hardware, if you do not expect this correct.\n");
     }
   } else if  ( ( err = strncmp(station, "pcwsr", 5)) == 0 ) { 
       if ( pcwsrstation.status.is_present == 1) {
-        snprintf( rbuf, NBUFF, readstat( "pcwsr"));
+        snprintf( rbuf, NBUFF, "%s", readstat( "pcwsr"));
       } else {
         snprintf( rbuf, NBUFF, "No PCWSR weatherstation found.\n"
           "Please allow 5-10 minutes for PCWSR data to accumulate. "
@@ -195,7 +197,7 @@ tnstat ( char *station) {
       }
   } else if  ( ( err = strncmp(station, "onewire", 6)) == 0 ) { 
       if ( onewirestation.status.is_present == 1) {
-        snprintf( rbuf, NBUFF, readstat( "onewire"));
+        snprintf( rbuf, NBUFF, "%s", readstat( "onewire"));
       } else {
         snprintf( rbuf, NBUFF, "No ONEWIRE weatherstation found.\n"
           "Check hardware, if you do not expect this correct.\n");
@@ -227,12 +229,12 @@ tnusage (int exitcode, char *error, char *addl) {
 	     "where <station> is ws2000, pcwsr or onewire\n");
   } else if ( exitcode == 2 ) { /* help on exec */
     snprintf(s, SBUFF, "wthd exec commands:\n"
-      "\texec ws2000 polldcftime\task ws2000 for current CDF time\n"
+      "\texec ws2000 polldcftime\t\task ws2000 for current CDF time\n"
       "\texec ws2000 requestdataset\tretrieve first dataset record\n"
       "\texec ws2000 selectnextdataset\tset cursor to next dataset record\n"
-      "\texec ws2000 set9sensor\tset ws2000 to receive data of 9 sensors\n"
-      "\texec ws2000 set16sensor\tset ws2000 to receive data of 16 sensors\n"
-      "\texec ws2000 pollstatus\tretrieve station and sensor status\n"
+      "\texec ws2000 set9sensor\t\tset ws2000 to receive data of 9 sensors\n"
+      "\texec ws2000 set16sensor\t\tset ws2000 to receive data of 16 sensors\n"
+      "\texec ws2000 pollstatus\t\tretrieve station and sensor status\n"
       "\texec ws2000 setintervaltime\tset measurement time interval\n"
       "only WS2000 executes commands\n"
      );
@@ -260,19 +262,18 @@ tnhelp( char *args) {
   int err, ntok;
   int is_show, is_init, is_exec;
   int is_conf, is_data, is_stat;
-  static char rbuf[TBUFF+1];
+  static char rbuf[SBUFF+1];
   char *sbuf;
   char *sep = "\\/:;=- ";
   char *token;
 
-  if ( args == NULL ) {
-    snprintf(rbuf,TBUFF, tnusage( 0, "", ""));
+  if ( strlen(args) == 0 ) {
+    snprintf(rbuf,SBUFF, tnusage( 0, "", ""));
     return( rbuf);
   }
-
   ntok=0; 
   token = strtok_r(args, sep, &sbuf);
-
+  
   do {
     ntok++;
     if ( ( err = strncmp(token, "show", 4) == 0 )) {
@@ -291,25 +292,27 @@ tnhelp( char *args) {
       is_data = 1;
     } else if ( ( err = strncmp(token, "stat", 4) == 0 )) {
       is_stat = 1;
+    } else if ( ( err = strncmp(token, "", 1) == 0)) {
+      snprintf(rbuf, SBUFF, tnusage( 0,"",""));
     }
   } while ( ( token = strtok_r( NULL, sep, &sbuf)) != NULL );
 
   if ( is_show == 1) {
     if ( is_data == 1) {
-      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW DATA");
+      snprintf(rbuf, SBUFF, "thhelp: provide help on SHOW DATA\n");
     } else if ( is_stat == 1) {
-      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW STATUS");
+      snprintf(rbuf, SBUFF, "thhelp: provide help on SHOW STATUS\n");
     } else if ( is_conf == 1) {
-      snprintf(rbuf, TBUFF, "thhelp: provide help on SHOW CONFIG");
+      snprintf(rbuf, SBUFF, "thhelp: provide help on SHOW CONFIG\n");
     } else {
-      snprintf(rbuf, TBUFF, "thhelp: provide general help on SHOW");
+      snprintf(rbuf, SBUFF, "thhelp: provide general help on SHOW\n");
     }
   } else if ( is_init == 1 ) {
-    snprintf(rbuf, TBUFF, "tnhelp: provide help on RESTART/RELOAD");
+    snprintf(rbuf, SBUFF, "tnhelp: provide help on RESTART/RELOAD\n");
   } else if ( is_exec == 1) {
-    snprintf(rbuf, TBUFF, tnusage( 2, "", ""));
+    snprintf(rbuf, SBUFF, tnusage( 2, "", ""));
   } else {  // catch all 
-    snprintf(rbuf, TBUFF, tnusage( 0,"",""));
+    snprintf(rbuf, SBUFF, tnusage( 0,"",""));
   }
   return(rbuf);
 }
@@ -364,7 +367,7 @@ execmd( char *args) {
       snprintf(rbuf, MAXMSGLEN, "execmd: ws2000: execute cmd %d", ncmd);
       wsconf.command = ncmd;
       if ( ( err = wcmd()) == 0 ) {
-        snprintf(rbuf, MAXMSGLEN, ws2000station.status.message); return(rbuf);
+        snprintf(rbuf, MAXMSGLEN, "%s", ws2000station.status.message); return(rbuf);
       } else { snprintf(rbuf, MAXMSGLEN, "error: no response of WS2000"); }
     } else if ( ncmd == 100) {
       return( tnusage( 2, "WS2000 called without command", ""));
@@ -387,9 +390,10 @@ showcmd( char *args) {
   char *sep = "\\/:;=- ";
   char *token;
 
-  snprintf(rbuf, NBUFF, "");
+  memset( rbuf, NBUFF, 0);
+  //snprintf(rbuf, NBUFF, "");
   if ( args == NULL ) {
-    snprintf(rbuf, NBUFF, tnusage(1,"",""));
+    snprintf(rbuf, NBUFF, "%s", tnusage(1,"",""));
     return(rbuf);
   }
 

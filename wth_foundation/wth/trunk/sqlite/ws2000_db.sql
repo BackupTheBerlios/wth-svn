@@ -18,8 +18,7 @@
 --
 -- table sensordata holds measured values and corresponding time
 --
-    CREATE TABLE
-    sensordata
+    CREATE TABLE sensordata
     (
       dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       dataset_date DATE NOT NULL,
@@ -36,8 +35,7 @@
 --
 -- sensor status
 --
-    CREATE TABLE
-    sensorstatus
+    CREATE TABLE sensorstatus
     (
       statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       statusset_date DATE NOT NULL,
@@ -52,8 +50,7 @@
 --
 -- sensor status
 --
-    CREATE TABLE
-    sensornewflag
+    CREATE TABLE sensornewflag
     (
       statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       statusset_date DATE NOT NULL,
@@ -65,8 +62,7 @@
 --
 -- status of WS2000 weatherstation
 --
-    CREATE TABLE
-    ws2000status
+    CREATE TABLE ws2000status
     (
       wstatus_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       wstatus_date DATE NOT NULL,
@@ -80,8 +76,7 @@
 --
 -- sensor names
 --
-    create table
-    sensornames
+    create table sensornames
     (
       sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensorname VARCHAR(255) NOT NULL
@@ -90,8 +85,7 @@
 --
 -- last update time of a sensor parameter
 --
-    create table
-    sensorupdate
+    create table sensorupdate
     (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       last_update DATE NOT NULL
@@ -100,8 +94,7 @@
 --
 -- name and unit of sensor parameter
 --
-    create table
-    parameternames
+    create table parameternames
     (
       parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       parameter_name VARCHAR(64) NOT NULL,
@@ -111,8 +104,7 @@
 --
 -- relation between sensor and its parameters
 --
-    create table
-    sensorparameters
+    create table sensorparameters
     (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,

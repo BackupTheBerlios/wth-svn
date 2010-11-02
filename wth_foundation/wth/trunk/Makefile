@@ -43,7 +43,7 @@ endif
 ifneq (,$(findstring Linux,$(ARCH)))
   #$(info This is Linux)
   include_flags = -I./src -I./src/1wire/common  -I./src/1wire/lib/userial/shared -I/usr/include -I/usr/local/include
-  ld_flags = -L/usr/local/lib -lpthread -lrrd_th -lsqlite3 
+  ld_flags = -DSQLITE_THREADSAFE=0 -DLINUX -L/usr/local/lib -lpthread -lrrd_th -lsqlite3 
 endif
 
 INCLUDE = $(include_flags)
