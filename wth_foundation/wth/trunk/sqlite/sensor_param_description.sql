@@ -1,1 +1,0 @@
-select sn.sensor_no, sn.sensorname, pn.parameter_name, pn.parameter_unit from sensornames as sn , sensorparameters as sp, parameternames as pn where sn.sensor_no = sp.sensor_no and sp.parameter_no = pn.parameter_no ;
