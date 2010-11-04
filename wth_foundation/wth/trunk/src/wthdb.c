@@ -38,38 +38,27 @@ datadb( long dataset_date, int sensor_meas_no, float meas_value,
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  char *errmsg;
 
   /* insert data values */
   snprintf(query, querylen, 
     "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
     dataset_date, sensor_meas_no, meas_value); 
-  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, &errmsg);
+  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_DEBUG,
-      "datadb: error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(pcwsrdb));
-  }
-  if ( errmsg != NULL) {
-    sqlite3_free( errmsg);
-    errmsg = NULL;
+      "datadb: error: insert sensor data: err: %d", err);
   }
 
   /* insert date when last data has been updated */
   snprintf(query, querylen, 
     "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
     dataset_date, sensor_meas_no); 
-  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, &errmsg);
+  err = sqlite3_exec( pcwsrdb, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_DEBUG, 
-      "datadb: error: update sensor date: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(pcwsrdb));
+      "datadb: error: update sensor date: err: %d", err);
   }
   syslog( LOG_DEBUG, "datadb: query: %s", query);
-  if ( errmsg != NULL) {
-    sqlite3_free( errmsg);
-    errmsg = NULL;
-  }
 
   return(err);
 }
@@ -86,24 +75,12 @@ statdb( int sensor_status[], time_t statusset_date)
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
 
-  char *errmsg;
-
   char tstrg[TBUFF+1];
   char rrdfile[TBUFF+1];
   char tmpstr[TBUFF];
   char template[TBUFF];
   char **ustrg;
 
-  //time_t pstatime;
-  //struct tm *pstatm;
-  struct rusage pstat;
-    
-  //time(&pstatime); pstatm = gmtime(&pstatime);
-  err = getrusage( RUSAGE_SELF, &pstat);
-  syslog(LOG_DEBUG, "statdb_i: memory check: "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
   err = 0;
 
   ustrg = malloc(sizeof(char)*TBUFF+1);
@@ -112,24 +89,19 @@ statdb( int sensor_status[], time_t statusset_date)
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
-    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
-      ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
+    syslog(LOG_ALERT, "statdb: Failed to open database %s.", 
+      ws2000station.config.dbfile);
     return(err);
   }
 
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
-     "INSERT INTO sensorstatus VALUES ( NULL, %lu, %d, %d)",
+     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, %lu, %d, %d)",
      (long unsigned int) statusset_date, i, sensor_status[i]); 
-    err = sqlite3_exec( ws2000db, query, NULL, NULL, &errmsg);
+    err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
     if ( err) { 
       syslog(LOG_DEBUG,
-        "statdb: error: insert sensor status: err: %d : sqlite_errmsg: %s", 
-        err, sqlite3_errmsg(ws2000db));
-    }
-    if ( errmsg != NULL) {
-      sqlite3_free( errmsg);
-      errmsg = NULL;
+        "statdb: error: insert sensor status: err: %d", err);
     }
 
     snprintf(template,MAXMSGLEN,"%d", sensor_status[i]);
@@ -156,12 +128,6 @@ statdb( int sensor_status[], time_t statusset_date)
   }
   free(ustrg[2]);
   free(ustrg);
-
-  err = getrusage( RUSAGE_SELF, &pstat);
-  syslog(LOG_DEBUG, "statdb_f: memory check: "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
 
   return(err);
 }
@@ -198,11 +164,6 @@ newdb( long statusset_date, int sensor_no, int new_flag)
     syslog(LOG_DEBUG, "newdb: sqlite3_open: OK\n");
   }
 
-/*
-  snprintf(query, querylen, 
-	   "INSERT INTO sensornewflag VALUES ( NULL, %lu, %d, %d)",
-	   statusset_date, sensor_no, new_flag); 
-*/
   snprintf(query, querylen, 
 	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
 	   new_flag, sensor_no, sensor_no); 
@@ -344,7 +305,6 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   char template[TBUFF+1];
   char **ustrg;
   senspar_t spar;
-  char *errmsg;
 
   err = 0;        
   ustrg = malloc(sizeof(char)*TBUFF);
@@ -354,13 +314,11 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 
   err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
   syslog(LOG_DEBUG, 
-    "writedb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-    ws2000station.config.dbfile,
-    err, sqlite3_errmsg(ws2000db));
+    "writedb: sqlite3_open %s return value: %d", 
+    ws2000station.config.dbfile, err);
   if ( err) {
-    syslog( LOG_ALERT, "writedb: failed to open database %s. error: %s\n", 
-    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    free( errmsg);
+    syslog( LOG_ALERT, "writedb: failed to open database %s.", 
+    ws2000station.config.dbfile);
     return (-1);
   } else {
     syslog(LOG_DEBUG, "writedb: sqlite3_open: OK\n");
@@ -416,7 +374,6 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   /* cleanup and close */
   sqlite3_close( ws2000db);
   syslog(LOG_DEBUG,"writedb: sqlite3_close ws2000db done\n");
-
 
   return(err);
 }
