@@ -170,6 +170,14 @@ statdb( int sensor_status[], time_t statusset_date)
 /*
   newdb - insert new flag values
 
+  new flag is read which each datarecord read command ( 1 2)
+  status value is read with status command ( 5)
+
+  there is a small time offset as both commands occur at different time
+  new flag is added to table sensorstatus with the same time value as
+  the sensorstatus value has been added with the status command before
+  using SQL update
+
 */
 int
 newdb( long statusset_date, int sensor_no, int new_flag) 
@@ -177,35 +185,36 @@ newdb( long statusset_date, int sensor_no, int new_flag)
   int err;
   int querylen = MAXQUERYLEN;
   char query[MAXQUERYLEN];
-  //char *errmsg;
 
   err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
   syslog(LOG_DEBUG, 
-    "newdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-    ws2000station.config.dbfile,
-    err, sqlite3_errmsg(ws2000db));
+    "newdb: sqlite3_open %s return value: %d", 
+    ws2000station.config.dbfile, err);
   if ( err) {
-    syslog( LOG_ALERT, "newdb: failed to open database %s. error: %s\n", 
-    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-    //free( errmsg);
+    syslog( LOG_ALERT, "newdb: failed to open database %s.", 
+    ws2000station.config.dbfile);
     return (-1);
   } else {
     syslog(LOG_DEBUG, "newdb: sqlite3_open: OK\n");
   }
 
+/*
   snprintf(query, querylen, 
 	   "INSERT INTO sensornewflag VALUES ( NULL, %lu, %d, %d)",
 	   statusset_date, sensor_no, new_flag); 
+*/
+  snprintf(query, querylen, 
+	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
+	   new_flag, sensor_no, sensor_no); 
+  syslog(LOG_DEBUG, "newdb: query: %s", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_ALERT,
-	   "newdb: error: insert sensor status: err: %d : sqlite_errmsg: %s\n", 
-	   err, sqlite3_errmsg(ws2000db));
-    //free(errmsg);
+	   "newdb: error: insert sensor status: err: %d", err);
   }
   /* cleanup and close */
   sqlite3_close( ws2000db);
-  syslog(LOG_DEBUG,"newdb: sqlite3_close ws2000db done\n");
+  syslog(LOG_DEBUG,"newdb: sqlite3_close ws2000db done");
 
   return(0);
 }

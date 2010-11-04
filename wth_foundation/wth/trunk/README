@@ -36,7 +36,7 @@ Running
 -------
 To start wthd type
 
-sudo ./wthd
+sudo /usr/local/bin/wthd
 
 wthd will set itself in background (run as daemon). Measurement data are 
 logged to rrd and sqlite database. A TCP server is started listening at

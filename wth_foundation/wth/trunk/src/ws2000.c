@@ -621,31 +621,19 @@ wstat(unsigned char *data, int mdat ) {
   static char t[NBUFF+1];
   char s[TBUFF+1];
 
-
-  time_t pstatime;
-  struct tm *pstatm;
-  struct rusage pstat;
-    
-  time(&pstatime); pstatm = gmtime(&pstatime);
-  err = getrusage( RUSAGE_SELF, &pstat);
-  syslog(LOG_DEBUG, "wstat_i: memory check: %lu : "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         (long int)pstatime, pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
-
   /* time of statusset
      if DCF synchronized use time delivered by weatherstation
      if not, use localtime
   */
   if ( ws2000station.status.DCFtime != -1 ) {
-    syslog(LOG_DEBUG, "wstat: %d", ws2000station.status.DCFtime);
+    syslog(LOG_DEBUG, "wstat: DCF synchronized: statusset_date: %lu", (long int)ws2000station.status.DCFtime);
     statusset_date = ws2000station.status.DCFtime;
   } else { 
     syslog(LOG_INFO,
 	   "wstat : DCF not synchronized, using localtime for statusset\n");
     err = time(&statusset_date);
     syslog(LOG_DEBUG, 
-	   "wstat : present time: %lu (seconds since EPOCH)\n", 
+	   "wstat : statuset_date: %lu (seconds since EPOCH)\n", 
            (long int)statusset_date);
   }
 
@@ -750,13 +738,6 @@ wstat(unsigned char *data, int mdat ) {
   }
   strcat(t,"\n");
   
-  time(&pstatime); pstatm = gmtime(&pstatime);
-  err = getrusage( RUSAGE_SELF, &pstat);
-  syslog(LOG_DEBUG, "wstat_f: memory check: %lu : "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         (long int)pstatime, pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
-
   return (t);
 }
 
