@@ -99,7 +99,7 @@ wmr9x8rd( int rfd) {
       //echodata( data, ndat);
 
       wmr9x8dac( data, ndat);
-      sync = 0; ndat = 0;
+      sync = 0; ndat = 0; memset( data, 0, TBUFF);
     }
   }
 
@@ -120,7 +120,7 @@ wmr9x8dac( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "wmr9x8dac: data record");
   echodata( data, ndat);
 
-  //err = checksum( data, ndat);
+  err = checksum( data, ndat);
 
   devtype = data[2];
   syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);

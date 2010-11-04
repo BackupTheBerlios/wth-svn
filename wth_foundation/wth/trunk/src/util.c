@@ -60,6 +60,7 @@ wthd_init( ) {
   ws2000station.status.interval      = 300;  
 
   /* allocate sensornames WS2000 */
+  /*
   strncpy(ws2000station.sensor[1].sensorname, "Sensor1", TBUFF);
   strncpy(ws2000station.sensor[2].sensorname, "Sensor2", TBUFF);
   strncpy(ws2000station.sensor[3].sensorname, "Sensor3", TBUFF);
@@ -71,6 +72,7 @@ wthd_init( ) {
   strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", TBUFF);
   strncpy(ws2000station.sensor[10].sensorname, "Windsensor", TBUFF);
   strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", TBUFF);
+  */
 
   /* PCWSR */
   strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
@@ -384,7 +386,8 @@ echoconfig ( char *station) {
   char s[TBUFF+1];
   static char t[SBUFF+1];
 
-  snprintf(t, SBUFF, "");
+  //snprintf(t, SBUFF, "");
+  memset( t, 0, SBUFF);
   printf("echoconfig: station: \"%s\"\n", station);
 
   snprintf(s, TBUFF,"global configuration\n");

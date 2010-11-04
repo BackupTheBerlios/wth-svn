@@ -4,12 +4,14 @@
    global header file for serial weatherstation communication
    for use of 
 
-     WS2000
+     WS2000 weatherstation
      PC weathersensor receiver
-     1-wire weatherstation
+     1-Wire weatherstation
+     WMR 9X8 weatherstation
+     Ultimeter weatherstation
 
-   $Id: wth.h 177 2008-06-10 15:19:08Z vjahns $
-   $Revision: 177 $
+   $Id$
+   $Revision$
 
    Copyright 2009,2010 Volker Jahns, <volker@thalreit.de>
  
@@ -105,12 +107,6 @@ enum {
   NAK = 0x15
 };
 
-/*
-enum {
-  FALSE = 0,
-  TRUE  = 1
-};
-*/
 
 /* weatherstation errors */
 enum {
@@ -164,31 +160,6 @@ typedef struct threadinfo {
 
 thread_info_t pthread_info;
 
-/* data structures */
-typedef struct dataset {
-  time_t dataset_time;
-  float meas_value;
-} dataset_t;
-
-typedef struct param {
-  char *paramname;
-  float gain;
-  float offset;
-  dataset_t sample[MAXDATA];
-} param_t;
-
-typedef struct sensor {
-  int status;
-  param_t param[MAXPARAM];
-  char sensorname[TBUFF+1];
-  char description[TBUFF+1];
-  char rrdfile[TBUFF+1];
-  int address;
-  char version[TBUFF+1];
-  float updatefreq;
-  time_t lastseen;
-} sensor_t;
-
 typedef struct senspar {
   int sensor_no;
   char *sensor_name;
@@ -215,7 +186,7 @@ typedef struct ws2000stat {
   int Battstat;     /* battery status */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;   /* flag if station is present */
+  unsigned char is_present;   /* flag if station is present */
   char message[MAXMSGLEN]; /* holds ws2000 response message */
 } ws2000stat_t;
 
@@ -223,21 +194,21 @@ typedef struct pcwsrstat {
   time_t lastread;  /* last status read date */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;   /* flag if station is attached */
+  unsigned char is_present;   /* flag if station is attached */
 } pcwsrstat_t;
 
 typedef struct onewirestat {
   time_t lastread;  /* last status read date */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;   /* flag if station is attached */
+  unsigned char is_present;   /* flag if station is attached */
 } onewirestat_t;
 
 typedef struct wmr9x8stat {
   time_t lastread;  /* last status read date */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;   /* flag if station is attached */
+  unsigned char is_present;   /* flag if station is attached */
   unsigned char wmrrecord[MAXMSGLEN]; /* holds last wmr9x8 record */
 } wmr9x8stat_t;
 
@@ -245,7 +216,7 @@ typedef struct umeterstat {
   time_t lastread;  /* last status read date */
   int numsens;      /* internal number of sensors */
   int ndats;        /* number of datasets retrieved */
-  int is_present;   /* flag if station is attached */
+  unsigned char is_present;   /* flag if station is attached */
   unsigned char umrecord[MAXMSGLEN]; /* holds last ultimeter record */
 } umeterstat_t;
 
@@ -261,31 +232,26 @@ typedef struct wsconf {
 typedef struct ws2000 {
   ws2000stat_t status;
   wsconf_t config;
-  sensor_t sensor[MAXSENSORS];
 } ws2000_t;
 
 typedef struct pcwsr {
   pcwsrstat_t status;
   wsconf_t config;
-  sensor_t sensor[MAXSENSORS];
 } pcwsr_t;
 
 typedef struct onewire {
   onewirestat_t status;
   wsconf_t config;
-  sensor_t sensor[MAXSENSORS];
 } onewire_t;
 
 typedef struct wmr9x8 {
   wmr9x8stat_t status;
   wsconf_t config;
-  sensor_t sensor[MAXSENSORS];
 } wmr9x8_t;
 
 typedef struct umeter {
   umeterstat_t status;
   wsconf_t config;
-  sensor_t sensor[MAXSENSORS];
 } umeter_t;
 
 typedef struct conf {
@@ -395,6 +361,7 @@ int writedb( int sensor_no, int nval, int sensor_meas_no[],
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
 int sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
 char *readdb( char *wstation);
+int issens( int sensor_no);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 char *readstat( char *wstation);

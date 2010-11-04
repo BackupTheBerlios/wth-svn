@@ -464,6 +464,8 @@ demasq(unsigned char *data, int *mdat) {
 
    get raw data
 */
+
+/*
 int getrd ( unsigned char *data, int *mdat) {
     int err;
 
@@ -473,7 +475,7 @@ int getrd ( unsigned char *data, int *mdat) {
   } 
   return(0);
 }
-
+*/
 
 /* getcd
 
@@ -484,19 +486,6 @@ getcd ( unsigned char *data, int *mdat) {
     int i;
     int err;
 
-    /*
-    time_t pstatime;
-    struct tm *pstatm;
-    struct rusage pstat;
-    
-    time(&pstatime); pstatm = gmtime(&pstatime);
-    err = getrusage( RUSAGE_SELF, &pstat);
-    syslog(LOG_DEBUG, "getcd_i: memory check: %lu : "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         (long int)pstatime, pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
-    */
-    
     /* read answer of weather station from serial port */
     if ( ( err = getrd( data, mdat)) == -1)
 	  return(-1);
@@ -519,14 +508,7 @@ getcd ( unsigned char *data, int *mdat) {
     *mdat = *mdat - 4;
 
     syslog(LOG_DEBUG, "getcd : Data length getcd : %d\n", *mdat);
-    /*
-    time(&pstatime); pstatm = gmtime(&pstatime);
-    err = getrusage( RUSAGE_SELF, &pstat);
-    syslog(LOG_DEBUG, "getcd_f: memory check: %lu : "
-         "maxrss: %ld : ixrss: %ld idrss: %ld isrss : %ld\n",
-         (long int)pstatime, pstat.ru_maxrss,
-         pstat.ru_ixrss, pstat.ru_idrss,pstat.ru_isrss);
-    */
+
     return(0);
 }
 
@@ -635,7 +617,7 @@ wstat(unsigned char *data, int mdat ) {
   int i, err;
   int sdata[MAXSENSORS];
   time_t statusset_date;
-  char frame[MAXMSGLEN+1] = ""; 
+  //char frame[MAXMSGLEN+1] = ""; 
   static char t[NBUFF+1];
   char s[TBUFF+1];
 
@@ -670,40 +652,6 @@ wstat(unsigned char *data, int mdat ) {
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
   statdb( sdata, statusset_date);
-
-
-  /* status of first 8 temperature/humidity sensors */
-  for ( i = 1; i <= 8; i++) {
-    ws2000station.sensor[i].lastseen   = statusset_date;
-    ws2000station.sensor[i].status   = data[i-1];
-  }
-
-  ws2000station.sensor[9].lastseen   = statusset_date;
-  ws2000station.sensor[9].status   = data[8];  // rain
-  ws2000station.sensor[10].lastseen   = statusset_date;
-  ws2000station.sensor[10].status  = data[9];  // wind
-  ws2000station.sensor[11].lastseen   = statusset_date;
-  ws2000station.sensor[11].status  = data[10]; // indoor
-  /* status of temperature/humidity sensor 9 to 15 */
-  for ( i = 12; i <= 18; i++) {
-    ws2000station.sensor[i].lastseen   = statusset_date;
-    ws2000station.sensor[i].status   = data[i-1];
-  }
-
-  for ( i = 0; i < 18; i++ ) {
-    snprintf(s, 4, "%2d:",i);
-    strncat(frame, s, 4);
-  }
-
-  syslog(LOG_DEBUG, "wstat : %s\n", frame);    
-  strcpy(frame, "");
-
-  for ( i = 1; i <= 18; i++ ) {
-    snprintf(s, 4, "%2x:",ws2000station.sensor[i].status);
-    strncat(frame, s, 4);
-  }
-  syslog(LOG_DEBUG, "wstat : %s\n", frame);   
-
 	
   /* interval time */
   ws2000station.status.interval = data [18];
@@ -801,14 +749,7 @@ wstat(unsigned char *data, int mdat ) {
     strcat(t,s);  
   }
   strcat(t,"\n");
-    
   
-  for ( i = 1; i <= ws2000station.status.numsens; i++ ) {
-    snprintf(s, TBUFF, "%2d|", ws2000station.sensor[i].status);
-    strcat(t,s);
-  } 
-  strcat(t,"\n");
-
   time(&pstatime); pstatm = gmtime(&pstatime);
   err = getrusage( RUSAGE_SELF, &pstat);
   syslog(LOG_DEBUG, "wstat_f: memory check: %lu : "
@@ -942,23 +883,12 @@ datex ( unsigned char *data, int ndat) {
   time_t dataset_date;
   long age;
   char *clk;
-
   char tstrg[TBUFF+1];
-  /*
-  char rrdfile[TBUFF+1];
-  char template[TBUFF+1];
-  char **ustrg;
-  */
   float meas_value[3];
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
   syslog(LOG_DEBUG, "datex : rrdpath in datex : %s", 
     ws2000station.config.rrdpath);
-
-  /*
-  ustrg = (char **)malloc(sizeof(char *));
-  ustrg[2] = (char *)malloc(MAXMSGLEN*sizeof(char *));
-  */
 
   /* block number */
   syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
@@ -1004,7 +934,9 @@ datex ( unsigned char *data, int ndat) {
   new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
-    if ( ws2000station.sensor[i].status != 0 ) {
+    err = issens( i);
+    syslog(LOG_DEBUG, "datex: issens returns err: %d", err);
+    if ( err != 0 )  {
       nval = 2;
       sensor_no = i;
       syslog(LOG_DEBUG, "datex: sensor #%d temperature/humidity found\n", i);
@@ -1070,9 +1002,7 @@ datex ( unsigned char *data, int ndat) {
         "datex: sensor #%d humidity:\t\tdataset_date: %lu meas_value: %f"
         "sensor_meas_no: %d new flag: %d\n",
         i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
-      syslog(LOG_DEBUG,
-        "datex: sensor #%d ws2000station.sensor[%d].status: %d\n",
-        i,i, ws2000station.sensor[i].status);
+
       err = newdb( dataset_date, i, new);
       if ( err != 0 ) {
         syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
@@ -1089,7 +1019,8 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* Sensor #9: Rainsensor */
-  if ( ws2000station.sensor[9].status != 0) {
+  err = issens( 9);
+  if ( err != 0 )  {
     nval = 1;
     sensor_no = 9;
     syslog(LOG_DEBUG, "datex: sensor #9 rain found\n");
@@ -1118,7 +1049,8 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* sensor #10: Windsensor */
-  if ( ws2000station.sensor[10].status != 0) {
+  err = issens( 10);
+  if ( err != 0 )  {
     nval = 3;
     sensor_no = 10;
     syslog(LOG_DEBUG, "datex: sensor #10 wind found\n");
@@ -1170,7 +1102,8 @@ datex ( unsigned char *data, int ndat) {
   } 
 
   /* sensor #11: Indoorsensor */
-  if ( ws2000station.sensor[11].status != 0) {
+  err = issens( 11);
+  if ( err != 0 )  {
     nval = 3;
     sensor_no = 11;
     syslog(LOG_DEBUG, "datex: sensor #11 indoor found\n");
@@ -1532,11 +1465,11 @@ ws2000key_t *c(int n){
 
 
 
-/* getsrd 
+/* getrd 
 
    get raw data from serial interface
 */
-int getsrd ( unsigned char *data, int *mdat) {
+int getrd ( unsigned char *data, int *mdat) {
     int fd;                         /* filedescriptor serial port */
     char lword[6];                  /* temporary array to hold commandword */
     struct termios newtio,oldtio;   /* termios structures to set 

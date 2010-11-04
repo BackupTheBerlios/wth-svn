@@ -41,23 +41,12 @@
       statusset_date DATE NOT NULL,
       sensor_no INTEGER NOT NULL,
       sensor_status INTEGER NOT NULL,
+      new_flag INTEGER NOT NULL,
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
     );
 
 -- create index to speed up request
   CREATE INDEX ssidx ON sensorstatus(sensor_no, statusset_date,sensor_status);
-
---
--- sensor status
---
-    CREATE TABLE sensornewflag
-    (
-      statusset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      statusset_date DATE NOT NULL,
-      sensor_no INTEGER NOT NULL,
-      new_flag INTEGER NOT NULL,
-      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
-    );
 
 --
 -- status of WS2000 weatherstation
@@ -70,16 +59,17 @@
       DCF_status INTEGER NOT NULL,
       DCF_sync INTEGER NOT NULL,
       HF_status INTEGER NOT NULL,
-      no_sensors INTERGER NOT NULL
+      no_sensors INTEGER NOT NULL
     );
 
 --
--- sensor names
+-- sensornames
 --
     create table sensornames
     (
       sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensorname VARCHAR(255) NOT NULL
+      sensorname VARCHAR(255) NOT NULL,
+      description VARCHAR(255) NOT NULL
     );
 
 --
@@ -109,7 +99,7 @@
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
       parameter_no INTEGER NOT NULL,
-      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no),
+      FOREIGN KEY (parameter_no) REFERENCES parameternames (parameter_no),
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
     );
 

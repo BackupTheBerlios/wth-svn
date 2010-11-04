@@ -398,6 +398,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
     syslog( LOG_ALERT, "writedb: RRD return code: %d",
             rrd_test_error());
     syslog(LOG_ALERT, "writedb: RRD error: %s", rrd_get_error());
+    err = 0;
   }
 
   free(ustrg[2]);
@@ -405,7 +406,7 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 
   /* cleanup and close */
   sqlite3_close( ws2000db);
-  syslog(LOG_DEBUG,"readstat: sqlite3_close ws2000db done\n");
+  syslog(LOG_DEBUG,"writedb: sqlite3_close ws2000db done\n");
 
 
   return(err);
@@ -663,6 +664,53 @@ readdb( char *wstation) {
   return(rbuf);
 }
 
+
+/*
+  issens
+  
+  check if status value of sensor is not equal to zero 
+  only works fpr WS2000 weatherstation 
+  
+*/
+int
+issens( int sensor_no)
+{
+  int err;
+  time_t stattim;
+  int statval;
+  char query[SBUFF+1];
+  sqlite3_stmt *qcomp;
+
+  /* open sqlite db file */
+  err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+  
+  snprintf(query, SBUFF, 
+    "SELECT sensor_status, max(statusset_date) FROM sensorstatus WHERE sensor_no = %d",
+    sensor_no);
+  err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT, "Error: issens: select ws2000 status data: err: %d", err);
+    return(err);
+  }
+
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+    statval = (int )sqlite3_column_int( qcomp, 0); 
+    stattim = (time_t )sqlite3_column_int( qcomp, 1); 
+    syslog(LOG_DEBUG, "issens for sensor_no #%d: stattim: %lu statval %d", sensor_no, (long int)stattim, statval);
+  }
+
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK )  {
+    syslog( LOG_ALERT,  "Error: issens: sqilte3_finalize");
+    return(err);
+  } 
+
+  /* cleanup and close */
+  sqlite3_close( ws2000db);
+
+  return(statval); 
+}
+
 /*
   read 1hr old data 
 */
@@ -828,7 +876,7 @@ readpar( time_t *meastim, float *measval,
 */
 char *
 readstat ( char *wstation) {
-  int i, err, sensor_no, sensoraddr;
+  int err, sensor_no, sensoraddr;
   char *errmsg;
   static char rbuf[NBUFF+1], s[TBUFF+1], buf[TBUFF+1];
   char query[SBUFF+1], sensorvers[TBUFF+1], sensorname[TBUFF+1];
@@ -881,8 +929,8 @@ readstat ( char *wstation) {
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
       sensor_no   = sqlite3_column_int(qcomp,0);  
-      ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
-      ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  
+      //ws2000station.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,1);  
+      //ws2000station.sensor[sensor_no].status   = sqlite3_column_int(qcomp,2);  
     }
    
     err = sqlite3_finalize(qcomp);
@@ -952,7 +1000,7 @@ readstat ( char *wstation) {
     strncat( rbuf, s, strlen(s));
     time(&statread);
     lastread = statread - ws2000station.status.lastread;
-    
+    /*
     for ( i = 1; i <=ws2000station.status.numsens; i++) {
       tm = gmtime(&ws2000station.sensor[i].lastseen);
       strftime( buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
@@ -963,7 +1011,7 @@ readstat ( char *wstation) {
 		 );
       strncat( rbuf, s, strlen(s));
     }
-
+    */
     /* function returns here for WS2000 weatherstation */
     return(rbuf);
 
@@ -1019,9 +1067,9 @@ readstat ( char *wstation) {
       snprintf( sensorname, SBUFF, (char *)sqlite3_column_text(qcomp,1));
       sensoraddr  = sqlite3_column_int(qcomp,2);
       snprintf( sensorvers, SBUFF, (char *)sqlite3_column_text(qcomp,3)); 
-      pcwsrstation.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,4);  
-      tm = gmtime(&pcwsrstation.sensor[sensor_no].lastseen);
-      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
+      //pcwsrstation.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,4);  
+      //tm = gmtime(&pcwsrstation.sensor[sensor_no].lastseen);
+      //strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
       snprintf ( s , TBUFF, "%12s%d\t0x%d\t%s\t%s\n",
 		 sensorname,sensor_no,
 		 sensoraddr, sensorvers,
@@ -1420,3 +1468,4 @@ statval_db( char *sensorname, char *statusname,
 
   return err;
 }
+

@@ -47,7 +47,8 @@ char
   char tchr[4];
   static char pblock[NBUFF + 1] = "";
 
-  sprintf( pblock, "");
+  //sprintf( pblock, "");
+  memset( pblock, 0, NBUFF);
   for ( x = 0; x < 10; x++) {
     snprintf( tchr, 4, "%x:", pagemem[x]);
     strncat( pblock, tchr, 4);
@@ -62,10 +63,11 @@ char
 */
 char *echo_serialnum( uchar serialnum[]) {
   int i;
-  static char rbuf[64];
-  char buf[64];
+  static char rbuf[65];
+  char buf[65];
 
-  snprintf(rbuf, 64, "");
+  //snprintf(rbuf, 64, "");
+  memset( rbuf, 0, 64);
   for ( i = 7; i >= 0; i--) {
     snprintf(buf, 3, "%02X", (int)serialnum[i]);
     strcat(rbuf, buf);
