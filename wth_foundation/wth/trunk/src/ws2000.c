@@ -916,7 +916,6 @@ datex ( unsigned char *data, int ndat) {
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
     err = issens( i);
-    syslog(LOG_DEBUG, "datex: issens returns err: %d", err);
     if ( err != 0 )  {
       nval = 2;
       sensor_no = i;
@@ -1352,9 +1351,10 @@ int closeserial( int fd, struct termios *oldtio) {
 int 
 readdata (int fd, unsigned char *data, int *ndat) 
 {
-  int i,n;
-  int err;
-  unsigned char sbuf[MAXBUFF+1] = "no data available";
+  int i;
+  int n = 0;
+  int err = -1;
+  static unsigned char sbuf[MAXBUFF+1];
   int maxfd;
   int loop = 1;
   fd_set readfs;
@@ -1362,8 +1362,8 @@ readdata (int fd, unsigned char *data, int *ndat)
 
   *ndat = 0;
 	
-  err = -1;
   maxfd = fd +1;
+  memset( sbuf, 0 , MAXBUFF);
  
   /* loop until input is available */
   while ( loop) {
@@ -1452,10 +1452,11 @@ ws2000key_t *c(int n){
 */
 int getrd ( unsigned char *data, int *mdat) {
     int fd;                         /* filedescriptor serial port */
-    char lword[6];                  /* temporary array to hold commandword */
+    static char lword[6];                  /* temporary array to hold commandword */
     struct termios newtio,oldtio;   /* termios structures to set 
                                        comm parameters */
 
+    memset( lword, 0, 5);
     /* initialize serial port */    
     if ( initws2000(&fd, &newtio, &oldtio) == -1 )
       return(-1);

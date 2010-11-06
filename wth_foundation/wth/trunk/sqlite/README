@@ -22,3 +22,14 @@ In order to create a database on the commandline type
 e.g. for the Ultimeter station
 
 cat umeter_db.sql |sqlite3 umeter.db
+
+Useful sql
+
+COPY table contents
+INSERT INTO TABLE2 (COL1, COL2, COL3) SELECT COL1, COL4, COL7 FROM TABLE1
+
+RENAME TABLE
+ALTER TABLE TABLE_OLD RENAME TO TABLE_NEW
+
+Rename columnname
+not possible w/ sqlite

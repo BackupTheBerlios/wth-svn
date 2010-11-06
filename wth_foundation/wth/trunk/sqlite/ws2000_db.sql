@@ -41,7 +41,7 @@
       statusset_date DATE NOT NULL,
       sensor_no INTEGER NOT NULL,
       sensor_status INTEGER NOT NULL,
-      new_flag INTEGER NOT NULL,
+      new_flag INTEGER,
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
     );
 
@@ -121,24 +121,24 @@ INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm h-1');
   --
   -- table sensornames will not change (WS2000 can't do more)
   --
-INSERT INTO sensornames VALUES ('1','Sensor1');
-INSERT INTO sensornames VALUES ('2','Sensor2');
-INSERT INTO sensornames VALUES ('3','Sensor3');
-INSERT INTO sensornames VALUES ('4','Sensor4');
-INSERT INTO sensornames VALUES ('5','Sensor5');
-INSERT INTO sensornames VALUES ('6','Sensor6');
-INSERT INTO sensornames VALUES ('7','Sensor7');
-INSERT INTO sensornames VALUES ('8','Sensor8');
-INSERT INTO sensornames VALUES ('9','Rainsensor');
-INSERT INTO sensornames VALUES ('10','Windsensor');
-INSERT INTO sensornames VALUES ('11','Indoorsensor');
-INSERT INTO sensornames VALUES ('12','Sensor9');
-INSERT INTO sensornames VALUES ('13','Sensor10');
-INSERT INTO sensornames VALUES ('14','Sensor11');
-INSERT INTO sensornames VALUES ('15','Sensor12');
-INSERT INTO sensornames VALUES ('16','Sensor13');
-INSERT INTO sensornames VALUES ('17','Sensor14');
-INSERT INTO sensornames VALUES ('18','Sensor15');
+INSERT INTO sensornames VALUES ('1','Sensor1','T/H Sensor');
+INSERT INTO sensornames VALUES ('2','Sensor2','T/H Sensor');
+INSERT INTO sensornames VALUES ('3','Sensor3','T/H Sensor');
+INSERT INTO sensornames VALUES ('4','Sensor4','T/H Sensor');
+INSERT INTO sensornames VALUES ('5','Sensor5','T/H Sensor');
+INSERT INTO sensornames VALUES ('6','Sensor6','T/H Sensor');
+INSERT INTO sensornames VALUES ('7','Sensor7','T/H Sensor');
+INSERT INTO sensornames VALUES ('8','Sensor8','T/H Sensor');
+INSERT INTO sensornames VALUES ('9','Rainsensor','Rainsensor');
+INSERT INTO sensornames VALUES ('10','Windsensor','Windsensor');
+INSERT INTO sensornames VALUES ('11','Indoorsensor','Indoor T/H/P Sensor');
+INSERT INTO sensornames VALUES ('12','Sensor9','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('13','Sensor10','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('14','Sensor11','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('15','Sensor12','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('16','Sensor13','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('17','Sensor14','Extra T/H Sensor');
+INSERT INTO sensornames VALUES ('18','Sensor15','Extra T/H Sensor');
 
   --
   -- table sensorparameters 
