@@ -34,6 +34,17 @@
 #define MINLEN 5
 #define CLOCKLEN 9
 
+
+#define WINDTYP   0x00
+#define RAINTYP   0x01
+#define THINTYP   0x02
+#define THOUTTYP  0x03
+#define TINTYP    0x04
+#define THBTYP    0x05
+#define THBNEWTYP 0x06
+#define MINTYP    0x0e
+#define CLOCKTYP  0x0f
+
 /*
   wmr9x8_hd
 
