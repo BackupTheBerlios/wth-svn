@@ -66,29 +66,31 @@ CREATE TABLE parameternames
   (
     parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     parameter_name VARCHAR(64) NOT NULL,
-    parameter_unit VARCHAR(64) NOT NULL
+    unit VARCHAR(64) NOT NULL,
+    gain FLOAT NOT NULL,
+    offset FLOAT NOT NULL
   );
 -- datalogger mode parameters
-INSERT INTO parameternames VALUES ('1','Wind Speed','m s-1');
-INSERT INTO parameternames VALUES ('2','Wind Direction','deg');
-INSERT INTO parameternames VALUES ('3','Outdoor Temp','deg C');
-INSERT INTO parameternames VALUES ('4','Rain Longterm Total','mm');
-INSERT INTO parameternames VALUES ('5','Barometer','hPa');
-INSERT INTO parameternames VALUES ('6','Indoor temp','deg C');
-INSERT INTO parameternames VALUES ('7','Outdoor Humidity','% rel.hum.');
-INSERT INTO parameternames VALUES ('8','Indoor Humidity','% rel.hum');
-INSERT INTO parameternames VALUES ('9','Today Rain Total','mm');
-INSERT INTO parameternames VALUES ('10','1 Minute Windspeed Average','m s-1');
+INSERT INTO parameternames VALUES ('1','Wind Speed','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('2','Wind Direction','deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('3','Outdoor Temp','deg C', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('4','Rain Longterm Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('5','Barometer','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('6','Indoor temp','deg C', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('7','Outdoor Humidity','% rel.hum.', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('8','Indoor Humidity','% rel.hum', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('9','Today Rain Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('10','1 Minute Windspeed Average','m s-1', 1.000, 0.000);
 -- packetmode parameters
-INSERT INTO parameternames VALUES ('11','Windspeed Peak 5 Minute','m s-1');
-INSERT INTO parameternames VALUES ('12','Direction of Windspeed Peak','deg');
-INSERT INTO parameternames VALUES ('13','Current Outdoor Temp','deg C');
+INSERT INTO parameternames VALUES ('11','Windspeed Peak 5 Minute','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('12','Direction of Windspeed Peak','deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('13','Current Outdoor Temp','deg C', 1.000, 0.000);
 
-INSERT INTO parameternames VALUES ('14','Current Barometer','hPa');
-INSERT INTO parameternames VALUES ('15','Barometer Delta','hPa');
-INSERT INTO parameternames VALUES ('16','Barometer Correction Factor','');
-INSERT INTO parameternames VALUES ('17','Current Outdoor Humidity','% rel.hum.');
-INSERT INTO parameternames VALUES ('18','5 Minute Windspeed Average','m s-1');
+INSERT INTO parameternames VALUES ('14','Current Barometer','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('15','Barometer Delta','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('16','Barometer Correction Factor','', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('17','Current Outdoor Humidity','% rel.hum.', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('18','5 Minute Windspeed Average','m s-1', 1.000, 0.000);
 
 
 --
@@ -100,8 +102,8 @@ CREATE TABLE sensorparameters
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
       parameter_no INTEGER NOT NULL,
-      FOREIGN KEY (parameter_no) REFERENCES parameternames (parameter_no),
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
+      FOREIGN KEY (parameter_no) REFERENCES parameternames (parameter_no),
   );
 
 

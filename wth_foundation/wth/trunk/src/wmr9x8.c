@@ -75,23 +75,29 @@ wmr9x8_hd( void *arg) {
   return( ( void *) &success);
 }
 
+
 /*
   wmr9x8rd
 
   reading data records from serial port
   data acquisition to database
+  
+  note: checksum might be 0xff
 
 */
 int 
 wmr9x8rd( int rfd) {
+  int i;
   int err = -1;
   int sync = 0;
   int ndat = 0;
+  int dtyp = -1;
   unsigned char schr = 0x00;
   unsigned char data[TBUFF+1];
 
   memset( data, 0 , TBUFF);
   for (;;) {
+
     err = getschar( rfd, &schr);
     if ( err == 1) {
       data[ndat] = schr;
@@ -104,15 +110,100 @@ wmr9x8rd( int rfd) {
       sync++;
     }
 
-    if ( sync == 2) {
-      syslog(LOG_DEBUG, "wmr9x8rd: header sync received\n");
-      shuffdat( data, ndat);
-      //syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
-      //echodata( data, ndat);
-
-      wmr9x8dac( data, ndat);
-      sync = 0; ndat = 0; memset( data, 0, TBUFF);
+    if (sync == 2) {
+      if (( schr == 0x00) || ( schr == 0x01 ) || (schr == 0x02) || (schr == 0x03) || (schr == 0x05) || ( schr == 0x0e) || ( schr == 0x0f) || ( schr == 0x06)) {
+        syslog( LOG_DEBUG,"devicetyp: %x", schr);
+	dtyp = schr;
+	sync++;
+      }
     }
+    
+    if ( sync == 3) {
+      syslog(LOG_DEBUG, "wmr9x8rd: header sync + devicetype %x received", dtyp);
+      data[0] = 0xff;
+      data[1] = 0xff;
+      data[2] = dtyp;
+
+      if ( dtyp == WINDTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is WINDTYP");
+	for ( i = 0; i < WINDLEN - 3 ; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = WINDLEN;
+
+      } else if ( dtyp == RAINTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is RAINTYP");
+	for ( i = 0; i < RAINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = RAINLEN;
+
+      } else if ( dtyp == THINTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THINTYP");
+	for ( i = 0; i < THINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THINLEN;
+
+      } else if ( dtyp == THOUTTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THOUTTYP");
+	for ( i = 0; i < THOUTLEN-3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THOUTLEN;
+
+      } else if ( dtyp == TINTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is TINTYP");
+	for ( i = 0; i < TINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = TINLEN;
+      } else if ( dtyp == THBTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THBTYP");
+	for ( i = 0; i < THBLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THBLEN;
+
+      } else if ( dtyp == MINTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is MINTYP");
+	for ( i = 0; i < MINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = MINLEN;
+      } else if ( dtyp == CLOCKTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is CLOCKTYP");
+	for ( i = 0; i < CLOCKLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = CLOCKLEN;
+
+      } else if ( dtyp == THBNEWTYP ) {
+	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THBNEWTYP");
+	for ( i = 0; i < THBNEWLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THBNEWLEN;
+      } else {
+	syslog(LOG_ALERT, "wmr9x8rd: UNKNOWN devicetyp");
+
+      }
+      syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
+      echodata( data, ndat);
+      wmr9x8dac( data, ndat);
+
+      sync = 0; ndat = 0; memset( data, 0, TBUFF);    
+    }
+
   }
 
   return(err); 

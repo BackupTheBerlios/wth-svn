@@ -209,7 +209,7 @@ INSERT INTO sensorflags VALUES ( 30, 7, 14); -- thb_new_sensor and sealevel_offs
 -- 
 CREATE TABLE sensordata
     (
-      dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+     dataset_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       dataset_date DATE NOT NULL,
       sensor_meas_no INTEGER NOT NULL,
       meas_value FLOAT NOT NULL,
