@@ -11,6 +11,7 @@ wth is a free software solution to read sensor data of
 - Peetbros Ultimeter weatherstations
   -- datalogger mode
   -- packet mode
+data is stored in sqlite database
 
 Compiling
 ---------

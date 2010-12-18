@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+#
+# SQLITE Database description for WS2000 and Lacrosse Weatherstation
+#
+use strict;
+use DBI;
+
+my $res;
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=ws2000.db","","")
+  or die ("Can't get DB handle: $DBI::Errstr");
+
+# check database 
+#
+$res = $dbh->selectall_arrayref("
+  SELECT sp.sensor_meas_no, sn.sensorname, pn.parameter_name, pn.parameter_unit 
+    FROM sensorparameters AS sp 
+      JOIN sensornames AS sn 
+        ON sp.sensor_no = sn.sensor_no 
+      JOIN parameternames AS pn 
+        ON sp.parameter_no = pn.parameter_no");
+
+
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+	print "$_->[$i] "
+    }
+    print "\n";
+}
+
+print "Sample data: inserted by wdb\n";
+$res = $dbh->selectall_arrayref("
+  SELECT sd.dataset_no, sd.dataset_date, 
+    sn.sensorname, pn.parameter_name, 
+    sd.meas_value, pn.parameter_unit 
+    FROM sensorparameters AS sp
+      JOIN sensornames AS sn
+        ON sp.sensor_no = sn.sensor_no
+      JOIN parameternames AS pn
+        ON sp.parameter_no = pn.parameter_no
+      JOIN sensordata AS sd
+        ON sp.sensor_meas_no = sd.sensor_meas_no");
+
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+	print "$_->[$i] "
+    }
+    print "\n";
+}
