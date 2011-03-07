@@ -158,7 +158,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   measval_db( "IndoorTemperator_BarometerSensor", "Barometer", 
 	      dataset_date, (float)baro, umeterdb);
 
-  /* indoor temeprature */
+  /* indoor temperature */
   strncpy(umeterstr, (const char *)(datalogdata+22), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
@@ -575,7 +575,7 @@ umeter_rd( int rfd) {
       syslog(LOG_DEBUG, "umeter_rd: packet mode\n");
       packet_rd( data, ndat);
       /* check complete record mode */
-    } else if ( ( strncmp( (const char *)data, (const char *)complethd, 5) == 0) 
+    } else if ( ( strncmp( (const char *)data, (const char *)complethd, 4) == 0) 
           && ( ndat ==completlen )) {
       syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
       complete_rd( data, ndat);
