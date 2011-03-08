@@ -547,21 +547,22 @@ int
 umeter_rd( int rfd) {
   int err = -1;
   int ndat;
-  static unsigned char data[TBUFF+1];
+  static unsigned char data[SBUFF+1];
 
   const char dataloghd[3]  = "!!";
   const char packethd[6]   = "$ULTW";
   const char complethd[5] = "&CR&";
   int dataloglen  = 51; /* NL is ignored */
                                /*  thus record size is 48 hex bytes + 2 header bytes + carriage return */
-  int packetlen    = 58; /* NL is ignored */
+  int packetlen   = 58; /* NL is ignored */
                                /* thus record size is 52 hex bytes + 5 header bytes + carriage */
-  int completlen  = 457; /* NL is ignored */
+  int completlen  = 457;  /* NL is ignored */
                                /* thus record size is 452 hex bytes + 4 header bytes + carriage */
 
+  printf("umeter_rd: start of execution\n");
 
   for (;;) {
-    ndat = read(rfd,data,1024); 
+    ndat = read(rfd,data,SBUFF); 
     data[ndat-1]=0;
 
     /* check data logger mode */
@@ -583,6 +584,8 @@ umeter_rd( int rfd) {
       syslog(LOG_DEBUG, "data (garbage): '%s' : %d\n", data, ndat);
     }
   }
+  printf("umeter_rd: err: %d\n", err);
+
   return(err); 
 }
 
@@ -611,7 +614,8 @@ initumeter (int *pfd, struct termios *newtio,
   memset(newtio, 0, sizeof(*newtio)); 
         
   newtio->c_cflag =  CS8 | CLOCAL | CREAD;
-  newtio->c_iflag = IGNPAR | IGNCR | ICRNL;
+  //newtio->c_iflag = IGNPAR | IGNCR | ICRNL;
+  newtio->c_iflag = IGNPAR | IGNCR; 
   newtio->c_oflag = 0;
   newtio->c_lflag = ICANON;
 
