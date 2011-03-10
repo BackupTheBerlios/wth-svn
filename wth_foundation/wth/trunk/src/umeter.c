@@ -518,158 +518,142 @@ complete_rd( unsigned char * completedata, int ndat) {
   int out_th_present = 0;
 
   /* parameters in complete record mode */
-  float windspeed;
-  float winddir;
-  float windspeed_5min_peak;
-  float winddir_5min_peak;
-  float windchill;
-  float temp_out;
-  float rain_total_today;
-  float baro;
-  float baro_3hr_chg;
-  unsigned int baro_corr; // 8 bytes
-  float temp_in;
-  float humid_out;
-  float humid_in;
-  float dew_point;
+  float datafield;
+  int statusfield;
 
-  int day_of_year;
-  int min_of_day;
+  float df1_windspeed;
+  float df2_winddir;
+  float df3_windspeed_5min_peak;
+  float df4_winddir_5min_peak;
+  float df5_windchill;
+  float df6_temp_out;
+  float df7_rain_total_today;
+  float df8_baro;
+  float df9_baro_3hr_chg;
+  /*
+  10 Barometer Correction Factor LSW
+  11 Barometer Corraction Factor MSW
+  */
+  unsigned int df10_11_baro_corr; // 8 bytes
+  float df12_temp_in;
+  float df13_humid_out;
+  float df14_humid_in;
+  float df15_dew_point;
 
-  float chill_today;
-  float chill_today_time;
+  int df16_day_of_year;
+  int df17_min_of_day;
 
-  float chill_yday;
-  float chill_yday_time;
+  float df18_chill_todaylow;
+  float df19_chill_todaylow_time;
 
-  float lowchill_longterm_date;
-  float lowchill_longterm;
-  float lowchill_longterm_time;
+  float df20_chill_ydaylow;
+  float df21_chill_ydaylow_time;
 
-  float lowtemp_out_today;
-  float lowtemp_out_today_time;
+  float df22_chill_longtermlow_date;
+  float df23_chill_longtermlow;
+  float df24_chill_longtermlow_time;
 
-  float lowtemp_out_yday;
-  float lowtemp_out_yday_time;
+  float df25_temp_out_todaylow;
+  float df26_temp_out_todaylow_time;
 
-  float lowtemp_out_longterm_date;
-  float lowtemp_out_longterm;
-  float lowtemp_out_longterm_time;
+  float df27_temp_out_ydaylow;
+  float df28_temp_out_ydaylow_time;
 
-  float lowbaro_today;
-  float lowbaro_today_time;
+  float df29_temp_out_longtermlow_date;
+  float df30_temp_out_longtermlow;
+  float df31_temp_out_longtermlow_time;
 
+  float df32_baro_todaylow;
+  float df33_baro_todaylow_time;
 
-  float lowbaro_yday;
-  float lowbaro_yday_time;
+  /*
+  34 Wind Speed
+  35 Current Wind Direction
+  */
+  
+  float df36_baro_ydaylow;
+  float df37_baro_ydaylow_time;
+  float df38_baro_longtermlow_date;
+  float df39_baro_longtermlow;
+  float df40_baro_longtermlow_time;
+  float df41_temp_in_todaylow;
+  float df42_temp_in_todaylow_time;
+  float df43_temp_in_ydaylow;
+  float df44_temp_in_ydaylow_time;
+  float df45_temp_in_longtermlow_date;
+  float df46_temp_in_longtermlow;
+  float df47_temp_in_longtermlow_time;
+  float df48_humid_out_todaylow;
+  float df49_humid_out_todaylow_time;
+  float df50_humid_out_ydaylow;
+  float df51_humid_out_ydaylow_time;
+  float df52_humid_out_longtermlow_date;
+  float df53_humid_out_longtermlow;
+  float df54_humid_out_longtermlow_time;
+  float df55_humid_in_todaylow;
+  float df56_humid_in_todaylow_time;
+  float df57_humid_in_ydaylow;
+  float df58_humid_in_ydaylow_time;
+  float df59_humid_in_longtermlow_date;
+  float df60_humid_in_longtermlow;
+  float df61_humid_in_longtermlow_time;
+  float df62_windspeed_today;
+  float df63_windspeed_today_time;
+  float df64_windspeed_yday;
+  float df65_windspeed_yday_time;
+  float df66_windspeed_longterm_date;
+  float df67_windspeed_longterm;
+  float df68_windspeed_longterm_time;
+  float df69_hightemp_out_today;
+  float df70_hightemp_out_today_time;
 
-  float lowbaro_longterm_date;
-  float lowbaro_longterm;
-  float lowbaro_longterm_time;
-
-  float lowtemp_in_today;
-  float lowtemp_in_today_time;
-
-  float lowtemp_in_yday;
-  float lowtemp_in_yday_time;
-
-  float lowtemp_in_longterm_date;
-  float lowtemp_in_longterm;
-  float lowtemp_in_longterm_time;
-
-  float lowhumid_out_today;
-  float lowhumid_out_today_time;
-
-  float lowhumid_out_yday;
-  float lowhumid_out_yday_time;
-
-  float lowhumid_out_longterm_date;
-  float lowhumid_out_longterm;
-  float lowhumid_out_longterm_time;
-
-  float lowhumid_in_today;
-  float lowhumid_in_today_time;
-
-  float lowhumid_in_yday;
-  float lowhumid_in_yday_time;
-
-  float lowhumid_in_longterm_date;
-  float lowhumid_in_longterm;
-  float lowhumid_in_longterm_time;
-
-  float windspeed_today;
-  float windspeed_today_time;
-
-  float windspeed_yday;
-  float windspeed_yday_time;
-
-  float windspeed_longterm_date;
-  float windspeed_longterm;
-  float windspeed_longterm_time;
-
-  float hightemp_out_today;
-  float hightemp_out_today_time;
-
-
-  float hightemp_out_yday;
-  float hightemp_out_yday_time;
-
-  float hightemp_out_longterm_date;
-  float hightemp_out_longterm;
-  float hightemp_out_longterm_time;
-
-  float highbaro_today;
-  float highbaro_today_time;
-
-  float highbaro_yday;
-  float highbaro_yday_time;
-
-  float highbaro_longterm_date;
-  float highbaro_longterm;
-  float highbaro_longterm_time;
-
-  float hightemp_in_today;
-  float hightemp_in_today_time;
-
-  float hightemp_in_yday;
-  float hightemp_in_yday_time;
-
-  float hightemp_in_longterm_date;
-  float hightemp_in_longterm;
-  float hightemp_in_longterm_time;
-
-  float highhumid_out_today;
-  float highhumid_out_today_time;
-
-  float highhumid_out_yday;
-  float highhumid_out_yday_time;
-
-  float highhumid_out_longterm_date;
-  float highhumid_out_longterm;
-  float highhumid_out_longterm_time;
-
-  float highhumid_in_today;
-  float highhumid_in_today_time;
-
-  float highhumid_in_yday;
-  float highhumid_in_yday_time;
-
-  float highhumid_in_longterm_date;
-  float highhumid_in_longterm;
-  float highhumid_in_longterm_time;
-
-  float rain_total_yday;
-  float rain_total_longterm_date;
-  float rain_total_longterm;
-
-  int leap_year;
-  int WDCF;
-  int winddir_today;
-  int winddir_yday;
-  int spare;
-  int winddir_longterm;
-
-  float windspeed_avg_1min;
+  /*
+  71 Wind Speed
+  72 Current Wind Direction 
+  */
+  float df73_hightemp_out_yday;
+  float df74_hightemp_out_yday_time;
+  float df75_hightemp_out_longterm_date;
+  float df76_hightemp_out_longterm;
+  float df77_hightemp_out_longterm_time;
+  float df78_baro_todayhigh;
+  float df79_baro_todayhigh_time;
+  float df80_baro_ydayhigh;
+  float df81_baro_ydayhigh_time;
+  float df82_baro_longtermhigh_date;
+  float df83_baro_longtermhigh;
+  float df84_baro_longtermhigh_time;
+  float df85_temp_in_todayhigh;
+  float df86_temp_in_todayhigh_time;
+  float df87_temp_in_ydayhigh;
+  float df88_temp_in_ydayhigh_time;
+  float df89_temp_in_longtermhigh_date;
+  float df90_temp_in_longtermhigh;
+  float df91_temp_in_longtermhigh_time;
+  float df92_humid_out_todayhigh;
+  float df93_humid_out_todayhigh_time;
+  float df94_humid_out_ydayhigh;
+  float df95_humid_out_ydayhigh_time;
+  float df96_humid_out_longtermhigh_date;
+  float df97_humid_out_longtermhigh;
+  float df98_humid_out_longtermhigh_time;
+  float df99_humid_in_todayhigh;
+  float df100_humid_in_todayhigh_time;
+  float df101_humid_in_ydayhigh;
+  float df102_humid_in_ydayhigh_time;
+  float df103_humid_in_longtermhigh_date;
+  float df104_humid_in_longtermhigh;
+  float df105_humid_in_longtermhigh_time;
+  float df106_rain_total_yday;
+  float df107_rain_total_longterm_date;
+  float df108_rain_total_longterm;
+  int df109_leap_year;
+  int df110_WDCF;
+  int df111_winddir_todayhigh;
+  int df112_winddir_ydayhigh;
+  int df113_spare;
+  int df114_winddir_longtermhigh;
+  float df115_windspeed_avg_1min;
 
   time_t umclock;
   int minute, hour, year;
@@ -705,89 +689,89 @@ complete_rd( unsigned char * completedata, int ndat) {
   strncpy(umeterstr, (const char * )(completedata+4), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  windspeed = strtol(umeterstr, NULL, base);
-  windspeed = (1.0/36.0)*windspeed; /* 0.1 kph to ms-1 */
-  syslog(LOG_DEBUG, "windspeed: %f\n", windspeed);
-  //measval_db( "WindSensor", "Wind Speed", dataset_date, (float)windspeed, umeterdb);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/36.0)*datafield; /* 0.1 kph to ms-1 */
+  syslog(LOG_DEBUG, "1. Wind Speed: %f\n", datafield);
+  //measval_db( "WindSensor", "Wind Speed", dataset_date, (float)datafield, umeterdb);
 
   /* 2. Wind direction */
   strncpy(umeterstr, (const char *)(completedata+8), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  winddir = strtol(umeterstr, NULL, base);
-  winddir = (360.0/255.0)*winddir; /* 0-255 to 0-360 deg */
-  syslog(LOG_DEBUG, "winddir: %f\n", winddir);
-  //measval_db( "WindSensor", "Wind Direction", dataset_date, (float)winddir, umeterdb);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
+  syslog(LOG_DEBUG, "2. Current Wind Direction: %f\n", datafield);
+  //measval_db( "WindSensor", "Wind Direction", dataset_date, (float)datafield, umeterdb);
 
   /* 3. 5 min Windspeed Peak */
   strncpy(umeterstr, (const char *)(completedata+12), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  windspeed_5min_peak = strtol(umeterstr, NULL, base);
-  windspeed_5min_peak = (1.0/36.0)*windspeed_5min_peak; /* kph to ms-1 */
-  syslog(LOG_DEBUG, "windspeed_5min_peak: %f\n", windspeed_5min_peak);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/36.0)*datafield; /* kph to ms-1 */
+  syslog(LOG_DEBUG, "3. 5 minute Wind Speed Peak: %f\n", datafield);
 
   /* 4. 5min Winddirection Peak */
   strncpy(umeterstr, (const char *)(completedata+16), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  winddir_5min_peak = strtol(umeterstr, NULL, base);
-  winddir_5min_peak = (360.0/255.0)*winddir_5min_peak; /* 0-255 to 0-360 deg */
-  syslog(LOG_DEBUG, "winddir_5min_peak: %f\n", winddir_5min_peak);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
+  syslog(LOG_DEBUG, "4. 5 minute Wind Direction Peak: %f\n", datafield);
 
   /* 5. Wind Chill */
   strncpy(umeterstr, (const char *)(completedata+20), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  windchill = strtol(umeterstr, NULL, base);
-  windchill = ((1.0/10.0)*windchill -32.0)*5.0/9.0; /* 0.1 degF to degC */
-  syslog(LOG_DEBUG, "windchill: %f\n", windchill);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "5. Wind Chill: %f\n", datafield);
 
   /* 6. Outdoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+24), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  temp_out = strtol(umeterstr, NULL, base);
-  temp_out = ((1.0/10.0)*temp_out -32.0)*5.0/9.0; /* 0.1 degF to degC */
-  syslog(LOG_DEBUG, "temp_out: %f\n", temp_out);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "6. Outdoor Temp: %f\n", datafield);
 
   /* 7. Rain Total for today */
   strncpy(umeterstr, (const char *)(completedata+28), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  rain_total_today = strtol(umeterstr, NULL, base);
-  rain_total_today = (25.4/10.0)*rain_total_today; /* 0.1in to mm */
-  syslog(LOG_DEBUG, "rain_total_today: %f\n", rain_total_today);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
+  syslog(LOG_DEBUG, "7. Rain Total for today: %f\n", datafield);
 
   /* 8. Barometer */
   strncpy(umeterstr, (const char *)(completedata+32), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  baro = strtol(umeterstr, NULL, base);
-  baro = baro/10.0; /* 0.1mbar to mbar */
-  syslog(LOG_DEBUG, "baro: %f\n", baro);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = datafield/10.0; /* 0.1mbar to mbar */
+  syslog(LOG_DEBUG, "8. Barometer: %f\n", datafield);
 
   /* 9. Barometer 3-hour Pressure Change */
   strncpy(umeterstr, (const char *)(completedata+36), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  baro_3hr_chg = strtol(umeterstr, NULL, base);
-  baro_3hr_chg = baro_3hr_chg/10.0; /* 0.1 mbar to mbar */
-  syslog(LOG_DEBUG, "baro_3hr_chg: %f\n", baro_3hr_chg);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = datafield/10.0; /* 0.1 mbar to mbar */
+  syslog(LOG_DEBUG, "9. Barometer 3-Hour Pressure Change: %f\n", datafield);
 
   /* 10./11. Barometer Correction Factor LSW/MSW */
   strncpy(umeterlstr, (const char *)(completedata+40), 9); 
   umeterlstr[8] = 0;
-  baro_corr = strtol(umeterlstr, NULL, base);
-  syslog(LOG_DEBUG, "packet_rd: baro_corr: %d\n", baro_corr);
+  statusfield = strtol(umeterlstr, NULL, base);
+  syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
 
   /* 12. Indoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+48), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
-  temp_in = strtol(umeterstr, NULL, base);
-  temp_in = ((1.0/10.0)*temp_in -32.0)*5.0/9.0; /* 0.1 degF to degC */
-  syslog(LOG_DEBUG, "temp_in: %f\n", temp_in);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "12. Indoor Temperature: %f\n", datafield);
 
   /* 13. Outdoor humidity */
   strncpy(umeterstr, (const char *)(completedata+52), 5); 
@@ -795,12 +779,12 @@ complete_rd( unsigned char * completedata, int ndat) {
   err = strncmp( umeterstr, "----", 4);
   /* Temperature Sensor installed */
   if ( err == 0 ) {
-    syslog(LOG_INFO, "packet_rd: No Outdoor Humidity/Temperature Sensor found");
+    syslog(LOG_INFO, "complete_rd: No Outdoor Humidity/Temperature Sensor found");
   } else /* Outdoor Humidity Temperature sensor installed */ {
     out_th_present = 1;
-    humid_out = (float)strtol(umeterstr, NULL, base);
-    humid_out = (1.0/10.0)*humid_out; /* 0.1% to %rel.hum. */
-    syslog(LOG_DEBUG, "packet_rd: humid_out: %f\n", humid_out); 
+    datafield = (float)strtol(umeterstr, NULL, base);
+    datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+    syslog(LOG_DEBUG, "13. Outdoor Humidity: %f\n", datafield); 
   }
 
   free(ustrg[2]);
