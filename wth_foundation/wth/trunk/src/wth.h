@@ -374,6 +374,7 @@ char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
 
 int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
+int resetwmr9x8( int fd);
 int closewmr9x8( int fd, struct termios *oldtio);
 int shuffdat( unsigned char *data, int ndat);
 int getschar (int fd, unsigned char *schar);

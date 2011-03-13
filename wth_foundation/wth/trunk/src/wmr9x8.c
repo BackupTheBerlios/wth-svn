@@ -97,7 +97,11 @@ wmr9x8rd( int rfd) {
 
   memset( data, 0 , TBUFF);
   for (;;) {
-
+    
+    err = resetwmr9x8( rfd);
+    if ( err == 1) {
+      syslog(LOG_ALERT, "wmr9x8rd: reset serial port failure");
+    }
     err = getschar( rfd, &schr);
     if ( err == 1) {
       data[ndat] = schr;
@@ -981,6 +985,37 @@ initwmr9x8 (int *pfd, struct termios *newtio,
   }
   return(0);
 }
+
+
+/*
+
+
+*/
+int resetwmr9x8( int fd) {
+  int itio;
+
+  /* lower DTR and RTS on serial line */
+
+  itio &= ~TIOCM_DTR;
+  itio &= ~TIOCM_RTS;
+  if ( ioctl(fd, TIOCMSET, &itio) == -1 ) {
+    errno = errno;
+    syslog(LOG_INFO, "initwmr9x8: error ioctl: %s",
+	   strerror(werrno));
+    return(-1);	
+  }
+
+  /* raise RTS */
+  itio |= TIOCM_RTS;
+  if ( ioctl(fd, TIOCMSET, &itio) == -1 ) {
+    werrno = errno;
+    syslog(LOG_INFO, "initwmr9x8: error ioctl: %s",
+	   strerror(werrno));
+    return(-1);	
+  }
+  return(0);
+}
+
 
 /*
    closewmr9x8

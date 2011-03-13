@@ -1156,6 +1156,287 @@ complete_rd( unsigned char * completedata, int ndat) {
   timeval = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "77. Longterm High Outdoor Temperature Time: %d\n", timeval);
 
+  /* 78. Today's High Barometer Value */
+  strncpy(umeterstr, (const char *)(completedata+312), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "78. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = datafield/10.0; /* 0.1mbar to mbar */
+  syslog(LOG_DEBUG, "78. Today's High Barometer Value: %f\n", datafield);
+
+  /* 79. Today's High Barometer Time */
+  strncpy(umeterstr, (const char *)(completedata+316), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "79. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "79. Today's High Barometer Time: %d\n", timeval);
+
+  /* 80. Yesterday's High Barometer Value */
+  strncpy(umeterstr, (const char *)(completedata+320), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "80. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = datafield/10.0; /* 0.1mbar to mbar */
+  syslog(LOG_DEBUG, "80. Yesterday's High Barometer Value: %f\n", datafield);
+
+  /* 81. Yesterday's High Barometer Time */
+  strncpy(umeterstr, (const char *)(completedata+324), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "81. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "81. Yesterday's High Barometer Time: %d\n", timeval);
+
+  /* 82. Longterm High Barometer Date  */
+  strncpy(umeterstr, (const char *)(completedata+328), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "82. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "82. Longterm High Barometer date: %d\n", timeval);
+
+  /* 83. Longterm High Barometer Value */
+  strncpy(umeterstr, (const char *)(completedata+332), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "83. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = datafield/10.0; /* 0.1mbar to mbar */
+  syslog(LOG_DEBUG, "83. Longterm High Barometer Value: %f\n", datafield);
+
+  /* 84. Longterm High Barometer Time */
+  strncpy(umeterstr, (const char *)(completedata+336), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "84. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "84. Longterm High Barometer Time: %d\n", timeval);
+
+  /* 85. Today's High Indoor Temperature Value */
+  strncpy(umeterstr, (const char *)(completedata+340), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "85. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "85. Today's High Indoor Temperature Value: %f\n", datafield);
+
+  /* 86. Today's High Indoor Temperature Time */
+  strncpy(umeterstr, (const char *)(completedata+344), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "86. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "86. Today's High Indoor Temperature Time: %d\n", timeval);
+
+  /* 87. Yesterday's High Indoor Temperature Value */
+  strncpy(umeterstr, (const char *)(completedata+348), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "87. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "87. Yesterday's High Indoor Temperature Value: %f\n", datafield);
+
+  /* 88. Yesterday's High Indoor Temperature Time */
+  strncpy(umeterstr, (const char *)(completedata+352), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "88. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "88. Yesterday's High Indoor Temperature Time: %d\n", timeval);
+
+  /* 89. Longterm High Indoor Temperature Date  */
+  strncpy(umeterstr, (const char *)(completedata+356), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "89. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "89. Longterm High Indoor temperature date: %d\n", timeval);
+
+  /* 90. Longterm High Indoor Temperature Value */
+  strncpy(umeterstr, (const char *)(completedata+360), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "90. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
+  syslog(LOG_DEBUG, "90. Longterm High Indoor Temperature Value: %f\n", datafield);
+
+  /* 91. Longterm High Indoor Temperature Time */
+  strncpy(umeterstr, (const char *)(completedata+364), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "91. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "91. Longterm High Indoor Temperature Time: %d\n", timeval);
+
+  /* 92. Today's High Outdoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+368), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "92. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "92. Today's High Outdoor Humidity Value: %f\n", datafield);
+
+  /* 93. Today's High Outdoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+372), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "93. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "93. Today's High Outdoor Humidity Time: %d\n", timeval);
+
+  /* 94. Yesterday's High Outdoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+376), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "94. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "94. Yesterday's High Outdoor Humidity Value: %f\n", datafield);
+
+  /* 95. Yesterday's High Outdoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+380), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "95. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "95. Yesterday's High Outdoor Humidity Time: %d\n", timeval);
+
+  /* 96. Longterm High Outdoor Humidity Date  */
+  strncpy(umeterstr, (const char *)(completedata+384), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "96. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "96. Longterm High Outdoor Humidity date: %d\n", timeval);
+
+  /* 97. Longterm High Outdoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+388), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "97. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "97. Longterm High Outdoor Humidity Value: %f\n", datafield);
+
+  /* 98. Longterm High Outdoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+392), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "98. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "98. Longterm High Outdoor Humidity Time: %d\n", timeval);
+
+  /* 99. Today's High Indoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+396), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "99. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "99. Today's High Indoor Humidity Value: %f\n", datafield);
+
+  /* 100. Today's High Indoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+400), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "100. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "100. Today's High Indoor Humidity Time: %d\n", timeval);
+
+  /* 101. Yesterday's High Indoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+404), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "101. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "101. Yesterday's High Indoor Humidity Value: %f\n", datafield);
+
+  /* 102. Yesterday's High Indoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+408), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "102. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "102. Yesterday's High Indoor Humidity Time: %d\n", timeval);
+
+  /* 103. Longterm High Indoor Humidity Date  */
+  strncpy(umeterstr, (const char *)(completedata+412), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "103. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "103. Longterm High Indoor Humidity date: %d\n", timeval);
+
+  /* 104. Longterm High Indoor Humidity Value*/
+  strncpy(umeterstr, (const char *)(completedata+416), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "104. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
+  syslog(LOG_DEBUG, "104. Longterm High Indoor Humidity Value: %f\n", datafield);
+
+  /* 105. Longterm High Indoor Humidity Time */
+  strncpy(umeterstr, (const char *)(completedata+420), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "105. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "105. Longterm High Indoor Humidity Time: %d\n", timeval);
+
+ /* 106. Yesterday's Rain Total */
+  strncpy(umeterstr, (const char *)(completedata+424), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "106. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
+  syslog(LOG_DEBUG, "106. Yesterday's Rain Total: %f\n", datafield);
+
+  /* 107. Longterm Rain Date  */
+  strncpy(umeterstr, (const char *)(completedata+428), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "107. umeterstr: %s\n", umeterstr);
+  timeval = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "107. Longterm Rain Date: %d\n", timeval);
+
+  /* 108. Longterm Rain Total */
+  strncpy(umeterstr, (const char *)(completedata+432), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "108. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
+  syslog(LOG_DEBUG, "108. Longterm Rain Total: %f\n", datafield);
+
+  /* 109. Leap Year */
+  strncpy(umeterstr, (const char *)(completedata+436), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "109. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "109. Leap Year: %f\n", datafield);
+
+  /* 110. WDCF Value */
+  strncpy(umeterstr, (const char *)(completedata+440), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "110. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "110. WDCF Value: %f\n", datafield);
+
+  /* 111. Today's High Wind Direction */
+  strncpy(umeterstr, (const char *)(completedata+444), 3); 
+  umeterstr[2] = 0;
+  syslog(LOG_DEBUG, "111. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
+  syslog(LOG_DEBUG, "111. Today's High Wind Direction: %f\n", datafield);
+
+  /* 112. Yesterday's High Wind Direction */
+  strncpy(umeterstr, (const char *)(completedata+446), 3); 
+  umeterstr[2] = 0;
+  syslog(LOG_DEBUG, "112. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
+  syslog(LOG_DEBUG, "112. Yesterday's High Wind Direction: %f\n", datafield);
+
+  /* 113. Spare */
+  strncpy(umeterstr, (const char *)(completedata+448), 3); 
+  umeterstr[2] = 0;
+  syslog(LOG_DEBUG, "113. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "113. Spare: %f\n", datafield);
+
+  /* 114. Longterm High Wind Direction */
+  strncpy(umeterstr, (const char *)(completedata+450), 3); 
+  umeterstr[2] = 0;
+  syslog(LOG_DEBUG, "114. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "114. Longterm High Wind Direction: %f\n", datafield);
+
+  /* 115. 1 Minute Windspeed Average */
+  strncpy(umeterstr, (const char *)(completedata+452), 5); 
+  umeterstr[4] = 0;
+  syslog(LOG_DEBUG, "115. umeterstr: %s\n", umeterstr);
+  datafield = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "115. 1 Minute Windspeed Average: %f\n", datafield);
 
   free(ustrg[2]);
   free(ustrg);
