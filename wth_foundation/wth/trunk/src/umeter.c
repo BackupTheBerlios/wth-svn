@@ -568,7 +568,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (1.0/36.0)*datafield; /* 0.1 kph to ms-1 */
   syslog(LOG_DEBUG, "1. Wind Speed: %f\n", datafield);
-  measval_db( "WindSensor", "Wind Speed", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "WindSensor", "Wind Speed", dataset_date, (float)datafield, umeterdb);
 
   /* 2. Wind direction */
   strncpy(umeterstr, (const char *)(completedata+8), 5); 
@@ -577,7 +577,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
   syslog(LOG_DEBUG, "2. Current Wind Direction: %f\n", datafield);
-  measval_db( "WindSensor", "Wind Direction", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "WindSensor", "Wind Direction", dataset_date, (float)datafield, umeterdb);
 
   /* 3. 5 min Windspeed Peak */
   strncpy(umeterstr, (const char *)(completedata+12), 5); 
@@ -586,7 +586,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (1.0/36.0)*datafield; /* kph to ms-1 */
   syslog(LOG_DEBUG, "3. 5 minute Wind Speed Peak: %f\n", datafield);
-  measval_db( "WindSensor", "Wind Speed 5 Minute Peak", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "WindSensor", "Wind Speed 5 Minute Peak", dataset_date, (float)datafield, umeterdb);
 
   /* 4. 5min Winddirection Peak */
   strncpy(umeterstr, (const char *)(completedata+16), 5); 
@@ -596,7 +596,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
   syslog(LOG_INFO, "complete_rd: \"Wind Direction of 5 Minute Wind Speed Peak\" might be the same as packetmode parameter");
   syslog(LOG_DEBUG, "4. Wind Direction of 5 Minute Wind Speed Peak: %f\n", datafield);
-  measval_db( "WindSensor", "Wind Direction of 5 Minute Wind Speed Peak", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "WindSensor", "Wind Direction of 5 Minute Wind Speed Peak", dataset_date, (float)datafield, umeterdb);
 
   /* 5. Wind Chill */
   strncpy(umeterstr, (const char *)(completedata+20), 5); 
@@ -606,7 +606,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
   syslog(LOG_DEBUG, "5. Wind Chill: %f\n", datafield);
   syslog(LOG_INFO, "complete_rd: caculation of Wind Chill unclear");
-  measval_db( "WindSensor", "Wind Chill", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "WindSensor", "Wind Chill", dataset_date, (float)datafield, umeterdb);
 
   /* 6. Outdoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+24), 5); 
@@ -625,7 +625,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
   syslog(LOG_DEBUG, "7. Rain Total for today: %f\n", datafield);
-  measval_db( "RainGauge", "Rain Today Total", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "RainGauge", "Rain Today Total", dataset_date, (float)datafield, umeterdb);
 
   /* 8. Barometer */
   strncpy(umeterstr, (const char *)(completedata+32), 5); 
@@ -634,7 +634,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = datafield/10.0; /* 0.1mbar to mbar */
   syslog(LOG_DEBUG, "8. Barometer: %f\n", datafield);
-  measval_db( "IndoorTemperatorBarometerSensor", "Current Barometer", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "IndoorTemperatorBarometerSensor", "Current Barometer", dataset_date, (float)datafield, umeterdb);
 
   /* 9. Barometer 3-hour Pressure Change */
   strncpy(umeterstr, (const char *)(completedata+36), 5); 
@@ -643,7 +643,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = datafield/10.0; /* 0.1 mbar to mbar */
   syslog(LOG_DEBUG, "9. Barometer 3-Hour Pressure Change: %f\n", datafield);
-  measval_db( "IndoorTemperatorBarometerSensor", "Barometer 3-Hour Pressure Change", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "IndoorTemperatorBarometerSensor", "Barometer 3-Hour Pressure Change", dataset_date, (float)datafield, umeterdb);
 
   /* 10./11. Barometer Correction Factor LSW/MSW */
   strncpy(umeterlstr, (const char *)(completedata+40), 9); 
@@ -651,7 +651,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG, "10./11. umeterlstr: %s\n", umeterlstr);
   statusfield = strtol(umeterlstr, NULL, base);
   syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
-  measval_db( "IndoorTemperatorBarometerSensor", "Barometer Correction Factor", dataset_date, (float)statusfield, umeterdb);
+  //measval_db( "IndoorTemperatorBarometerSensor", "Barometer Correction Factor", dataset_date, (float)statusfield, umeterdb);
 
   /* 12. Indoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+48), 5); 
@@ -660,8 +660,8 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
   syslog(LOG_DEBUG, "12. Indoor Temperature: %f\n", datafield);
-  measval_db( "IndoorTemperatorBarometerSensor", "Indoor Temperature", 
-	      dataset_date, (float)datafield, umeterdb);
+  //measval_db( "IndoorTemperatorBarometerSensor", "Indoor Temperature", 
+  //	      dataset_date, (float)datafield, umeterdb);
 
   /* 13. Outdoor humidity */
   strncpy(umeterstr, (const char *)(completedata+52), 5); 
@@ -671,16 +671,16 @@ complete_rd( unsigned char * completedata, int ndat) {
   /* Temperature Sensor installed */
   if ( err == 0 ) {
     syslog(LOG_INFO, "complete_rd: No Outdoor Humidity/Temperature Sensor found");
-    measval_db( "TemperatureSensor", "Current Outdoor Temperature", 
-		dataset_date, (float)temp_out, umeterdb);
+    /* measval_db( "TemperatureSensor", "Current Outdoor Temperature", 
+		dataset_date, (float)temp_out, umeterdb); */
   } else /* Outdoor Humidity Temperature sensor installed */ {
     out_th_present = 1;
     datafield = (float)strtol(umeterstr, NULL, base);
     datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
-    measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Temperature", 
+    /* measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Temperature", 
 		dataset_date, (float)temp_out, umeterdb);
     measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Humidity", 
-		dataset_date, (float)datafield, umeterdb);
+		dataset_date, (float)datafield, umeterdb); */
     syslog(LOG_DEBUG, "13. Outdoor Humidity: %f\n", datafield); 
   }
 
@@ -696,7 +696,7 @@ complete_rd( unsigned char * completedata, int ndat) {
     datafield = strtol(umeterstr, NULL, base);
     datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
     syslog(LOG_DEBUG, "14. Indoor Humidity: %f\n", datafield);
-    measval_db( "IndoorHumiditySensor", "Indoor Humidity", dataset_date, (float)datafield, umeterdb);
+    /* measval_db( "IndoorHumiditySensor", "Indoor Humidity", dataset_date, (float)datafield, umeterdb); */
   }
 
   /* 15. Dew Point */
@@ -1408,7 +1408,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
   syslog(LOG_DEBUG, "108. Longterm Rain Total: %f\n", datafield);
-  measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)datafield, umeterdb);
+  //measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)datafield, umeterdb);
 
   /* 109. Leap Year */
   strncpy(umeterstr, (const char *)(completedata+436), 5); 

@@ -7,9 +7,9 @@
 -- -------	----------	----------	-----------	
 -- 1		windsensor 	0		wind speed, wind direction
 -- 2		rainsensor	1		rain
--- 3		th_sensor	2		temperature, humidity
--- 4		mushroomsensor	3		temperature, humidity
--- 5		t_sensor	4		temperature
+-- 3		thin_sensor	2		temperature, humidity
+-- 4		thout_sensor	3		temperature, humidity
+-- 5		tin_sensor	4		temperature
 -- 6		thb_sensor	5		temperature, humidity, pressure
 -- 7		thb_new_sensor 	6		new temperature, humidity, pressure
 -- 
@@ -66,7 +66,7 @@ INSERT INTO sensornames VALUES ( 5, 'tin_sensor', 4, 'indoor temperature');
 INSERT INTO sensornames VALUES ( 6, 'thb_sensor', 5, 'indoor temperature, humidity and dew point. Barometric pressure');
 INSERT INTO sensornames VALUES ( 7, 'thbnew_sensor', 6, 'indoor temperature, humidity and dew point. Barometric pressure. New version');
 
---
+
 -- Table parameternames
 -- -------------------
 -- contains name und unit of parameter, e.g. 
@@ -82,10 +82,10 @@ CREATE TABLE parameternames
       offset FLOAT NOT NULL
     );
 INSERT INTO parameternames VALUES ( 1, 'wind_direction', 'degree', 1.000, 0.000);
-INSERT INTO parameternames VALUES ( 2, 'gust_windspeed', 'm/sec^2', 1.000, 0.000);
-INSERT INTO parameternames VALUES ( 3, 'average_windspeed', 'm/sec^2', 1.000, 0.000);
+INSERT INTO parameternames VALUES ( 2, 'gust_windspeed', 'm s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ( 3, 'average_windspeed', 'm s-1', 1.000, 0.000);
 INSERT INTO parameternames VALUES ( 4, 'windchill', 'degC', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 5, 'current_rainrate', 'mm/hr', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 5, 'current_rainrate', 'mm hr-1', 1.000, 0.000 );
 INSERT INTO parameternames VALUES ( 6, 'total_rainfall', 'mm', 1.000, 0.000 );
 INSERT INTO parameternames VALUES ( 7, 'yesterday_rainfall', 'mm', 1.000, 0.000 );
 INSERT INTO parameternames VALUES ( 8, 'temperature', 'degC', 1.000, 0.000 );
@@ -215,6 +215,8 @@ CREATE TABLE sensordata
       meas_value FLOAT NOT NULL,
       FOREIGN KEY (sensor_meas_no) REFERENCES sensorparameters (sensor_meas_no)
     );
+CREATE INDEX sdidx2 ON sensordata(dataset_date);
+
 
 -- 
 -- Table statusdata
@@ -231,6 +233,8 @@ CREATE TABLE statusdata
       status_value FLOAT NOT NULL,
       FOREIGN KEY (sensor_flag_no) REFERENCES sensorflags (sensor_flag_no)
     );
+CREATE INDEX ssidx ON statusdata(statusset_no,statusset_date,status_value);
+
 -- 
 -- Table sensorupdate
 -- ------------------

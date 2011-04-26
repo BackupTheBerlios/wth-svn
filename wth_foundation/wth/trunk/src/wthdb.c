@@ -28,7 +28,8 @@
 #include <sys/resource.h>
 
 /*
-  datadb - insert measured values
+  datadb - insert measured values 
+           for use in PCWSR database
 
 */
 int

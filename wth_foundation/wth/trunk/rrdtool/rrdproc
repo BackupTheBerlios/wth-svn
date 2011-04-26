@@ -11,6 +11,7 @@ use Tk;
 use Tk::PNG;
 use Data::Dumper;
 use Env qw(DEBUG);
+use DBI;
 
 my $version = "RRD processing tool - Version 0.0.1\n";
 
@@ -393,9 +394,38 @@ if ( $info) {
 # Populating rrd files
 #
 if ( $fill) {
-    foreach $sensor ( @Sensors) {
-        print "fill (main)\t: Filling rrd: $sensor\n";
-    }
+
+  my $res;
+
+  my $dbh = DBI->connect("dbi:SQLite:dbname=$WthDatabase","","")
+    or die ("Can't get DB handle: $DBI::Errstr");
+
+  foreach $sensor ( @Sensors) {
+      print "fill (main)\t: Filling rrd: $sensor\n";
+
+  # check database 
+  #
+  $res = $dbh->selectall_arrayref("
+    SELECT sp.sensor_meas_no, sn.sensor_name, 
+           pn.parameter_name, pn.unit 
+      FROM sensorparameters AS sp 
+        JOIN sensornames AS sn 
+          ON sp.sensor_no = sn.sensor_no 
+        JOIN parameternames AS pn 
+          ON sp.parameter_no = pn.parameter_no
+      WHERE
+             sn.sensor_name = '$sensor'");
+
+
+  foreach ( @$res) {
+      foreach my $i ( 0..$#$_) {
+          print "$_->[$i] "
+      }
+      print "\n";
+  }
+
+
+  }
 
 }
 
