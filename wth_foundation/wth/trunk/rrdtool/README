@@ -1,12 +1,17 @@
 Using wth with rrdtool
 
-rrdproc
-perl script to 
-create rrd files of all attached sensors
-graph images of sensor data
+Timeseries weather data are stored in round robin archives with 
+the use of rrdtool. Weather data which is stored in database is
+periodically copied to the rrdtool database.
+
+The rrdproc perl script can be used to
+- create the round robin archives 
+- fill new data to the round robin archives
+- graph images of the rrdtool data
 
 
-
+Monitoring sensor status in round robin archive
+ 
 In order to monitor the reception errors of the wireless sensors 
 a Sensormonitor.rrd is created which contains a datasource for each 
 sensor and 5 RRA.

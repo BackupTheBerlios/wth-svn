@@ -6,7 +6,7 @@
   $Id$
   $Revision$
 
-  Copyright (C) 2010 Volker Jahns <volker@thalreit.de>
+  Copyright (C) 2010,2011 Volker Jahns <volker@thalreit.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -113,7 +113,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   windspeed = strtol(umeterstr, NULL, base);
   windspeed = (1.0/36.0)*windspeed; /* 0.1 kph to ms-1 */
   syslog(LOG_DEBUG, "windspeed: %f\n", windspeed);
-  measval_db( "WindSensor", "Wind Speed", dataset_date, (float)windspeed, umeterdb);
+  measval_db( "windsensor", "windspeed", dataset_date, (float)windspeed, umeterdb);
 
   /* Wind direction */
   strncpy(umeterstr, (const char *)(datalogdata+6), 5); 
@@ -122,7 +122,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   winddir = strtol(umeterstr, NULL, base);
   winddir = (360.0/255.0)*winddir; /* 0-255 to 0-360 deg */
   syslog(LOG_DEBUG, "winddir: %f\n", winddir);
-  measval_db( "WindSensor", "Wind Direction", dataset_date, (float)winddir, umeterdb);
+  measval_db( "windsensor", "winddirection", dataset_date, (float)winddir, umeterdb);
 
   /* Outdoor temperature */
   strncpy(umeterstr, (const char *)(datalogdata+10), 5); 
@@ -140,7 +140,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   rain_longterm_total = strtol(umeterstr, NULL, base);
   rain_longterm_total = (25.4/10.0)*rain_longterm_total; /* 0.1in to mm */
   syslog(LOG_DEBUG, "rain_longterm_total: %f\n", rain_longterm_total);
-  measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)rain_longterm_total, umeterdb);
+  measval_db( "raingauge", "rain_total", dataset_date, (float)rain_longterm_total, umeterdb);
 
   /* Barometer */
   strncpy(umeterstr, (const char *)(datalogdata+18), 5); 
@@ -149,7 +149,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   baro = strtol(umeterstr, NULL, base);
   baro = baro/10.0; /* 0.1mbar to mbar */
   syslog(LOG_DEBUG, "baro: %f\n", baro);
-  measval_db( "IndoorTemperatorBarometerSensor", "Barometer", 
+  measval_db( "tp_in_sensor", "pressure", 
 	      dataset_date, (float)baro, umeterdb);
 
   /* Indoor Temperature */
@@ -159,7 +159,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   temp_in = strtol(umeterstr, NULL, base);
   temp_in = ((1.0/10.0)*temp_in -32.0)*5.0/9.0; /* 0.1 degF to degC */
   syslog(LOG_DEBUG, "temp_in: %f\n", temp_in);
-  measval_db( "IndoorTemperatorBarometerSensor", "Indoor Temperature", 
+  measval_db( "tp_in_sensor", "indoor_temp", 
 	      dataset_date, (float)temp_in, umeterdb);
 
   /* Outdoor humdity - if sensor is installed */
@@ -170,15 +170,15 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   /* Temperature Sensor installed */
   if ( err == 0 ) {
     syslog(LOG_INFO, "No Outdoor Humidity/Temperature Sensor found");
-    measval_db( "TemperatureSensor", "Current Outdoor Temperature", 
+    measval_db( "t_out_sensor", "outdoor_temp", 
 		dataset_date, (float)temp_out, umeterdb);
   } else /* Outdoor Humidity Temperature sensor installed */ {
     out_th_present = 1;
     humid_out = (float)strtol(umeterstr, NULL, base);
     humid_out = (1.0/10.0)*humid_out; /* 0.1% to %rel.hum. */
-    measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Temperature", 
+    measval_db( "th_out_sensor", "outdoor_temp", 
 		dataset_date, (float)temp_out, umeterdb);
-    measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Humidity", 
+    measval_db( "th_out_sensor", "outdoor_hum", 
 		dataset_date, (float)humid_out, umeterdb);
     syslog(LOG_DEBUG, "humid_out: %f\n", humid_out); 
   }
@@ -195,7 +195,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
     humid_in = strtol(umeterstr, NULL, base);
     humid_in = (1.0/10.0)*humid_in; /* 0.1% to %rel.hum. */
     syslog(LOG_DEBUG, "humid_in: %f\n", humid_in);
-    measval_db( "IndoorHumiditySensor", "Indoor Humidity", dataset_date, (float)humid_in, umeterdb);
+    measval_db( "h_in_sensor", "indoor_hum", dataset_date, (float)humid_in, umeterdb);
   }
 
   /* day of year */
@@ -237,7 +237,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   rain_today_total = strtol(umeterstr, NULL, base);
   rain_today_total = (25.4/10.0)*rain_today_total; /* 0.1in to mm */
   syslog(LOG_DEBUG, "rain_today_total: %f\n", rain_today_total);
-  measval_db( "RainGauge", "Rain Today Total", dataset_date, (float)rain_today_total, umeterdb);
+  measval_db( "raingauge", "Rain Today Total", dataset_date, (float)rain_today_total, umeterdb);
 
   /* 1 Minute windspeed average */
   strncpy(umeterstr, (const char *)(datalogdata+46), 5); 
@@ -246,7 +246,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   windspeed_1min_avg = strtol(umeterstr, NULL, base);
   windspeed_1min_avg = (1.0/36.0)*windspeed_1min_avg; /* 0.1 kph to ms-1 */
   syslog(LOG_DEBUG, "windspeed_1min_avg: %f\n", windspeed_1min_avg);
-  measval_db( "WindSensor", "Wind Speed 1 Minute Average", 
+  measval_db( "windsensor", "windspeed_1min_avg", 
 	      dataset_date, (float)windspeed_1min_avg, umeterdb);
 
   snprintf(tstrg,MAXMSGLEN, "%lu", (long int)dataset_date);

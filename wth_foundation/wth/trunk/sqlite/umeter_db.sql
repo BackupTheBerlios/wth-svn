@@ -42,22 +42,22 @@ CREATE TABLE sensornames
     );
 
 -- Wind Sensor
-INSERT INTO sensornames VALUES ('1','WindSensor','Wind Sensor');
+INSERT INTO sensornames VALUES ('1','windsensor','Wind Sensor');
 
 -- Temperature Sensor
-INSERT INTO sensornames VALUES ('2','TemperatureSensor', 'Temperature Sensor');
+INSERT INTO sensornames VALUES ('2','t_out_sensor', 'Temperature Sensor');
 
 -- Rain Gauge
-INSERT INTO sensornames VALUES ('3','RainGauge', 'Rain Sensor');
+INSERT INTO sensornames VALUES ('3','raingauge', 'Rain Gauge');
 
 -- Indoor Humidity Sensor ( optional)
-INSERT INTO sensornames VALUES ('4','IndoorHumiditySensor', 'Indoor Humidity Sensor');
+INSERT INTO sensornames VALUES ('4','h_in_sensor', 'Indoor Humidity Sensor');
 
 -- T/H Sensor (optional)
-INSERT INTO sensornames VALUES ('5','OutdoorHumidityTemperatureSensor','Outdoor Humitity/Temperature Sensor');
+INSERT INTO sensornames VALUES ('5','th_out_sensor','Outdoor Humitity/Temperature Sensor');
 
 -- Indoor T/Pressure (inside display unit)
-INSERT INTO sensornames VALUES ('6','IndoorTemperatorBarometerSensor','Indoor Temperature/Barometer Sensor in central display unit');
+INSERT INTO sensornames VALUES ('6','tp_in_sensor','Indoor Temperature/Barometer Sensor in central display unit');
 
 
 --
@@ -67,35 +67,36 @@ CREATE TABLE parameternames
   (
     parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     parameter_name VARCHAR(64) NOT NULL,
+    description VARCHAR(64) NOT NULL,
     unit VARCHAR(64) NOT NULL,
     gain FLOAT NOT NULL,
     offset FLOAT NOT NULL
   );
 -- datalogger mode parameters
-INSERT INTO parameternames VALUES ('1','Wind Speed','m s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('2','Wind Direction','deg', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('3','Outdoor Temperature','deg C', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('4','Rain Longterm Total','mm', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('5','Barometer','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('6','Indoor Temperature','deg C', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('7','Outdoor Humidity','% rel.hum.', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('8','Indoor Humidity','% rel.hum', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('9','Rain Today Total','mm', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('10','Wind Speed 1 Minute Average','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('1','windspeed','Wind Speed''m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('2','winddirection','Wind Direction''deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('3','outdoor_temp','Outdoor Temperature','deg C', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('4','rain_total', 'Rain Longterm Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('5','pressure', 'Barometer','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('6','indoor_temp','Indoor Temperature','deg C', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('7','outdoor_hum','Outdoor Humidity','% rel.hum.', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('8','indoor_hum','Indoor Humidity','% rel.hum', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('9','rain_today', 'Rain Today Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('10','windspeed_1min_avg','Wind Speed 1 Minute Average','m s-1', 1.000, 0.000);
 -- packet mode parameters
-INSERT INTO parameternames VALUES ('11','Wind Speed 5 Minute Peak','m s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('12','Wind Direction of Wind Speed Peak','deg', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('13','Current Outdoor Temperature','deg C', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('14','Current Barometer','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('15','Barometer Delta','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('16','Barometer Correction Factor','', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('17','Current Outdoor Humidity','% rel.hum.', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('18','Wind Speed 5 Minute Average','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('11','windspeed_5min_peak','Wind Speed 5 Minute Peak','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('12','windirection_peak', 'Wind Direction of Wind Speed Peak','deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('13','outdoor_temp','Current Outdoor Temperature','deg C', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('14','pressure','Current Barometer','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('15','pressure_delta','Barometer Delta','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('16','pressure_corr','Barometer Correction Factor','', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('17','outdoor_hum','Current Outdoor Humidity','% rel.hum.', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('18','windspeed_5min_avg','Wind Speed 5 Minute Average','m s-1', 1.000, 0.000);
 -- completerecord mode parameters
-INSERT INTO parameternames VALUES ('19','Wind Direction of 5 Minute Wind Speed Peak','deg', 1.000, 0.000); -- might be the same as packetmode paraneter 12
-INSERT INTO parameternames VALUES ('20','Barometer 3-Hour Pressure Change','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('21','Wind Chill','deg C', 1.000, 0.000); -- unclear, which T-sensor is used to calculate wind chill
-INSERT INTO parameternames VALUES ('22','Dew Point','deg C', 1.000, 0.000); -- unclear, which HT-sensor is used to calculate dew point
+INSERT INTO parameternames VALUES ('19','winddirection_peak','Wind Direction of 5 Minute Wind Speed Peak','deg', 1.000, 0.000); -- might be the same as packetmode parameter 12
+INSERT INTO parameternames VALUES ('20','pressure_3hr_chg','Barometer 3-Hour Pressure Change','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('21','windchill','Wind Chill','deg C', 1.000, 0.000); -- unclear, which T-sensor is used to calculate wind chill
+INSERT INTO parameternames VALUES ('22','dewpoint','Dew Point','deg C', 1.000, 0.000); -- unclear, which HT-sensor is used to calculate dew point
 --
 -- relation of parameter to sensor
 -- i.e which physical parameter is measured in which sensor 

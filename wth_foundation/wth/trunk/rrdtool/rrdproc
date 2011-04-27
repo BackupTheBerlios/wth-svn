@@ -20,6 +20,7 @@ my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
 my $rheight = 200;
+my $WthDatabase;
 
 #
 # subroutines
@@ -246,7 +247,6 @@ unless ($ret = do $cfgfile) {
     exit -1;
 }
 
-print "Configured sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
 
 if ( $ENV{DEBUG} ) {
     if ( $ENV{DEBUG} == 1) {
@@ -289,9 +289,13 @@ NEXTSENSOR:  foreach $sensor ( @Sensors ) {
 # Checking rrd's
 #
 if ( $info) { 
+    print "Configured sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
     foreach $sensor ( @Sensors) {
 
-        my $hash = RRDs::info "$sensor.rrd";
+        print "sensor: $sensor\n";
+        print "sensor: $extraopts{$sensor}{rrdfile}\n";
+
+        my $hash = RRDs::info "$extraopts{$sensor}{rrdfile}";
         my $dsname;
         my $dsparam;
         my %dsh;
@@ -305,13 +309,12 @@ if ( $info) {
         my $filename = "";
         my $rrd_version = "";
         my $step = "";
-        my $last_update = "";
+        my $last_update = 0;
         my $todays_time = scalar time ();
         my $relativ;
 
         foreach my $key (keys %$hash){
             print "key: $key\n";
-                #if ( $DEBUG);
             $filename = $$hash{$key} 
                 if ( $key =~ /^filename/);
             $rrd_version = $$hash{$key} 
@@ -340,7 +343,7 @@ if ( $info) {
         print "\tfilename:\t$filename\n";
         print "\trrd version:\t$rrd_version\n";
         print "\tstep size:\t$step\n";
-        $relativ = ( $last_update - $todays_time )/3600;
+        $relativ = ( $last_update - $todays_time )/3600.0;
         printf("\tlast update:\t%d ( %d hrs ago)\n", $last_update, $relativ);
         print "\ttodays time:\t$todays_time\n";
         foreach $dsname (keys %dsh) {
@@ -398,7 +401,7 @@ if ( $fill) {
   my $res;
 
   my $dbh = DBI->connect("dbi:SQLite:dbname=$WthDatabase","","")
-    or die ("Can't get DB handle: $DBI::Errstr");
+    or die ("Can't get DB handle: $DBI::errstr");
 
   foreach $sensor ( @Sensors) {
       print "fill (main)\t: Filling rrd: $sensor\n";
