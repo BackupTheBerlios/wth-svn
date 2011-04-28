@@ -15,12 +15,11 @@ use DBI;
 
 my $version = "RRD processing tool - Version 0.0.1\n";
 
-my ( $create, $info, $fetch, $graph, $fill, $help);
+my ( $create, $info, $fetch, $graph, $update, $help);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
 my $rheight = 200;
-my $WthDatabase;
 
 #
 # subroutines
@@ -31,7 +30,7 @@ usage {
     print "\tgraph:\tcreate and display some graphs\n";
     print "\tinfo:\tprint information of rrd data file\n";
     print "\tcreate:\tcreate rrd file\n";
-    print "\tfill:\tenter data into  rrd file\n";
+    print "\tupdate:\tenter data into  rrd file\n";
     print "\thelp:\tprint this help\n";
     exit 1;
 }
@@ -231,7 +230,7 @@ GetOptions( "create" => \$create,
             "info"   => \$info,
             "fetch"  => \$fetch,
             "graph"  => \$graph,
-            "fill"   => \$fill,
+            "update" => \$update,
             "help"   => \$help,
           );
 
@@ -293,27 +292,29 @@ if ( $info) {
     foreach $sensor ( @Sensors) {
 
         print "sensor: $sensor\n";
-        print "sensor: $extraopts{$sensor}{rrdfile}\n";
+        my $rrd = $extraopts{$sensor}{rrdfile};
+        print "rrd   : $rrd\n";
 
-        my $hash = RRDs::info "$extraopts{$sensor}{rrdfile}";
-        my $dsname;
-        my $dsparam;
-        my %dsh;
-        my $rec;
-        my $rraid;
-        my $rraparam;
-        my @rra;
-        my $cdpid;
-        my $cdparam;
-        my @cdpa;
-        my $filename = "";
-        my $rrd_version = "";
-        my $step = "";
-        my $last_update = 0;
-        my $todays_time = scalar time ();
-        my $relativ;
+        if ( (-e $rrd) && (-r $rrd) ) {
+          my $hash = RRDs::info "$rrd";
+          my $dsname;
+          my $dsparam;
+          my %dsh;
+          my $rec;
+          my $rraid;
+          my $rraparam;
+          my @rra;
+          my $cdpid;
+          my $cdparam;
+          my @cdpa;
+          my $filename = "";
+          my $rrd_version = "";
+          my $step = "";
+          my $last_update = 0;
+          my $todays_time = scalar time ();
+          my $relativ;
 
-        foreach my $key (keys %$hash){
+          foreach my $key (keys %$hash){
             print "key: $key\n";
             $filename = $$hash{$key} 
                 if ( $key =~ /^filename/);
@@ -338,23 +339,23 @@ if ( $info) {
                 }
 
             }
-        }
-        print "Checking rrd: $sensor\n";
-        print "\tfilename:\t$filename\n";
-        print "\trrd version:\t$rrd_version\n";
-        print "\tstep size:\t$step\n";
-        $relativ = ( $last_update - $todays_time )/3600.0;
-        printf("\tlast update:\t%d ( %d hrs ago)\n", $last_update, $relativ);
-        print "\ttodays time:\t$todays_time\n";
-        foreach $dsname (keys %dsh) {
+          }
+          print "Checking rrd: $sensor\n";
+          print "\tfilename:\t$filename\n";
+          print "\trrd version:\t$rrd_version\n";
+          print "\tstep size:\t$step\n";
+          $relativ = ( $last_update - $todays_time )/3600.0;
+          printf("\tlast update:\t%d ( %d hrs ago)\n", $last_update, $relativ);
+          print "\ttodays time:\t$todays_time\n";
+          foreach $dsname (keys %dsh) {
             print "\tDS[ $dsname]:\n";
             foreach $dsparam (keys %{ $dsh{ $dsname}}) {
                 print "\t\t$dsparam: $dsh{ $dsname}{ $dsparam}\n";
             }
-        }
+          }
 
-        my $aref;
-        for my $i ( 0 .. $#rra ) {
+          my $aref;
+          for my $i ( 0 .. $#rra ) {
             print "\tRRA[ $i]:\n";
             foreach  my $key ( sort keys %{ $rra[ $i]} ) {
                 print "\t\t$key : $rra[ $i]->{$key}\n";
@@ -371,65 +372,115 @@ if ( $info) {
                     }
                 }
             }
-        }
-        #$rraid = 0;
-        #foreach $rec ( @rra) {
-        #    print "\t$rraid\n";
-        #    $cdpid = 0;
-        #    foreach my $cdp ( @cdpa[$rraid] ) {
-        #        foreach my $key ( keys %$cdp ) {
-        #            print "cdp: $cdpa[ $rraid][ $cdpid]->$key\n";
-        #        } 
-        #    }
-        #    $rraid++;
-        #    foreach my $key ( keys %$rec ) {
-        #        print "\t\t$key : $rec->{$key}\n";
-        #    }
-        #}
-        #print Dumper(%dsh); 
-        #print Dumper(@rra); 
-        #print Dumper(@cdpa); 
+          }
+          #$rraid = 0;
+          #foreach $rec ( @rra) {
+          #    print "\t$rraid\n";
+          #    $cdpid = 0;
+          #    foreach my $cdp ( @cdpa[$rraid] ) {
+          #        foreach my $key ( keys %$cdp ) {
+          #            print "cdp: $cdpa[ $rraid][ $cdpid]->$key\n";
+          #        } 
+          #    }
+          #    $rraid++;
+          #    foreach my $key ( keys %$rec ) {
+          #        print "\t\t$key : $rec->{$key}\n";
+          #    }
+          #}
+          #print Dumper(%dsh); 
+          #print Dumper(@rra); 
+          #print Dumper(@cdpa); 
+    } else {
+      print "Error: rrd file not fount: $rrd\n";
     }
+  }
 }
 
 
 #
-# Populating rrd files
+# Update rrd files
 #
-if ( $fill) {
-
-  my $res;
-
-  my $dbh = DBI->connect("dbi:SQLite:dbname=$WthDatabase","","")
-    or die ("Can't get DB handle: $DBI::errstr");
-
+if ( $update) {
+  if ($DEBUG) {
+    print "Configured sensors: "; 
+    foreach (@Sensors) { print "$_ "}; print "\n";
+  }
   foreach $sensor ( @Sensors) {
-      print "fill (main)\t: Filling rrd: $sensor\n";
+    my $res;
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$WthDatabase","","")
+      or die ("Can't get DB handle: $DBI::errstr");
+    my $rrd = "$extraopts{$sensor}{rrdfile}";
+    if ( (-e $rrd) && (-r $rrd) ) {
+      print "WthDatabase: $WthDatabase\n" if ( $DEBUG);
+      print "RRD File: $rrd\n" if ($DEBUG);
+      foreach $sensor ( @Sensors) {
+        print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
+        # select last sensor parameter data
+        $data_sql  = "
+          SELECT DISTINCT 
+            sensornames.sensor_name,parameternames.parameter_name,
+            sensorupdate.last_update, sensordata.meas_value,
+            parameternames.unit 
+          FROM  
+            sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
+          WHERE sensorupdate.last_update = sensordata.dataset_date 
+          AND 
+            sensorupdate.sensor_meas_no = sensordata.sensor_meas_no 
+          AND 
+            sensornames.sensor_no = sensorparameters.sensor_no 
+          AND 
+            sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
+          AND 
+            parameternames.parameter_no = sensorparameters.parameter_no
+          AND
+            sensornames.sensor_name = '$sensor'";
+  
+        my $stmt = $dbh->prepare($data_sql);
+        $stmt->execute() or die $stmt->err_str;
+  
+        my @dsnames = ();
+        my @options = ();
+        my $dsnam = "";
+        my $dsval = "";
+        my $loopcnt = 0;
+        my $timeval = 0;
+        while (my ($sensor_name, $parameter_name, $update_time, $meas_value) = $stmt->fetchrow_array() ) 
+        {
+          if ( $DEBUG) {
+            print "Sensor Name: $sensor_name\n";
+            print "Parameter Name: $parameter_name\n";
+            print "Update Time: $update_time\n";
+            printf( "Data Value: %f\n", $meas_value);
+          }
+          $timeval = $update_time;
+          if ( $loopcnt == 0 ) {
+            $dsnam = $parameter_name;
+            $dsval = $update_time. ":" . $meas_value;
+          } else {
+            $dsnam = $dsnam . ":" . $parameter_name;
+            $dsval = $dsval . ":" . $meas_value;
+          }
+          $loopcnt++;
+        }
+        print "dsname: $dsnam\n" if ($DEBUG);
+        print "dsval : $dsval\n" if ($DEBUG);
 
-  # check database 
-  #
-  $res = $dbh->selectall_arrayref("
-    SELECT sp.sensor_meas_no, sn.sensor_name, 
-           pn.parameter_name, pn.unit 
-      FROM sensorparameters AS sp 
-        JOIN sensornames AS sn 
-          ON sp.sensor_no = sn.sensor_no 
-        JOIN parameternames AS pn 
-          ON sp.parameter_no = pn.parameter_no
-      WHERE
-             sn.sensor_name = '$sensor'");
-
-
-  foreach ( @$res) {
-      foreach my $i ( 0..$#$_) {
-          print "$_->[$i] "
+        $last_update = RRDs::last $rrd;
+        if ( $last_update == $timeval ) {
+          print "Info: no new data available: $rrd not updated\n";
+        } else {
+          RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
+          if ($ERROR = RRDs::error) {
+            print "Error: $0: unable to update `$rrd': $ERROR\n";
+          } else {
+            print "Info: updating $rrd\n";
+          }
+        }
       }
-      print "\n";
+    } else {
+      print "Error: rrd file not found: $rrd\n";
+    }
   }
-
-
-  }
-
 }
 
 #
