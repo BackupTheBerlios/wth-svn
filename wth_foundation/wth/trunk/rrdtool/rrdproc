@@ -413,6 +413,8 @@ if ( $update) {
     if ( (-e $rrd) && (-r $rrd) ) {
       print "WthDatabase: $WthDatabase\n" if ( $DEBUG);
       print "RRD File: $rrd\n" if ($DEBUG);
+      my $last_update = RRDs::last $rrd;
+      print "last_update: $last_update\n";
       foreach $sensor ( @Sensors) {
         print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
         # select last sensor parameter data
@@ -423,7 +425,9 @@ if ( $update) {
             parameternames.unit 
           FROM  
             sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
-          WHERE sensorupdate.last_update = sensordata.dataset_date 
+          WHERE 
+            sensordata.dataset_date 
+              BETWEEN $last_update AND sensorupdate.last_update
           AND 
             sensorupdate.sensor_meas_no = sensordata.sensor_meas_no 
           AND 
@@ -434,9 +438,11 @@ if ( $update) {
             parameternames.parameter_no = sensorparameters.parameter_no
           AND
             sensornames.sensor_name = '$sensor'";
-  
+ 
+        print "data_sql: $data_sql\n"; 
         my $stmt = $dbh->prepare($data_sql);
-        $stmt->execute() or die $stmt->err_str;
+        $stmt->execute() 
+          or die ("Error: execute statement: $DBI::errstr");
   
         my @dsnames = ();
         my @options = ();
@@ -444,6 +450,7 @@ if ( $update) {
         my $dsval = "";
         my $loopcnt = 0;
         my $timeval = 0;
+
         while (my ($sensor_name, $parameter_name, $update_time, $meas_value) = $stmt->fetchrow_array() ) 
         {
           if ( $DEBUG) {
