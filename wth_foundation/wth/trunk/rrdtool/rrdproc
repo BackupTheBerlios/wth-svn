@@ -462,11 +462,10 @@ if ( $update) {
           print "Update Time: $update_time\n";
           printf( "Data Value: %f\n", $meas_value);
         }
-        #my $grpcnt = 0;
         if ( ( $timeval != $update_time) && ( $loopcnt != 0))  {
           print "new group data! update_time: $update_time loopcnt: $loopcnt\n";
-          print "dsnames: @dsnames\n";
-          print "dsvalue: @dsvalue\n";
+          #print "dsnames: @dsnames\n";
+          #print "dsvalue: @dsvalue\n";
           $last_update = RRDs::last $rrd;
           if ( $last_update == $timeval ) {
             print "Info: no new data available: $rrd not updated\n";
@@ -474,21 +473,26 @@ if ( $update) {
             print "array update $rrd --template @dsnames @dsvalue\n";
             $dsnam = $dsnames[0];
             $dsval = $update_time. ":" . $dsvalue[0];
-            for ( $cnt = 1; $cnt <= $#dsnames; $cnt++ ) {
+            for ( $cnt = 1; $cnt < $#dsnames; $cnt++ ) {
               $dsnam = $dsnam . ":" . $dsnames[$cnt];
               $dsval = $dsval . ":" . $dsvalue[$cnt];
             }
             print "string update $rrd --template \"$dsnam\" \"$dsval\"\n";
-            #RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
-            #if ($ERROR = RRDs::error) {
-            #  print "Error: $0: unable to update `$rrd': $ERROR\n";
-            #} else {
-            #  print "Info: updating $rrd\n";
-            #}
+            RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
+            if ($ERROR = RRDs::error) {
+              print "Error: $0: unable to update `$rrd': $ERROR\n";
+            } else {
+              print "Info: updating $rrd\n";
+            }
           }
           $loopcnt = 0;
+          print "cnt: $cnt\n";
+          my $tmpnam = $dsnames[$cnt];
+          my $tmpval = $dsvalue[$cnt];
           @dsnames = ();
           @dsvalue = ();
+          push(@dsnames, $tmpnam);
+          push(@dsvalue, $tmpval);
         }
         $timeval = $update_time;
         $loopcnt++;
