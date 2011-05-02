@@ -415,79 +415,70 @@ if ( $update) {
       print "RRD File: $rrd\n" if ($DEBUG);
       my $last_update = RRDs::last $rrd;
       print "last_update: $last_update\n";
-      #foreach $sensor ( @Sensors) {
-        print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
-        # select last sensor parameter data
-        $data_sql  = "
-          SELECT DISTINCT 
-            sensornames.sensor_name,parameternames.parameter_name,
-            sensordata.dataset_date, sensordata.meas_value,
-            parameternames.unit 
-          FROM  
-            sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
-          WHERE 
-            sensordata.dataset_date 
-              BETWEEN $last_update AND sensorupdate.last_update
-          AND 
-            sensorupdate.sensor_meas_no = sensordata.sensor_meas_no 
-          AND 
-            sensornames.sensor_no = sensorparameters.sensor_no 
-          AND 
-            sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
-          AND 
-            parameternames.parameter_no = sensorparameters.parameter_no
-          AND
-            sensornames.sensor_name = '$sensor'
-          ORDER BY
-            sensordata.dataset_date";
+      print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
+      # select last sensor parameter data
+      $data_sql  = "
+        SELECT DISTINCT 
+          sensornames.sensor_name,parameternames.parameter_name,
+          sensordata.dataset_date, sensordata.meas_value,
+          parameternames.unit 
+        FROM  
+          sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
+        WHERE 
+          sensordata.dataset_date 
+            BETWEEN $last_update AND sensorupdate.last_update
+        AND 
+          sensorupdate.sensor_meas_no = sensordata.sensor_meas_no 
+        AND 
+          sensornames.sensor_no = sensorparameters.sensor_no 
+        AND 
+          sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
+        AND 
+          parameternames.parameter_no = sensorparameters.parameter_no
+        AND
+          sensornames.sensor_name = '$sensor'
+        ORDER BY
+          sensordata.dataset_date";
  
-        print "data_sql: $data_sql\n"; 
-        my $stmt = $dbh->prepare($data_sql);
-        $stmt->execute() 
-          or die ("Error: execute statement: $DBI::errstr");
+      print "data_sql: $data_sql\n"; 
+      my $stmt = $dbh->prepare($data_sql);
+      $stmt->execute() 
+        or die ("Error: execute statement: $DBI::errstr");
   
-        my $loopcnt = 0;
-        my $timeval = 0;
-        my @dsnames = ();
-        my @dsvalue = ();
+      my $loopcnt = 0;
+      my $timeval = 0;
+      my @dsnames = ();
+      my @dsvalue = ();
 
-        while (my ($sensor_name, $parameter_name, $update_time, $meas_value) = $stmt->fetchrow_array() ) 
-        {
-          my $dsnam = "";
-          my $dsval = "";
-          if ( $DEBUG) {
-            print "Sensor Name: $sensor_name\n";
-            print "Parameter Name: $parameter_name\n";
-            print "Update Time: $update_time\n";
-            printf( "Data Value: %f\n", $meas_value);
-          }
-          my $grpcnt = 0;
-          if ( ( $timeval != $update_time) && ( $loopcnt != 0))  {
-            print "new group data! update_time: $update_time loopcnt: $loopcnt\n";
-            print "dsnames: @dsnames\n";
-            print "dsvalue: @dsvalue\n";
-            $timeval = $update_time;
-            @dsnames = ();
-            @dsvalue = ();
-          }
-          if ( $loopcnt == 0 ) {
-            $dsnam = $parameter_name;
-            $dsval = $update_time. ":" . $meas_value;
-          } else {
-            $dsnam = $dsnam . ":" . $parameter_name;
-            $dsval = $dsval . ":" . $meas_value;
-          }
-          $loopcnt++;
-          print "dsname: $dsnam\n" if ($DEBUG);
-          print "dsval : $dsval\n" if ($DEBUG);
-          push (@dsnames, $parameter_name);
-          push (@dsvalue, $meas_value);
-
+      while (my ($sensor_name, $parameter_name, $update_time, $meas_value) = $stmt->fetchrow_array() ) 
+      {
+        my $dsnam = "";
+        my $dsval = "";
+        push (@dsnames, $parameter_name);
+        push (@dsvalue, $meas_value);
+        if ( $DEBUG) {
+          print "Sensor Name: $sensor_name\n";
+          print "Parameter Name: $parameter_name\n";
+          print "Update Time: $update_time\n";
+          printf( "Data Value: %f\n", $meas_value);
+        }
+        #my $grpcnt = 0;
+        if ( ( $timeval != $update_time) && ( $loopcnt != 0))  {
+          print "new group data! update_time: $update_time loopcnt: $loopcnt\n";
+          print "dsnames: @dsnames\n";
+          print "dsvalue: @dsvalue\n";
           $last_update = RRDs::last $rrd;
           if ( $last_update == $timeval ) {
             print "Info: no new data available: $rrd not updated\n";
           } else {
-            #print "$rrd --template $dsnam $dsval\n";
+            print "array update $rrd --template @dsnames @dsvalue\n";
+            $dsnam = $dsnames[0];
+            $dsval = $update_time. ":" . $dsvalue[0];
+            for ( $cnt = 1; $cnt <= $#dsnames; $cnt++ ) {
+              $dsnam = $dsnam . ":" . $dsnames[$cnt];
+              $dsval = $dsval . ":" . $dsvalue[$cnt];
+            }
+            print "string update $rrd --template \"$dsnam\" \"$dsval\"\n";
             #RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
             #if ($ERROR = RRDs::error) {
             #  print "Error: $0: unable to update `$rrd': $ERROR\n";
@@ -495,8 +486,15 @@ if ( $update) {
             #  print "Info: updating $rrd\n";
             #}
           }
+          $loopcnt = 0;
+          @dsnames = ();
+          @dsvalue = ();
         }
-      #}
+        $timeval = $update_time;
+        $loopcnt++;
+        #print "dsname: $dsnam\n" if ($DEBUG);
+        #print "dsval : $dsval\n" if ($DEBUG);
+      }
     } else {
       print "Error: rrd file not found: $rrd\n";
     }
