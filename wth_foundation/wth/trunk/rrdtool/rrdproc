@@ -13,7 +13,7 @@ use Data::Dumper;
 use Env qw(DEBUG);
 use DBI;
 
-my $version = "RRD processing tool - Version 0.0.1\n";
+my $version = "RRD processing tool - Version 0.0.2\n";
 
 my ( $create, $info, $fetch, $graph, $update, $help);
 my ( $sensor, $creatstr, $copt, $ERROR);
@@ -414,14 +414,13 @@ if ( $update) {
       print "WthDatabase: $WthDatabase\n" if ( $DEBUG);
       print "RRD File: $rrd\n" if ($DEBUG);
       my $last_update = RRDs::last $rrd;
-      print "last_update: $last_update\n";
+      print "Last update of $sensor was at $last_update\n";
       print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
       # select last sensor parameter data
       $data_sql  = "
         SELECT DISTINCT 
           sensornames.sensor_name,parameternames.parameter_name,
-          sensordata.dataset_date, sensordata.meas_value,
-          parameternames.unit 
+          sensordata.dataset_date, sensordata.meas_value
         FROM  
           sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
         WHERE 
@@ -440,7 +439,7 @@ if ( $update) {
         ORDER BY
           sensordata.dataset_date";
  
-      print "data_sql: $data_sql\n"; 
+      print "data_sql: $data_sql\n" if ( $DEBUG); 
       my $stmt = $dbh->prepare($data_sql);
       $stmt->execute() 
         or die ("Error: execute statement: $DBI::errstr");
@@ -463,30 +462,29 @@ if ( $update) {
           printf( "Data Value: %f\n", $meas_value);
         }
         if ( ( $timeval != $update_time) && ( $loopcnt != 0))  {
-          print "new group data! update_time: $update_time loopcnt: $loopcnt\n";
-          #print "dsnames: @dsnames\n";
-          #print "dsvalue: @dsvalue\n";
+          print "new group data! update_time: $update_time loopcnt: $loopcnt\n"
+            if ( $DEBUG);
           $last_update = RRDs::last $rrd;
+          my $cnt = 1;
           if ( $last_update == $timeval ) {
             print "Info: no new data available: $rrd not updated\n";
           } else {
-            print "array update $rrd --template @dsnames @dsvalue\n";
             $dsnam = $dsnames[0];
-            $dsval = $update_time. ":" . $dsvalue[0];
-            for ( $cnt = 1; $cnt < $#dsnames; $cnt++ ) {
+            $dsval = $timeval. ":" . $dsvalue[0];
+            for ( $cnt = 1; $cnt < $loopcnt; $cnt++ ) {
               $dsnam = $dsnam . ":" . $dsnames[$cnt];
               $dsval = $dsval . ":" . $dsvalue[$cnt];
             }
-            print "string update $rrd --template \"$dsnam\" \"$dsval\"\n";
+            print "string update $rrd --template \"$dsnam\" \"$dsval\"\n"
+              if ($DEBUG);
             RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
             if ($ERROR = RRDs::error) {
               print "Error: $0: unable to update `$rrd': $ERROR\n";
             } else {
-              print "Info: updating $rrd\n";
+              print "Info: updating $rrd at $timeval\n";
             }
           }
           $loopcnt = 0;
-          print "cnt: $cnt\n";
           my $tmpnam = $dsnames[$cnt];
           my $tmpval = $dsvalue[$cnt];
           @dsnames = ();
@@ -496,8 +494,6 @@ if ( $update) {
         }
         $timeval = $update_time;
         $loopcnt++;
-        #print "dsname: $dsnam\n" if ($DEBUG);
-        #print "dsval : $dsval\n" if ($DEBUG);
       }
     } else {
       print "Error: rrd file not found: $rrd\n";
