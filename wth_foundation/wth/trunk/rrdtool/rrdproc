@@ -5,6 +5,7 @@
 #
 #use strict;
 use RRDs;
+use File::Touch;
 use Getopt::Long;
 use Image::Magick;
 use Tk;
@@ -222,6 +223,27 @@ graphrrd {
 #
 # main
 #
+
+# prevent multiple execution
+$lockfile = "/tmp/rrdproc..lck";
+@lckf = ( $lockfile);
+touch(@lckf);
+
+open (LH, $lockfile)
+  or die "Error: can't open lockfile $lockfile";
+$pid=<LH>;
+close LH;
+$stat=kill 0, $pid ;
+chomp $stat;
+chomp $pid;
+if ($stat and $pid) {
+ print  "Warn: exiting because $pid exists\n";
+ exit 1;
+}
+open (LH, ">/tmp/rrdproc..lck");
+print LH "$$\n";
+close LH;
+
 if ( $#ARGV == -1 ) {
   usage();
 }

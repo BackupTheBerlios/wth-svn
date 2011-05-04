@@ -73,8 +73,8 @@ CREATE TABLE parameternames
     offset FLOAT NOT NULL
   );
 -- datalogger mode parameters
-INSERT INTO parameternames VALUES ('1','windspeed','Wind Speed''m s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('2','winddirection','Wind Direction''deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('1','windspeed','Wind Speed','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('2','winddirection','Wind Direction','deg', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('3','outdoor_temp','Outdoor Temperature','deg C', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('4','rain_total', 'Rain Longterm Total','mm', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('5','pressure', 'Barometer','hPa', 1.000, 0.000);
@@ -85,18 +85,14 @@ INSERT INTO parameternames VALUES ('9','rain_today', 'Rain Today Total','mm', 1.
 INSERT INTO parameternames VALUES ('10','windspeed_1min_avg','Wind Speed 1 Minute Average','m s-1', 1.000, 0.000);
 -- packet mode parameters
 INSERT INTO parameternames VALUES ('11','windspeed_5min_peak','Wind Speed 5 Minute Peak','m s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('12','windirection_peak', 'Wind Direction of Wind Speed Peak','deg', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('13','outdoor_temp','Current Outdoor Temperature','deg C', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('14','pressure','Current Barometer','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('15','pressure_delta','Barometer Delta','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('16','pressure_corr','Barometer Correction Factor','', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('17','outdoor_hum','Current Outdoor Humidity','% rel.hum.', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('18','windspeed_5min_avg','Wind Speed 5 Minute Average','m s-1', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('12','winddirection_peak', 'Wind Direction of Wind Speed Peak','deg', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('14','pressure_delta','Barometer Delta','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('15','pressure_corr','Barometer Correction Factor','', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('16','windspeed_5min_avg','Wind Speed 5 Minute Average','m s-1', 1.000, 0.000);
 -- completerecord mode parameters
-INSERT INTO parameternames VALUES ('19','winddirection_peak','Wind Direction of 5 Minute Wind Speed Peak','deg', 1.000, 0.000); -- might be the same as packetmode parameter 12
-INSERT INTO parameternames VALUES ('20','pressure_3hr_chg','Barometer 3-Hour Pressure Change','hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('21','windchill','Wind Chill','deg C', 1.000, 0.000); -- unclear, which T-sensor is used to calculate wind chill
-INSERT INTO parameternames VALUES ('22','dewpoint','Dew Point','deg C', 1.000, 0.000); -- unclear, which HT-sensor is used to calculate dew point
+INSERT INTO parameternames VALUES ('17','pressure_3hr_chg','Barometer 3-Hour Pressure Change','hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('18','windchill','Wind Chill','deg C', 1.000, 0.000); -- unclear, which T-sensor is used to calculate wind chill
+INSERT INTO parameternames VALUES ('19','dewpoint','Dew Point','deg C', 1.000, 0.000); -- unclear, which HT-sensor is used to calculate dew point
 --
 -- relation of parameter to sensor
 -- i.e which physical parameter is measured in which sensor 
@@ -116,30 +112,25 @@ INSERT INTO sensorparameters VALUES ('2','1','2');   -- Windsensor and Wind Dire
 INSERT INTO sensorparameters VALUES ('3','1','10');  -- Windsensor and 1 Minute Windspeed Average 
 INSERT INTO sensorparameters VALUES ('4','1','11');  -- Windsensor and Windspeed Peak 5 Minute
 INSERT INTO sensorparameters VALUES ('5','1','12');  -- Windsensor and Direction of Windspeed Peak
-INSERT INTO sensorparameters VALUES ('6','1','18');  -- Windsensor and 5 Minute Windspeed Average
-INSERT INTO sensorparameters VALUES ('7','1','19');  -- Windsensor and Wind Direction of 5 Minute Windspeed Peak
-INSERT INTO sensorparameters VALUES ('8','1','21');  -- Windsensor and Wind Chill
+INSERT INTO sensorparameters VALUES ('6','1','16');  -- Windsensor and 5 Minute Windspeed Average
+INSERT INTO sensorparameters VALUES ('7','1','18');  -- Windsensor and Wind Chill
 
-INSERT INTO sensorparameters VALUES ('9','2','3');   -- Temperatursensor and Outdoor Temp
-INSERT INTO sensorparameters VALUES ('10','2','13'); -- Temperatursensor and Current Outdoor Temp
+INSERT INTO sensorparameters VALUES ('8','2','3');   -- Temperatursensor and Outdoor Temp
 
-INSERT INTO sensorparameters VALUES ('11','3','4');  -- Raingauge and Rain Long Term Total
-INSERT INTO sensorparameters VALUES ('12','3','9');  -- Raingauge and Rain Today Total
+INSERT INTO sensorparameters VALUES ('9','3','4');   -- Raingauge and Rain Long Term Total
+INSERT INTO sensorparameters VALUES ('10','3','9');  -- Raingauge and Rain Today Total
 
-INSERT INTO sensorparameters VALUES ('13','4','8');  -- Indoor Humiditysensor and Indoor Humidity
+INSERT INTO sensorparameters VALUES ('11','4','8');  -- Indoor Humiditysensor and Indoor Humidity
 
-INSERT INTO sensorparameters VALUES ('14','5','3');  -- Outdoor H/T Sensor and Outdoor Temp
-INSERT INTO sensorparameters VALUES ('15','5','7');  -- Outdoor H/T Sensor and Outdoor Humidity
-INSERT INTO sensorparameters VALUES ('16','5','13'); -- Outdoor H/T Sensor and Current Outdoor Temp
-INSERT INTO sensorparameters VALUES ('17','5','17'); -- Outdoor H/T Sensor and Current Outdoor Humidity
-INSERT INTO sensorparameters VALUES ('18','5','22'); -- Outdoor H/T Sensor and Dew Point
+INSERT INTO sensorparameters VALUES ('12','5','3');  -- Outdoor H/T Sensor and Outdoor Temp
+INSERT INTO sensorparameters VALUES ('13','5','7');  -- Outdoor H/T Sensor and Outdoor Humidity
+INSERT INTO sensorparameters VALUES ('14','5','19'); -- Outdoor H/T Sensor and Dew Point
 
-INSERT INTO sensorparameters VALUES ('19','6','5');  -- Indoor T/Pressure sensor and Barometer
-INSERT INTO sensorparameters VALUES ('20','6','6');  -- Indoor T/Pressure sensor and Indoor Temperature
-INSERT INTO sensorparameters VALUES ('21','6','14'); -- Indoor T/Pressure sensor and Current Barometer
-INSERT INTO sensorparameters VALUES ('22','6','15'); -- Indoor T/Pressure sensor and Barometer Delta
-INSERT INTO sensorparameters VALUES ('23','6','16'); -- Indoor T/Pressure sensor and Barometer Correction Factor
-INSERT INTO sensorparameters VALUES ('24','6','20'); -- Indoor T/Pressure sensor and Barometer 3-Hour Pressure Change
+INSERT INTO sensorparameters VALUES ('15','6','5');  -- Indoor T/Pressure sensor and Barometer
+INSERT INTO sensorparameters VALUES ('16','6','6');  -- Indoor T/Pressure sensor and Indoor Temperature
+INSERT INTO sensorparameters VALUES ('17','6','14'); -- Indoor T/Pressure sensor and Barometer Delta
+INSERT INTO sensorparameters VALUES ('18','6','15'); -- Indoor T/Pressure sensor and Barometer Correction Factor
+INSERT INTO sensorparameters VALUES ('19','6','17'); -- Indoor T/Pressure sensor and Barometer 3-Hour Pressure Change
 
 --
 -- table sensorupdate
@@ -172,11 +163,3 @@ INSERT INTO sensorupdate VALUES ('16','0');
 INSERT INTO sensorupdate VALUES ('17','0');
 INSERT INTO sensorupdate VALUES ('18','0');
 INSERT INTO sensorupdate VALUES ('19','0');
-INSERT INTO sensorupdate VALUES ('20','0');
-INSERT INTO sensorupdate VALUES ('21','0');
-INSERT INTO sensorupdate VALUES ('22','0');
-INSERT INTO sensorupdate VALUES ('23','0');
-INSERT INTO sensorupdate VALUES ('24','0');
-
-
-

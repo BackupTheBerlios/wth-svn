@@ -88,12 +88,6 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   time_t dataset_date;
   int tdiff;
 
-  char tstrg[TBUFF+1];
-  char rrdfile[TBUFF+1];
-  char tmpstr[TBUFF+1];
-  char template[TBUFF+1];
-  char **ustrg;
-
   syslog(LOG_DEBUG, "datalog_rd: data: %s\n", datalogdata);
   time(&dataset_date);
 
@@ -102,9 +96,6 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) != SQLITE_OK ) {
     return(1);
   }
-
-  ustrg = malloc(sizeof(char)*TBUFF);
-  ustrg[2] = malloc(sizeof(char)*NBUFF);
 
   /* Wind Speed */
   strncpy(umeterstr, (const char * )(datalogdata+2), 5); 
@@ -249,39 +240,6 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   measval_db( "windsensor", "windspeed_1min_avg", 
 	      dataset_date, (float)windspeed_1min_avg, umeterdb);
 
-  snprintf(tstrg,MAXMSGLEN, "%lu", (long int)dataset_date);
-  snprintf(template,MAXMSGLEN,"%f", windspeed);
-  strncat(tstrg, ":", 1);
-  strncat(tstrg, template, strlen(template));
-  strncat(tstrg, ":", 1);
-  snprintf(template,MAXMSGLEN,"%f", winddir);
-  strncat(tstrg, template, strlen(template));
-  strncat(tstrg, ":", 1);
-  snprintf(template,MAXMSGLEN,"%f", windspeed_1min_avg);
-  strncat(tstrg, template, strlen(template));
-
-  snprintf( rrdfile, MAXMSGLEN, "%s", umeterstation.config.rrdpath);
-  snprintf( tmpstr, MAXMSGLEN, "%s.rrd", "WindSensor");
-  strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
-  syslog(LOG_DEBUG, "packet_rd: rrdfile: %s", rrdfile);
-  syslog(LOG_DEBUG, "packet_rd: update string: %s", tstrg);
-  snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
- 
-
-  rrd_clear_error();
-  rrd_get_context();
-  rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
-  if ( ( err = rrd_test_error())) {
-    syslog( LOG_ALERT, "packet_rd: RRD return code: %d",
-            rrd_test_error());
-    syslog(LOG_ALERT, "packet_rd: RRD error: %s", rrd_get_error());
-  } else {
-    syslog(LOG_DEBUG,"packet_rd: rrd_test_error return code OK");
-  }
-
-  free(ustrg[2]);
-  free(ustrg);
-
   sqlite3_close( umeterdb);
   return(0);
 }
@@ -323,12 +281,6 @@ packet_rd( unsigned char * packetdata, int ndat) {
   time_t dataset_date;
   int tdiff;
 
-  char tstrg[TBUFF+1];
-  char rrdfile[TBUFF+1];
-  char tmpstr[TBUFF+1];
-  char template[TBUFF+1];
-  char **ustrg;
-
   /*
     parse data in packetmode
   */
@@ -336,14 +288,10 @@ packet_rd( unsigned char * packetdata, int ndat) {
   time(&dataset_date);
 
   /* open sqlite db file */
-  if ( ( err = sqlite3_open( umeterstation.config.dbfile, &umeterdb))) {
-    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
-      umeterstation.config.dbfile, sqlite3_errmsg(umeterdb));
-    return(err);
+  if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) != SQLITE_OK ) {
+    return(1);
   }
 
-  ustrg = malloc(sizeof(char)*TBUFF);
-  ustrg[2] = malloc(sizeof(char)*NBUFF);
 
   /* Wind Speed 5 Minute Peak */
   strncpy(umeterstr, (const char *)(packetdata+5), 5); 
@@ -470,39 +418,6 @@ packet_rd( unsigned char * packetdata, int ndat) {
 	      dataset_date, (float)windspeed_5min_avg, umeterdb);
   syslog(LOG_DEBUG, "packet_rd: windspeed_avg: %f\n", windspeed_5min_avg);
 
-
-  snprintf(tstrg,MAXMSGLEN, "%lu", (long int)dataset_date);
-  snprintf(template,MAXMSGLEN,"%f", windspeed_5min_peak);
-  strncat(tstrg, ":", 1);
-  strncat(tstrg, template, strlen(template));
-  strncat(tstrg, ":", 1);
-  snprintf(template,MAXMSGLEN,"%f", winddir_peak);
-  strncat(tstrg, template, strlen(template));
-  strncat(tstrg, ":", 1);
-  snprintf(template,MAXMSGLEN,"%f", windspeed_5min_avg);
-  strncat(tstrg, template, strlen(template));
-
-  snprintf( rrdfile, MAXMSGLEN, "%s", umeterstation.config.rrdpath);
-  snprintf( tmpstr, MAXMSGLEN, "%s.rrd", "WindSensor");
-  strncat( rrdfile, tmpstr, 2*MAXMSGLEN+1);
-  syslog(LOG_DEBUG, "packet_rd: rrdfile: %s", rrdfile);
-  syslog(LOG_DEBUG, "packet_rd: update string: %s", tstrg);
-  snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
- 
-  rrd_clear_error();
-  rrd_get_context();
-  rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
-  if ( ( err = rrd_test_error())) {
-    syslog( LOG_ALERT, "packet_rd: RRD return code: %d",
-            rrd_test_error());
-    syslog(LOG_ALERT, "packet_rd: RRD error: %s", rrd_get_error());
-  } else {
-    syslog(LOG_DEBUG,"packet_rd: rrd_test_error return code OK");
-  }
-
-  free(ustrg[2]);
-  free(ustrg);
-
   sqlite3_close( umeterdb);
   return(0);
 }
@@ -518,7 +433,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   int err = 0;
   time_t dataset_date;
 
-  int  base=16;
+  int base = 16;
   char umeterstr[5];
   char umeterlstr[9];
   int out_th_present = 0;
@@ -532,19 +447,6 @@ complete_rd( unsigned char * completedata, int ndat) {
   int day_of_year;
   int min_of_day;
 
-  time_t umclock;
-  int minute, hour, year;
-  struct tm tm;
-  struct tm *ptm;
-  char buf[TBUFF+1];
-  int tdiff;
-
-  char tstrg[TBUFF+1];
-  char rrdfile[TBUFF+1];
-  char tmpstr[TBUFF+1];
-  char template[TBUFF+1];
-  char **ustrg;
-
   syslog(LOG_DEBUG, "complete_rd: begin of execution");
   time(&dataset_date);
   /*
@@ -553,13 +455,9 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG,"complete_rd: data: '%s'\n", completedata);
 
   /* open sqlite db file */
-  if ( ( err = sqlite3_open( umeterstation.config.dbfile, &umeterdb))) {
-    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
-      umeterstation.config.dbfile, sqlite3_errmsg(umeterdb));
-    return(err);
+  if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) != SQLITE_OK ) {
+    return(1);
   }
-  ustrg = malloc(sizeof(char)*TBUFF);
-  ustrg[2] = malloc(sizeof(char)*NBUFF);
 
   /* 1. Wind Speed */
   strncpy(umeterstr, (const char * )(completedata+4), 5); 
@@ -568,7 +466,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (1.0/36.0)*datafield; /* 0.1 kph to ms-1 */
   syslog(LOG_DEBUG, "1. Wind Speed: %f\n", datafield);
-  //measval_db( "WindSensor", "Wind Speed", dataset_date, (float)datafield, umeterdb);
+  measval_db( "windsensor", "windspeed", dataset_date, (float)datafield, umeterdb);
 
   /* 2. Wind direction */
   strncpy(umeterstr, (const char *)(completedata+8), 5); 
@@ -577,7 +475,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
   syslog(LOG_DEBUG, "2. Current Wind Direction: %f\n", datafield);
-  //measval_db( "WindSensor", "Wind Direction", dataset_date, (float)datafield, umeterdb);
+  measval_db( "windsensor", "winddirection", dataset_date, (float)datafield, umeterdb);
 
   /* 3. 5 min Windspeed Peak */
   strncpy(umeterstr, (const char *)(completedata+12), 5); 
@@ -586,7 +484,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (1.0/36.0)*datafield; /* kph to ms-1 */
   syslog(LOG_DEBUG, "3. 5 minute Wind Speed Peak: %f\n", datafield);
-  //measval_db( "WindSensor", "Wind Speed 5 Minute Peak", dataset_date, (float)datafield, umeterdb);
+  measval_db( "windsensor", "windspeed_5min_peak", dataset_date, (float)datafield, umeterdb);
 
   /* 4. 5min Winddirection Peak */
   strncpy(umeterstr, (const char *)(completedata+16), 5); 
@@ -594,9 +492,8 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG, "4. umeterstr: %s\n", umeterstr);
   datafield = strtol(umeterstr, NULL, base);
   datafield = (360.0/255.0)*datafield; /* 0-255 to 0-360 deg */
-  syslog(LOG_INFO, "complete_rd: \"Wind Direction of 5 Minute Wind Speed Peak\" might be the same as packetmode parameter");
   syslog(LOG_DEBUG, "4. Wind Direction of 5 Minute Wind Speed Peak: %f\n", datafield);
-  //measval_db( "WindSensor", "Wind Direction of 5 Minute Wind Speed Peak", dataset_date, (float)datafield, umeterdb);
+  measval_db( "windsensor", "winddirection_peak", dataset_date, (float)datafield, umeterdb);
 
   /* 5. Wind Chill */
   strncpy(umeterstr, (const char *)(completedata+20), 5); 
@@ -606,7 +503,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
   syslog(LOG_DEBUG, "5. Wind Chill: %f\n", datafield);
   syslog(LOG_INFO, "complete_rd: caculation of Wind Chill unclear");
-  //measval_db( "WindSensor", "Wind Chill", dataset_date, (float)datafield, umeterdb);
+  measval_db( "windsensor", "windchill", dataset_date, (float)datafield, umeterdb);
 
   /* 6. Outdoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+24), 5); 
@@ -625,7 +522,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
   syslog(LOG_DEBUG, "7. Rain Total for today: %f\n", datafield);
-  //measval_db( "RainGauge", "Rain Today Total", dataset_date, (float)datafield, umeterdb);
+  measval_db( "raingauge", "rain_today", dataset_date, (float)datafield, umeterdb);
 
   /* 8. Barometer */
   strncpy(umeterstr, (const char *)(completedata+32), 5); 
@@ -634,7 +531,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = datafield/10.0; /* 0.1mbar to mbar */
   syslog(LOG_DEBUG, "8. Barometer: %f\n", datafield);
-  //measval_db( "IndoorTemperatorBarometerSensor", "Current Barometer", dataset_date, (float)datafield, umeterdb);
+  measval_db( "tp_in_sensor", "pressure", dataset_date, (float)datafield, umeterdb);
 
   /* 9. Barometer 3-hour Pressure Change */
   strncpy(umeterstr, (const char *)(completedata+36), 5); 
@@ -643,7 +540,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = datafield/10.0; /* 0.1 mbar to mbar */
   syslog(LOG_DEBUG, "9. Barometer 3-Hour Pressure Change: %f\n", datafield);
-  //measval_db( "IndoorTemperatorBarometerSensor", "Barometer 3-Hour Pressure Change", dataset_date, (float)datafield, umeterdb);
+  measval_db( "tp_in_sensor", "pressure_3hr_chg", dataset_date, (float)datafield, umeterdb);
 
   /* 10./11. Barometer Correction Factor LSW/MSW */
   strncpy(umeterlstr, (const char *)(completedata+40), 9); 
@@ -651,7 +548,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG, "10./11. umeterlstr: %s\n", umeterlstr);
   statusfield = strtol(umeterlstr, NULL, base);
   syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
-  //measval_db( "IndoorTemperatorBarometerSensor", "Barometer Correction Factor", dataset_date, (float)statusfield, umeterdb);
+  measval_db( "tp_in_sensor", "pressure_corr", dataset_date, (float)statusfield, umeterdb);
 
   /* 12. Indoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+48), 5); 
@@ -660,8 +557,8 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = ((1.0/10.0)*datafield -32.0)*5.0/9.0; /* 0.1 degF to degC */
   syslog(LOG_DEBUG, "12. Indoor Temperature: %f\n", datafield);
-  //measval_db( "IndoorTemperatorBarometerSensor", "Indoor Temperature", 
-  //	      dataset_date, (float)datafield, umeterdb);
+  measval_db( "tp_in_sensor", "indoor_temp", 
+    dataset_date, (float)datafield, umeterdb);
 
   /* 13. Outdoor humidity */
   strncpy(umeterstr, (const char *)(completedata+52), 5); 
@@ -671,16 +568,16 @@ complete_rd( unsigned char * completedata, int ndat) {
   /* Temperature Sensor installed */
   if ( err == 0 ) {
     syslog(LOG_INFO, "complete_rd: No Outdoor Humidity/Temperature Sensor found");
-    /* measval_db( "TemperatureSensor", "Current Outdoor Temperature", 
-		dataset_date, (float)temp_out, umeterdb); */
+    measval_db( "t_out_sensor", "outdoor_temp", 
+		dataset_date, (float)temp_out, umeterdb); 
   } else /* Outdoor Humidity Temperature sensor installed */ {
     out_th_present = 1;
     datafield = (float)strtol(umeterstr, NULL, base);
     datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
-    /* measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Temperature", 
+    measval_db( "th_out_sensor", "outdoor_temp", 
 		dataset_date, (float)temp_out, umeterdb);
-    measval_db( "OutdoorHumidityTemperatureSensor", "Current Outdoor Humidity", 
-		dataset_date, (float)datafield, umeterdb); */
+    measval_db( "th_out_sensor", "outdoor_hum", 
+		dataset_date, (float)datafield, umeterdb);
     syslog(LOG_DEBUG, "13. Outdoor Humidity: %f\n", datafield); 
   }
 
@@ -696,7 +593,7 @@ complete_rd( unsigned char * completedata, int ndat) {
     datafield = strtol(umeterstr, NULL, base);
     datafield = (1.0/10.0)*datafield; /* 0.1% to %rel.hum. */
     syslog(LOG_DEBUG, "14. Indoor Humidity: %f\n", datafield);
-    /* measval_db( "IndoorHumiditySensor", "Indoor Humidity", dataset_date, (float)datafield, umeterdb); */
+    measval_db( "h_in_sensor", "indoor_hum", dataset_date, (float)datafield, umeterdb); 
   }
 
   /* 15. Dew Point */
@@ -1408,7 +1305,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
   syslog(LOG_DEBUG, "108. Longterm Rain Total: %f\n", datafield);
-  //measval_db( "RainGauge", "Rain Longterm Total", dataset_date, (float)datafield, umeterdb);
+  measval_db( "raingauge", "rain_total", dataset_date, (float)datafield, umeterdb);
 
   /* 109. Leap Year */
   strncpy(umeterstr, (const char *)(completedata+436), 5); 
@@ -1460,9 +1357,6 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG, "115. umeterstr: %s\n", umeterstr);
   datafield = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "115. 1 Minute Windspeed Average: %f\n", datafield);
-
-  free(ustrg[2]);
-  free(ustrg);
 
   sqlite3_close( umeterdb);
 
