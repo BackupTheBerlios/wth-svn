@@ -16,7 +16,7 @@ use DBI;
 
 my $version = "RRD processing tool - Version 0.0.2\n";
 
-my ( $create, $info, $fetch, $graph, $update, $help);
+my ( $create, $info, $fetch, $graph, $update, $verbose, $help);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
@@ -32,6 +32,7 @@ usage {
     print "\tinfo:\tprint information of rrd data file\n";
     print "\tcreate:\tcreate rrd file\n";
     print "\tupdate:\tenter data into  rrd file\n";
+    print "\tverbose:\tshow more information\n";
     print "\thelp:\tprint this help\n";
     exit 1;
 }
@@ -248,12 +249,13 @@ if ( $#ARGV == -1 ) {
   usage();
 }
 
-GetOptions( "create" => \$create,
-            "info"   => \$info,
-            "fetch"  => \$fetch,
-            "graph"  => \$graph,
-            "update" => \$update,
-            "help"   => \$help,
+GetOptions( "create"  => \$create,
+            "info"    => \$info,
+            "fetch"   => \$fetch,
+            "graph"   => \$graph,
+            "update"  => \$update,
+            "verbose" => \$verbose,
+            "help"    => \$help,
           );
 
 #
@@ -313,9 +315,7 @@ if ( $info) {
     print "Configured sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
     foreach $sensor ( @Sensors) {
 
-        print "sensor: $sensor\n";
         my $rrd = $extraopts{$sensor}{rrdfile};
-        print "rrd   : $rrd\n";
 
         if ( (-e $rrd) && (-r $rrd) ) {
           my $hash = RRDs::info "$rrd";
@@ -337,7 +337,7 @@ if ( $info) {
           my $relativ;
 
           foreach my $key (keys %$hash){
-            print "key: $key\n";
+            print "key: $key\n" if ($DEBUG);
             $filename = $$hash{$key} 
                 if ( $key =~ /^filename/);
             $rrd_version = $$hash{$key} 
@@ -370,29 +370,64 @@ if ( $info) {
           printf("\tlast update:\t%d ( %d hrs ago)\n", $last_update, $relativ);
           print "\ttodays time:\t$todays_time\n";
           foreach $dsname (keys %dsh) {
-            print "\tDS[ $dsname]:\n";
+            print "\tDataSource[ $dsname]:\n";
             foreach $dsparam (keys %{ $dsh{ $dsname}}) {
                 print "\t\t$dsparam: $dsh{ $dsname}{ $dsparam}\n";
             }
           }
 
           my $aref;
+          my $cfkt;
+          my $pdp;
+          my $rows;
           for my $i ( 0 .. $#rra ) {
-            print "\tRRA[ $i]:\n";
+            # RRA information
+            print "\tRoundRobin Archive[ $i]:\n";
             foreach  my $key ( sort keys %{ $rra[ $i]} ) {
-                print "\t\t$key : $rra[ $i]->{$key}\n";
+                print "\t\t$key : $rra[ $i]->{$key}\n"
+                  if ($verbose);
+                if ( $key =~/cf/ ) {
+                  $cfkt = $rra[$i]->{$key};
+                }
+                if ( $key =~/pdp_per_row/ ) {
+                  $pdp = $rra[$i]->{$key};
+                }
+                if ( $key =~/rows/ ) {
+                  $rows = $rra[$i]->{$key};
+                }
             }
-            $aref = $cdpa[$i];
-            for my $j ( 0 .. $#{$aref} ) {
+
+            print "\t\tConsolidation function\n";
+            print "\t\t\t$cfkt\n";
+            print "\t\tConsolidation time\n";
+            print "\t\t\t$step\n";
+            print "\t\tArchive contains\n";
+            print "\t\t\t$pdp\tPrimary data points (number of averaged values)\n";
+            print "\t\t\t$rows\tNumber data points (number of stored values)\n";
+            print "\t\tStored averages of:\n";
+            my $storeavg = $pdp*$step;
+            print "\t\t\t$pdp*$step = $storeavg seconds\n"; 
+            print "\t\tStored timeperiod:\n";
+            my $timep = $pdp*$step*$rows;
+            print "\t\t\t$pdp*$step*$rows = $timep seconds\n"; 
+            my $timeh = int($timep/86400);
+            my $timem = int(($timep - $timeh*86400)/60);
+            my $times = $timep - $timeh*86400 - $timem*60;
+            print "\t\t\t$timeh days $timem min $times sec\n";
+
+            if ($verbose) { 
+              $aref = $cdpa[$i];
+              for my $j ( 0 .. $#{$aref} ) {
                 print "\t\tCDP[ $j]:\n";
                 foreach  my $ckey ( keys %{ $cdpa[ $i][ $j]} ) {
-                    if ( defined $cdpa[ $i]->[ $j]{$ckey} ) {
-                        print "\t\t\t$ckey : $cdpa[ $i]->[ $j]{$ckey}\n";
-                    }
-                    else {
-                        print "\t\t\t$ckey : NaN\n";
-                    }
+                  if ( defined $cdpa[ $i]->[ $j]{$ckey} ) {
+                     print "\t\t\t$ckey : $cdpa[ $i]->[ $j]{$ckey}\n";
+                  }
+                  else {
+                    print "\t\t\t$ckey : NaN\n";
+                  }
                 }
+              }
             }
           }
           #$rraid = 0;
@@ -413,7 +448,7 @@ if ( $info) {
           #print Dumper(@rra); 
           #print Dumper(@cdpa); 
     } else {
-      print "Error: rrd file not fount: $rrd\n";
+      print "Error: rrd file not found: $rrd\n";
     }
   }
 }
