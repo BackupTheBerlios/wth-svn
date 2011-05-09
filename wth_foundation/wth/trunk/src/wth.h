@@ -399,7 +399,7 @@ void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);
 int packet_rd( unsigned char * packetdata, int ndat);
 int complete_rd( unsigned char * completedata, int ndat);
-int umeter_rd( int rfd);
+int umeter_rd();
 int initumeter (int *pfd, struct termios *newtio,struct termios *oldtio);
 int closeumeter( int fd, struct termios *oldtio);
 

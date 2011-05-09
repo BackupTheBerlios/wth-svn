@@ -35,21 +35,22 @@
 */
 void *
 umeter_hd( void *arg) {
-  int pfd, err;
-  struct termios tp, op;
-
+  int err;
+  //struct termios tp, op;
   syslog( LOG_DEBUG, "umeter_hd: start of execution");
 
   /* initialize serial port */
-  if ( initumeter(&pfd, &tp, &op) == -1 )
+/*  if ( initumeter(&pfd, &tp, &op) == -1 )
     return( ( void *) &failure);
 
   umeterstation.status.is_present = 1;
-
+*/
   /* read ULTIMETER weatherstation */
-  err = umeter_rd( pfd);
+  err = umeter_rd();
 
+/*
   closeumeter(pfd, &op);
+*/
 
   return( ( void *) &success);
 }
@@ -1371,46 +1372,93 @@ complete_rd( unsigned char * completedata, int ndat) {
 
 */
 int 
-umeter_rd( int rfd) {
+umeter_rd( ) {
+  int pfd;
+  struct termios tio;
+//  struct termios tp, op;
+
   int err = -1;
   int ndat;
-  static unsigned char data[SBUFF+1];
+  unsigned char data[SBUFF+1];
 
   const char dataloghd[3]  = "!!";
   const char packethd[6]   = "$ULTW";
   const char complethd[5] = "&CR&";
   int dataloglen  = 51; /* NL is ignored */
-                               /*  thus record size is 48 hex bytes + 2 header bytes + carriage return */
+  /*  thus record size is 48 hex bytes + 2 header bytes + carriage return */
   int packetlen   = 58; /* NL is ignored */
-                               /* thus record size is 52 hex bytes + 5 header bytes + carriage */
+  /* thus record size is 52 hex bytes + 5 header bytes + carriage */
   int completlen  = 457;  /* NL is ignored */
-                               /* thus record size is 452 hex bytes + 4 header bytes + carriage */
+  /* thus record size is 452 hex bytes + 4 header bytes + carriage */
 
   printf("umeter_rd: start of execution\n");
+  memset(&tio,0,sizeof(tio));
+  tio.c_iflag=IGNPAR|ICRNL;
+  tio.c_oflag=0;
+  tio.c_cflag=CS8|CREAD|CLOCAL;
+  tio.c_lflag=ICANON;
+
+  tio.c_cc[VINTR]    = 0;     /* Ctrl-c */ 
+  tio.c_cc[VQUIT]    = 0;     /* Ctrl-\ */
+  tio.c_cc[VERASE]   = 0;     /* del */
+  tio.c_cc[VKILL]    = 0;     /* @ */
+  //tio.c_cc[VEOF]     = 4;     /* Ctrl-d */
+  tio.c_cc[VTIME]    = 0;     /* inter-character timer unused */
+  tio.c_cc[VMIN]     = 1;     /* blocking read until 1 character arrives */
+  tio.c_cc[VSTART]   = 0;     /* Ctrl-q */ 
+  tio.c_cc[VSTOP]    = 0;     /* Ctrl-s */
+  tio.c_cc[VSUSP]    = 0;     /* Ctrl-z */
+  tio.c_cc[VEOL]     = 0;     /* '\0' */
+  tio.c_cc[VREPRINT] = 0;     /* Ctrl-r */
+  tio.c_cc[VDISCARD] = 0;     /* Ctrl-u */
+  tio.c_cc[VWERASE]  = 0;     /* Ctrl-w */
+  tio.c_cc[VLNEXT]   = 0;     /* Ctrl-v */
+  tio.c_cc[VEOL2]    = 0;     /* '\0' */
+
+  pfd = open(umeterstation.config.device, O_RDWR | O_NOCTTY);
+  cfsetospeed(&tio,B2400);
+  cfsetispeed(&tio,B2400);
+  tcflush(pfd, TCIFLUSH);
+  tcsetattr(pfd,TCSANOW,&tio);
 
   for (;;) {
-    ndat = read(rfd,data,SBUFF); 
-    data[ndat-1]=0;
+    tcflush(pfd, TCIFLUSH);
+    syslog(LOG_DEBUG, "chkpt #1 : before read");
+    memset(&data,0,sizeof(data));
+    if (( ndat = read(pfd,&data,SBUFF)) > 0) { 
+      data[ndat-1]=0;
+      syslog(LOG_DEBUG, "chkpt #1a : read done");
 
-    /* check data logger mode */
-    if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
-          && ( ndat == dataloglen) ) {
-      syslog(LOG_DEBUG, "umeter_rd: datalogger mode\n");
-      datalogger_rd( data, ndat);
-      /* check packet mode */
-    } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
-          && ( ndat ==packetlen )) {
-      syslog(LOG_DEBUG, "umeter_rd: packet mode\n");
-      packet_rd( data, ndat);
-      /* check complete record mode */
-    } else if ( ( strncmp( (const char *)data, (const char *)complethd, 4) == 0) 
-          && ( ndat ==completlen )) {
-      syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
-      complete_rd( data, ndat);
+      /* check data logger mode */
+      if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
+            && ( ndat == dataloglen) ) {
+        syslog(LOG_DEBUG, "umeter_rd: datalogger mode\n");
+        datalogger_rd( data, ndat);
+        /* check packet mode */
+      } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
+            && ( ndat ==packetlen )) {
+        syslog(LOG_DEBUG, "umeter_rd: packet mode\n");
+        packet_rd( data, ndat);
+        /* check complete record mode */
+      } else if ( ( strncmp( (const char *)data, (const char *)complethd, 4) == 0) 
+            && ( ndat ==completlen )) {
+        syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
+        complete_rd( data, ndat);
+        syslog(LOG_DEBUG, "chkpt #3: complete_rd done");
+      } else {
+        if ( ndat == 1 ) {
+          syslog(LOG_DEBUG, "data (garbage): '%x' : %d\n", data, ndat);
+        } else {
+          syslog(LOG_DEBUG, "data (garbage): '%s' : %d\n", data, ndat);
+        }
+      }
     } else {
-      syslog(LOG_DEBUG, "data (garbage): '%s' : %d\n", data, ndat);
+      syslog(LOG_DEBUG, "chkpt #1c : read done");
+      syslog(LOG_DEBUG,"umeter_rd: read ndat < 0");
+      sleep(1);
     }
   }
+  close(pfd);
 
   return(err); 
 }
