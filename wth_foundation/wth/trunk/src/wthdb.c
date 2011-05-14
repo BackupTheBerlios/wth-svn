@@ -236,7 +236,8 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
 
 
 /*
-  sensdevpar - retrieve sensor number , devicetyp and parameter name
+  sensdevpar - retrieve sensor number , devicetyp and parameter name of
+    1-wire device
 */
 int
 sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
@@ -246,11 +247,11 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
   sqlite3_stmt *qcomp;
 
   snprintf(query, SBUFF, 
-    "SELECT sdp.sensor_meas_no, sn.sensor_name, pn.parameter_name, dt.devicetyp, dt.familycode, dt.serialnum "
-    "FROM sensordevparameters AS sdp, sensorname AS sn, parametername AS pn, devicetyp AS dt "
-    "WHERE sdp.parameter_no = pn.parameter_no "
-    "AND sdp.sensor_no = sn.sensor_no "
-    "AND sdp.device_no = dt.device_no "
+    "SELECT sp.sensor_meas_no, sn.sensor_name, pn.parameter_name, dt.devicetyp, dt.familycode, dt.serialnum "
+    "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn, devicetyp AS dt "
+    "WHERE sp.parameter_no = pn.parameter_no "
+    "AND sp.sensor_no = sn.sensor_no "
+    "AND sp.device_no = dt.device_no "
     "AND dt.serialnum = '%s' " 
     "AND pn.parameter_name = '%s' ", 
     serialnum, parname);
@@ -259,7 +260,7 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-	    "Error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
+	    "sensdevpar: error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
     return(1);
   }
@@ -278,12 +279,12 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	    "sensdevpar: error: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
     return(1);
   }
   if ( rowcnt == 0) {
-    //syslog( LOG_ALERT, "Error: no configuration data in database");
+    //syslog( LOG_ALERT, "sensdevpar: error: no configuration data in database");
     return(1);
   }
   return(0);

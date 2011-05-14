@@ -184,11 +184,6 @@ onewire_hd( void *arg) {
   struct timezone tz;
   struct timeval  tv;
   struct mset *mlist_p[MAXSENSMEAS];
-  /*
-  time_t pstatime;
-  struct tm *pstatm;
-  struct rusage pstat;
-  */
 
   syslog( LOG_DEBUG, "onewire_hd: start of execution");
 
@@ -204,16 +199,16 @@ onewire_hd( void *arg) {
   onewirestation.status.is_present = 1;
   rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
   syslog(LOG_DEBUG,
-    "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n",
+    "onewire_hd: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n",
     onewirestation.config.dbfile,
     rslt, sqlite3_errmsg(onewiredb));
   if ( rslt) {
-    syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n",
+    syslog( LOG_ALERT, "onewire_hd: failed to open database %s. error: %s\n",
     onewirestation.config.dbfile, sqlite3_errmsg(onewiredb));
     free( errmsg);
     return( ( void *) &failure);
   } else {
-    syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
+    syslog(LOG_DEBUG, "onewire_hd: sqlite3_open: OK\n");
   }
     
   syslog(LOG_DEBUG, "onewire_hd: mcycle: %d", onewirestation.config.mcycle);
@@ -235,7 +230,7 @@ onewire_hd( void *arg) {
         /* print the Serial Number of the device just found */
         owSerialNum( portnum,serialnum,TRUE);
         numsens++;
-        syslog( LOG_DEBUG, "1-wire device: serialnum: %s: familycode: %s", 
+        syslog( LOG_DEBUG, "onewire_hd: 1-wire device: serialnum: %s: familycode: %s", 
           echo_serialnum(serialnum), echo_familycode( serialnum));
 
         /* DS2438 */
@@ -298,14 +293,14 @@ onewire_hd( void *arg) {
               humid2438 = ( ( vad/vdd) - 0.16) * 161.29;
               humid2438 = humid2438 / ( 1.0546 - ( 0.00216 * temp2438));
 	      addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, humid2438);
-              syslog(LOG_DEBUG,"Humidity sensor discovered: %f", humid2438);
+              syslog(LOG_DEBUG,"onewire_hd: humidity sensor discovered: %f", humid2438);
             } else {
-              syslog(LOG_ALERT,"Humidity : negative value of VAD or VDD: skipping!");
+              syslog(LOG_ALERT,"onewire_hd: humidity : negative value of VAD or VDD: skipping!");
             }
           }
 
           /* pressure - derived quantity calculated from vad and vdd */
-          if ( ( rslt = sensdevpar( "Pressure", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
+          else if ( ( rslt = sensdevpar( "Pressure", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG,
               "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
@@ -314,14 +309,18 @@ onewire_hd( void *arg) {
             if ( ( cvad > 0) || ( cvdd > 0)) {
               press2438 = 110.76 * ( vad/vdd) + 850.34;
 	      addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, press2438);
-              syslog(LOG_DEBUG,"Pressure sensor discovered: %f", press2438);
+              syslog(LOG_DEBUG,"onewire_hd: pressure sensor discovered: pressure[hPa] : %f", press2438);
             } else {
-              syslog(LOG_ALERT,"Pressure: negative value of VAD or VDD: skipping!");
+              syslog(LOG_ALERT,"onewire_hd: pressure: negative value of VAD or VDD: skipping!");
             }
           }
 
+          else {
+            syslog(LOG_ALERT,"onewire_hd: Error: sensor not configured for devicetyp DS2438. serialnum: %s", echo_serialnum(serialnum));
+          }
+
           syslog(LOG_DEBUG, 
-            "%f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f Temperature: %f\n", 
+            "onewire_hd: %f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f Temperature: %f\n", 
 	    mtime, echo_serialnum( serialnum), vsens, vad, vdd, temp2438);
           /*
           if ( verbose == 1 ) {
@@ -332,11 +331,11 @@ onewire_hd( void *arg) {
         } else if ( strncmp(echo_familycode(serialnum), "10",1) == 0 ) {
           if ( ( rslt = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
             temp10 = temp;
-            syslog(LOG_DEBUG, "%f DS1820/DS1920 serialnum: %s Temperature: %f",
+            syslog(LOG_DEBUG, "onewire_hd: %f DS1820/DS1920 serialnum: %s Temperature: %f",
 		   mtime, echo_serialnum(serialnum),temp10); 
           } else {
             syslog(LOG_ALERT, 
-	      "%f DS1820/DS1920 serialnum: %s Temperature conversion error", 
+	      "onewire_hd: %f DS1820/DS1920 serialnum: %s Temperature conversion error", 
 	      mtime, echo_serialnum( serialnum)); 
           }
 
@@ -355,11 +354,11 @@ onewire_hd( void *arg) {
         "onewire_hd: number of 1-wire devices detected: %d", numsens);
       if ( currsens != numsens) {
         syslog(LOG_ALERT, 
-          "Number of 1-Wire devices changed from %d to %d", 
+          "onewire_hd: number of 1-Wire devices changed from %d to %d", 
           currsens, numsens);  
       }
       currsens = numsens;
-      syslog(LOG_DEBUG,"1-wire loop: mcycle: %d %f %f %f %f %f %f %f", 
+      syslog(LOG_DEBUG,"onewire_hd: onewire loop: mcycle: %d %f %f %f %f %f %f %f", 
         i, mtime, vsens, vad, vdd, temp2438, humid2438, temp10);
     }
     syslog( LOG_DEBUG, "onewire_hd: end of measurement loop");
@@ -376,6 +375,6 @@ onewire_hd( void *arg) {
 
   /* release the 1-Wire Net */
   owRelease( portnum);
-  syslog( LOG_INFO, "Closing port: %s\n", port);
+  syslog( LOG_INFO, "onewire_hd: closing port: %s\n", port);
   return( ( void *) &success);
 }

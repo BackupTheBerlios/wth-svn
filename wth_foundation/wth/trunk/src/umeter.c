@@ -36,21 +36,10 @@
 void *
 umeter_hd( void *arg) {
   int err;
-  //struct termios tp, op;
   syslog( LOG_DEBUG, "umeter_hd: start of execution");
 
-  /* initialize serial port */
-/*  if ( initumeter(&pfd, &tp, &op) == -1 )
-    return( ( void *) &failure);
-
-  umeterstation.status.is_present = 1;
-*/
   /* read ULTIMETER weatherstation */
   err = umeter_rd();
-
-/*
-  closeumeter(pfd, &op);
-*/
 
   return( ( void *) &success);
 }
@@ -81,9 +70,6 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   int day_of_year;
   int min_of_day;
 
-  time_t umclock;
-  int minute, hour, year;
-  struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
   time_t dataset_date;
@@ -204,23 +190,15 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   min_of_day = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "min_of_day: %d\n", min_of_day);
 
-  memset(&tm, 0, sizeof(struct tm ));
-  time(&umclock);
-  ptm = gmtime(&umclock);
-  year = 1900 + ptm->tm_year;
-  minute  = min_of_day % 60;
-  hour = min_of_day / 60 - 1;
-
-  snprintf( buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year+1, hour, minute);
-  strptime(buf,"%Y %j %H:%M:%S", &tm);
-  strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
-  syslog(LOG_DEBUG, "packet_rd: %s", buf);
-
-  umclock = mktime( &tm);
-  tdiff = ( int)(umclock - dataset_date);
-  syslog(LOG_DEBUG,"time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
-  if ( abs(tdiff) > 3600 )
-    syslog(LOG_ALERT, "time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+  /* Ultimeter clock deviation from PC clock */
+  ptm = localtime(&dataset_date);
+  strftime( buf, sizeof(buf), "%j", ptm);
+  syslog(LOG_DEBUG,"complete_rd: dataset_date day_of_year :  %s", buf);
+  tdiff = day_of_year - atoi(buf);
+  if ( tdiff != 0 )
+    syslog(LOG_ALERT, 
+      "complete_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      tdiff);
 
   /* Today's rain total */
   strncpy(umeterstr, (const char *)(datalogdata+42), 5); 
@@ -274,9 +252,6 @@ packet_rd( unsigned char * packetdata, int ndat) {
   int day_of_year;
   int min_of_day;
 
-  time_t umclock;
-  int minute, hour, year;
-  struct tm tm;
   struct tm *ptm;
   char buf[TBUFF+1];
   time_t dataset_date;
@@ -383,23 +358,14 @@ packet_rd( unsigned char * packetdata, int ndat) {
   syslog(LOG_DEBUG, "packet_rd: min_of_day: %d\n", min_of_day);
 
   /* Ultimeter clock deviation from PC clock */
-  memset(&tm, 0, sizeof(struct tm ));
-  time(&umclock);
-  ptm = gmtime(&umclock);
-  year = 1900 + ptm->tm_year;
-  minute  = min_of_day % 60;
-  hour = min_of_day / 60 -1 ;
-
-  snprintf( buf, sizeof(buf), "%d %d %02d:%02d:00", year, day_of_year+1, hour, minute);
-  strptime(buf,"%Y %j %H:%M:%S", &tm);
-  strftime(buf, sizeof(buf), "%d %b %Y %H:%M", &tm);
-  syslog(LOG_DEBUG, "packet_rd: %s", buf);
-
-  umclock = mktime( &tm);
-  tdiff = ( int)(umclock - dataset_date);
-  syslog(LOG_DEBUG,"packet_rd: time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
-  if ( abs(tdiff) > 3600 )
-    syslog(LOG_ALERT, "packet_rd: time difference Ultimeter clock  - PC clock: %d [s]", tdiff);
+  ptm = localtime(&dataset_date);
+  strftime( buf, sizeof(buf), "%j", ptm);
+  syslog(LOG_DEBUG,"complete_rd: dataset_date day_of_year :  %s", buf);
+  tdiff = day_of_year - atoi(buf);
+  if ( tdiff != 0 )
+    syslog(LOG_ALERT, 
+      "complete_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      tdiff);
 
   /* today's rain total */
   strncpy(umeterstr, (const char *)(packetdata+49), 5); 
@@ -438,6 +404,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   char umeterstr[5];
   char umeterlstr[9];
   int out_th_present = 0;
+  int baro_ok = 0;
 
   /* parameters in complete record mode */
   float datafield;
@@ -447,6 +414,10 @@ complete_rd( unsigned char * completedata, int ndat) {
 
   int day_of_year;
   int min_of_day;
+  struct tm *ptm;
+  char buf[TBUFF+1];
+  int tdiff;
+
 
   syslog(LOG_DEBUG, "complete_rd: begin of execution");
   time(&dataset_date);
@@ -529,27 +500,46 @@ complete_rd( unsigned char * completedata, int ndat) {
   strncpy(umeterstr, (const char *)(completedata+32), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "8. umeterstr: %s\n", umeterstr);
-  datafield = strtol(umeterstr, NULL, base);
-  datafield = datafield/10.0; /* 0.1mbar to mbar */
-  syslog(LOG_DEBUG, "8. Barometer: %f\n", datafield);
-  measval_db( "tp_in_sensor", "pressure", dataset_date, (float)datafield, umeterdb);
+  err = strncmp( umeterstr, "----", 4);
+  /* Barometer Sensor configured */
+  if ( err == 0 ) {
+    syslog(LOG_INFO, "complete_rd: Barometer not configured: no Barometer data available.");
+  } else /* Barometer configured */ {
+    baro_ok = 1;
+    datafield = strtol(umeterstr, NULL, base);
+    datafield = datafield/10.0; /* 0.1mbar to mbar */
+    syslog(LOG_DEBUG, "8. Barometer: %f\n", datafield);
+    measval_db( "tp_in_sensor", "pressure", 
+      dataset_date, (float)datafield, umeterdb);
+  }
 
   /* 9. Barometer 3-hour Pressure Change */
   strncpy(umeterstr, (const char *)(completedata+36), 5); 
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "9. umeterstr: %s\n", umeterstr);
-  datafield = strtol(umeterstr, NULL, base);
-  datafield = datafield/10.0; /* 0.1 mbar to mbar */
-  syslog(LOG_DEBUG, "9. Barometer 3-Hour Pressure Change: %f\n", datafield);
-  measval_db( "tp_in_sensor", "pressure_3hr_chg", dataset_date, (float)datafield, umeterdb);
+  if ( baro_ok == 1) {
+    datafield = strtol(umeterstr, NULL, base);
+    datafield = datafield/10.0; /* 0.1 mbar to mbar */
+    syslog(LOG_DEBUG, "9. Barometer 3-Hour Pressure Change: %f\n", datafield);
+    measval_db( "tp_in_sensor", "pressure_3hr_chg", 
+      dataset_date, (float)datafield, umeterdb);
+  } else {
+    syslog(LOG_INFO, "complete_rd: Barometer not configured: no Barometer 3-hour Pressure Change data available.");
+  }
 
   /* 10./11. Barometer Correction Factor LSW/MSW */
   strncpy(umeterlstr, (const char *)(completedata+40), 9); 
   umeterlstr[8] = 0;
   syslog(LOG_DEBUG, "10./11. umeterlstr: %s\n", umeterlstr);
-  statusfield = strtol(umeterlstr, NULL, base);
-  syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
-  measval_db( "tp_in_sensor", "pressure_corr", dataset_date, (float)statusfield, umeterdb);
+  if ( baro_ok == 1) {
+    statusfield = strtol(umeterlstr, NULL, base);
+    syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
+    measval_db( "tp_in_sensor", "pressure_corr", 
+      dataset_date, (float)statusfield, umeterdb);
+  } else {
+    syslog(LOG_INFO, "complete_rd: Barometer not configured: no Barometer Correction Factor data available.");
+  }
+
 
   /* 12. Indoor Temperature */
   strncpy(umeterstr, (const char *)(completedata+48), 5); 
@@ -626,6 +616,16 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG, "17. umeterstr: %s\n", umeterstr);
   min_of_day = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "17. min_of_day: %d\n", min_of_day);
+
+  /* Ultimeter clock deviation from PC clock */
+  ptm = localtime(&dataset_date);
+  strftime( buf, sizeof(buf), "%j", ptm);
+  syslog(LOG_DEBUG,"complete_rd: dataset_date day_of_year :  %s", buf);
+  tdiff = day_of_year - atoi(buf);
+  if ( tdiff != 0 )
+    syslog(LOG_ALERT, 
+      "complete_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      tdiff);
 
   /* 18. Today's Low Chill Value */
   strncpy(umeterstr, (const char *)(completedata+72), 5); 
@@ -1375,7 +1375,6 @@ int
 umeter_rd( ) {
   int pfd;
   struct termios tio;
-//  struct termios tp, op;
 
   int err = -1;
   int ndat;
@@ -1391,7 +1390,6 @@ umeter_rd( ) {
   int completlen  = 457;  /* NL is ignored */
   /* thus record size is 452 hex bytes + 4 header bytes + carriage */
 
-  printf("umeter_rd: start of execution\n");
   memset(&tio,0,sizeof(tio));
   tio.c_iflag=IGNPAR|ICRNL;
   tio.c_oflag=0;
@@ -1402,7 +1400,6 @@ umeter_rd( ) {
   tio.c_cc[VQUIT]    = 0;     /* Ctrl-\ */
   tio.c_cc[VERASE]   = 0;     /* del */
   tio.c_cc[VKILL]    = 0;     /* @ */
-  //tio.c_cc[VEOF]     = 4;     /* Ctrl-d */
   tio.c_cc[VTIME]    = 0;     /* inter-character timer unused */
   tio.c_cc[VMIN]     = 1;     /* blocking read until 1 character arrives */
   tio.c_cc[VSTART]   = 0;     /* Ctrl-q */ 
@@ -1421,13 +1418,13 @@ umeter_rd( ) {
   tcflush(pfd, TCIFLUSH);
   tcsetattr(pfd,TCSANOW,&tio);
 
+  umeterstation.status.is_present = 1;
+
   for (;;) {
     tcflush(pfd, TCIFLUSH);
-    syslog(LOG_DEBUG, "chkpt #1 : before read");
     memset(&data,0,sizeof(data));
     if (( ndat = read(pfd,&data,SBUFF)) > 0) { 
       data[ndat-1]=0;
-      syslog(LOG_DEBUG, "chkpt #1a : read done");
 
       /* check data logger mode */
       if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
@@ -1444,89 +1441,15 @@ umeter_rd( ) {
             && ( ndat ==completlen )) {
         syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
         complete_rd( data, ndat);
-        syslog(LOG_DEBUG, "chkpt #3: complete_rd done");
       } else {
-        if ( ndat == 1 ) {
-          syslog(LOG_DEBUG, "data (garbage): '%x' : %d\n", data, ndat);
-        } else {
-          syslog(LOG_DEBUG, "data (garbage): '%s' : %d\n", data, ndat);
-        }
+        syslog(LOG_DEBUG, "umeter_rd: data (garbage): '%s' : %d\n", data, ndat);
       }
     } else {
-      syslog(LOG_DEBUG, "chkpt #1c : read done");
-      syslog(LOG_DEBUG,"umeter_rd: read ndat < 0");
+      syslog(LOG_WARNING,"umeter_rd: read ndat < 0");
       sleep(1);
     }
   }
   close(pfd);
-
   return(err); 
-}
-
-/*  initumeter
-
-  opens serial port for communication
-  
-  serial port settings:
-  ULTIMETER 2100 (and similar stations)
-     2400, 8 data bits, no parity, 1 stop
-*/
-int 
-initumeter (int *pfd, struct termios *newtio,
-	    struct termios *oldtio) 
-{
-
-  *pfd = open(umeterstation.config.device, O_RDWR| O_NOCTTY );
-  if ( pfd <0) {
-    werrno = errno;
-    syslog(LOG_INFO, "initumeter: error opening serial device : %s",
-	   strerror(werrno));
-    return(-1);
-  }
-
-  tcgetattr(*pfd,oldtio); /* save current serial port settings */
-  memset(newtio, 0, sizeof(*newtio)); 
-        
-  newtio->c_cflag =  CS8 | CLOCAL | CREAD;
-  //newtio->c_iflag = IGNPAR | IGNCR | ICRNL;
-  newtio->c_iflag = IGNPAR | IGNCR; 
-  newtio->c_oflag = 0;
-  newtio->c_lflag = ICANON;
-
-  cfsetospeed(newtio,B2400);            // 2400 baud
-  cfsetispeed(newtio,B2400);            // 2400 baud
-
-  tcsetattr(*pfd,TCSANOW,newtio);
-
-  return(0);
-}
-
-/*
-   closeumeter
-
-   restore the old port settings
-   lower DTR on serial line
-
-*/
-int closeumeter( int fd, struct termios *oldtio) {
-
-    /* restore old port settings */
-    /* takes approx 3 sec to reopen fd under FreeBSD
-       if tcsetattr is called to restore */
-    if ( tcsetattr(fd,TCSANOW,oldtio) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeumeter: error ioctl: %s",
-			 strerror(werrno));
-	  return(-1);	
-	}
-	
-    /* close serial port */
-    if ( close(fd) == -1 ) {
-	  werrno = errno;
-	  syslog(LOG_INFO, "closeumeter: error close: %s",
-			 strerror(werrno));
-	  return(-1);	
-    }
-    return(0);
 }
 
