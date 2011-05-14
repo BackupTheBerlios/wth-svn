@@ -16,7 +16,7 @@ use DBI;
 
 my $version = "RRD processing tool - Version 0.0.2\n";
 
-my ( $create, $info, $fetch, $graph, $update, $verbose, $help);
+my ( $create, $info, $fetch, $graph, $update, $verbose, $help, $config);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
@@ -33,6 +33,7 @@ usage {
     print "\tcreate:\tcreate rrd file\n";
     print "\tupdate:\tenter data into  rrd file\n";
     print "\tverbose:\tshow more information\n";
+    print "\tconfig=<filename>:\tuse <filename> as configuration file\n";
     print "\thelp:\tprint this help\n";
     exit 1;
 }
@@ -249,19 +250,29 @@ if ( $#ARGV == -1 ) {
   usage();
 }
 
-GetOptions( "create"  => \$create,
-            "info"    => \$info,
-            "fetch"   => \$fetch,
-            "graph"   => \$graph,
-            "update"  => \$update,
-            "verbose" => \$verbose,
-            "help"    => \$help,
+GetOptions( "create"   => \$create,
+            "info"     => \$info,
+            "fetch"    => \$fetch,
+            "graph"    => \$graph,
+            "update"   => \$update,
+            "verbose"  => \$verbose,
+            "config=s" => \$config,
+            "help"     => \$help,
           );
 
 #
 # read configuration file
 #
-$cfgfile = "rrdproc.conf";
+if ($config) {
+  $cfgfile = $config;
+} else {
+  $cfgfile = "rrdproc.conf";
+}
+if ( ! -r $cfgfile ) {
+  print "Error: configuration file $cfgfile is not readable: exit\n";
+  exit 1;
+}
+
 unless ($ret = do $cfgfile) {
     warn "Couldn't parse $cfgfile: $@"         if $@;
     warn "Couldn't do $cfgfile: $!"            unless defined $ret;
