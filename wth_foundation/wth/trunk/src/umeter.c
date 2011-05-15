@@ -534,7 +534,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   if ( baro_ok == 1) {
     statusfield = strtol(umeterlstr, NULL, base);
     syslog(LOG_DEBUG, "10./11. Barometer Correction factor: %d\n", statusfield);
-    measval_db( "tp_in_sensor", "pressure_corr", 
+    statval_db( "tp_in_sensor", "pressure_corr", 
       dataset_date, (float)statusfield, umeterdb);
   } else {
     syslog(LOG_INFO, "complete_rd: Barometer not configured: no Barometer Correction Factor data available.");

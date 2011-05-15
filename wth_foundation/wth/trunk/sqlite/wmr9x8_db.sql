@@ -81,17 +81,17 @@ CREATE TABLE parameternames
       gain FLOAT NOT NULL,
       offset FLOAT NOT NULL
     );
-INSERT INTO parameternames VALUES ( 1, 'wind_direction', 'degree', 1.000, 0.000);
-INSERT INTO parameternames VALUES ( 2, 'gust_windspeed', 'm s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ( 3, 'average_windspeed', 'm s-1', 1.000, 0.000);
-INSERT INTO parameternames VALUES ( 4, 'windchill', 'degC', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 5, 'current_rainrate', 'mm hr-1', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 1, 'wind_direction', '°', 1.000, 0.000);
+INSERT INTO parameternames VALUES ( 2, 'gust_windspeed', 'm/s', 1.000, 0.000);
+INSERT INTO parameternames VALUES ( 3, 'average_windspeed', 'm/s', 1.000, 0.000);
+INSERT INTO parameternames VALUES ( 4, 'windchill', '°C', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 5, 'current_rainrate', 'mm/h', 1.000, 0.000 );
 INSERT INTO parameternames VALUES ( 6, 'total_rainfall', 'mm', 1.000, 0.000 );
 INSERT INTO parameternames VALUES ( 7, 'yesterday_rainfall', 'mm', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 8, 'temperature', 'degC', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 9, 'humidity', '% rel.hum.', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 10, 'dew_temperature', 'degC', 1.000, 0.000 );
-INSERT INTO parameternames VALUES ( 11, 'pressure', 'mbar', 1.000, 0.000 ); 
+INSERT INTO parameternames VALUES ( 8, 'temperature', '°C', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 9, 'humidity', '%', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 10, 'dew_temperature', '°C', 1.000, 0.000 );
+INSERT INTO parameternames VALUES ( 11, 'pressure', 'hPa', 1.000, 0.000 ); 
 
  
 -- Table sensorparameters

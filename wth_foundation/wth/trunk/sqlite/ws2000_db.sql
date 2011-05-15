@@ -109,14 +109,14 @@
 --
 -- table parameternames will not change (WS2000 can't do more)
 --
-INSERT INTO parameternames VALUES ('1','Temperature','degC');
-INSERT INTO parameternames VALUES ('2','Relative Humidity','per cent');
-INSERT INTO parameternames VALUES ('3','Precipitation','mm m-2');
-INSERT INTO parameternames VALUES ('4','Windspeed','m s-1');
-INSERT INTO parameternames VALUES ('5','Winddrct Variance','deg');
-INSERT INTO parameternames VALUES ('6','Winddirection','deg');
+INSERT INTO parameternames VALUES ('1','Temperature','°C');
+INSERT INTO parameternames VALUES ('2','Relative Humidity','%');
+INSERT INTO parameternames VALUES ('3','Precipitation','mm/m²');
+INSERT INTO parameternames VALUES ('4','Windspeed','m/s');
+INSERT INTO parameternames VALUES ('5','Winddrct Variance','°');
+INSERT INTO parameternames VALUES ('6','Winddirection','°');
 INSERT INTO parameternames VALUES ('7','Pressure','hPa');
-INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm h-1');
+INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm/h');
 
   --
   -- table sensornames will not change (WS2000 can't do more)

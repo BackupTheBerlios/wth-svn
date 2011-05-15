@@ -71,14 +71,14 @@ CREATE TABLE parameternames
       gain FLOAT NOT NULL,
       offset FLOAT NOT NULL
     );
-INSERT INTO parameternames VALUES (1, 'Temperature', 'degC',  1.000, 0.000);
+INSERT INTO parameternames VALUES (1, 'Temperature', '°C',  1.000, 0.000);
 INSERT INTO parameternames VALUES (2, 'VAD', 'V', 1.000, 0.000);
 INSERT INTO parameternames VALUES (3, 'VDD', 'V', 1.000, 0.000);
 INSERT INTO parameternames VALUES (4, 'VSENS+', 'mV', 1.000, 0.000);
 INSERT INTO parameternames VALUES (5, 'VSENS-', 'mV', 1.000, 0.000);
-INSERT INTO parameternames VALUES (6, 'Humidity', '% rel hum', 1.000, 0.000);
+INSERT INTO parameternames VALUES (6, 'Humidity', '%', 1.000, 0.000);
 INSERT INTO parameternames VALUES (7, 'Pressure', 'hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES (8, 'Radiation power', 'W m-2', 1.000, 0.000);
+INSERT INTO parameternames VALUES (8, 'Radiation power', 'W/m²', 1.000, 0.000);
 -- 
 -- Table sensordeviceparameters
 -- -----------------------
