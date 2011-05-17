@@ -1,0 +1,102 @@
+Using wth with rrdtool
+
+Timeseries weather data are stored in round robin archives with 
+the use of rrdtool. Weather data which is stored in database is
+periodically copied to the rrdtool database.
+
+The rrdproc perl script provides functionality to 
+- create the round robin archives 
+- update the round robin archives
+- graph images of the rrdtool data
+
+Commandline options
+
+include
+--create this option is to create round robin archives as configured
+         in the configuration file rrdproc.conf
+
+--update to enter data to round robin archives. The archives must be 
+         created first with the --create option. The data are read
+         from the wth database. Location of the database is configured
+         in the rrdproc.conf file. The update data are entered from 
+         the first dataset available in the database which is older than 
+         the last value of the round robin archive. Thus, if no data
+         are in the round robin archive all data in the database are
+         entered into the round robin archive.
+
+--info   display some information of the round robin archives
+
+--config <configfile> use <configfile>which holds the configuration data
+         which are then read by rrdproc.
+
+--graph  create and display images from round robin archives
+
+ 
+Monitoring sensor status in round robin archive
+ 
+In order to monitor the reception errors of the wireless sensors 
+a Sensormonitor.rrd is created which contains a datasource for each 
+sensor and 5 RRA.
+
+rrdtool create Sensormonitor.rrd --step 300 \
+DS:Sensor1:GAUGE:600:0:1000 \
+DS:Sensor2:GAUGE:600:0:1000 \
+DS:Sensor3:GAUGE:600:0:1000 \
+DS:Sensor4:GAUGE:600:0:1000 \
+DS:Sensor5:GAUGE:600:0:1000 \
+DS:Sensor6:GAUGE:600:0:1000 \
+DS:Sensor7:GAUGE:600:0:1000 \
+DS:Sensor8:GAUGE:600:0:1000 \
+DS:Rainsensor:GAUGE:600:0:1000 \
+DS:Windsensor:GAUGE:600:0:1000 \
+DS:Indoorsensor:GAUGE:600:0:1000 \
+DS:Sensor9:GAUGE:600:0:1000 \
+DS:Sensor10:GAUGE:600:0:1000 \
+DS:Sensor11:GAUGE:600:0:1000 \
+DS:Sensor12:GAUGE:600:0:1000 \
+DS:Sensor13:GAUGE:600:0:1000 \
+DS:Sensor14:GAUGE:600:0:1000 \
+DS:Sensor15:GAUGE:600:0:1000 \
+RRA:AVERAGE::0.5:1:600 \
+RRA:AVERAGE:0.5:6:700 \
+RRA:AVERAGE:0.5:24:775 \
+RRA:AVERAGE:0.5:288:797 \
+RRA:LAST:0.5:1:1
+
+
+Plotting Sensor status
+rrdtool graph Sensormonitor.png --start -86400 \
+DEF:Sensor1=Sensormonitor.rrd:Sensor1:AVERAGE \
+DEF:Sensor2=Sensormonitor.rrd:Sensor2:AVERAGE \
+DEF:Sensor3=Sensormonitor.rrd:Sensor3:AVERAGE \
+DEF:Sensor4=Sensormonitor.rrd:Sensor4:AVERAGE \
+DEF:Sensor5=Sensormonitor.rrd:Sensor5:AVERAGE \
+DEF:Sensor6=Sensormonitor.rrd:Sensor6:AVERAGE \
+DEF:Sensor7=Sensormonitor.rrd:Sensor7:AVERAGE \
+DEF:Sensor8=Sensormonitor.rrd:Sensor8:AVERAGE \
+DEF:Rainsensor=Sensormonitor.rrd:Rainsensor:AVERAGE \
+DEF:Windsensor=Sensormonitor.rrd:Windsensor:AVERAGE \
+DEF:Indoorsensor=Sensormonitor.rrd:Indoorsensor:AVERAGE \
+DEF:Sensor9=Sensormonitor.rrd:Sensor9:AVERAGE \
+DEF:Sensor10=Sensormonitor.rrd:Sensor10:AVERAGE \
+DEF:Sensor11=Sensormonitor.rrd:Sensor11:AVERAGE \
+DEF:Sensor12=Sensormonitor.rrd:Sensor12:AVERAGE \
+DEF:Sensor13=Sensormonitor.rrd:Sensor13:AVERAGE \
+DEF:Sensor14=Sensormonitor.rrd:Sensor14:AVERAGE \
+DEF:Sensor15=Sensormonitor.rrd:Sensor15:AVERAGE \
+LINE2:Sensor1#ff0000:Sensor1 \
+LINE2:Sensor2#ffcc99:Sensor2 \
+LINE2:Sensor3#006600:Sensor3 \
+LINE2:Sensor4#ffff00:Sensor4 \
+LINE2:Sensor5#ffcc00:Sensor5 \
+LINE2:Sensor6#ffcccc:Sensor6 \
+LINE2:Sensor7#ccffff:Sensor7 \
+LINE2:Sensor8#cc9900:Sensor8 \
+LINE2:Rainsensor#0033ff:Rainsensor \
+LINE2:Windsensor#ffccff:Windsensor \
+LINE2:Indoorsensor#00cc99:Indoorsensor 
+
+
+rrdtool graph Sensormonitor.png --start -86400 \
+DEF:Windsensor=Sensormonitor.rrd:Windsensor:AVERAGE \
+LINE2:Windsensor#ffccff:Windsensor 
