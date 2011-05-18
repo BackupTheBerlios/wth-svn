@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 #
-# Processing RRD files using RRDs shared perl module
+# Processing wth round robin archives using RRDs shared perl module
 #
 #use strict;
 use RRDs;
@@ -14,9 +14,9 @@ use Data::Dumper;
 use Env qw(DEBUG);
 use DBI;
 
-my $version = "RRD processing tool - Version 0.0.2\n";
+my $version = "wthrrd - RRD processing tool - Version 0.0.2\n";
 
-my ( $create, $info, $fetch, $graph, $update, $verbose, $help, $config);
+my ( $create, $info, $fetch, $graph, $show, $update, $verbose, $help, $config);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
@@ -28,7 +28,8 @@ my $rheight = 200;
 sub
 usage {
     print "Usage: wthrrd --<option>, where <option> is one of:\n";
-    print "\tgraph:\tcreate and display some graphs\n";
+    print "\tgraph:\tcreate some graphs\n";
+    print "\tshow:\tdisplay the graphes created by [--create] option\n";
     print "\tinfo:\tprint information of rrd data file\n";
     print "\tcreate:\tcreate rrd file\n";
     print "\tupdate:\tenter data into  rrd file\n";
@@ -254,6 +255,7 @@ GetOptions( "create"   => \$create,
             "info"     => \$info,
             "fetch"    => \$fetch,
             "graph"    => \$graph,
+            "show"     => \$show,
             "update"   => \$update,
             "verbose"  => \$verbose,
             "config=s" => \$config,
@@ -603,6 +605,7 @@ if ( $graph) {
     }
 
     if ( $#sensorok != 0) {
+    if ( $show) {
 	print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
 	if ( $ENV{DISPLAY}) {
 	    print "Got DISPLAY: Displaying\n";
@@ -642,8 +645,9 @@ if ( $graph) {
 	} else {
 	    print "DISPLAY is not set. Cannot run in terminal!\n";
 	}
+        }
     } else {
-	print "No images created. Nothing to display\n";
+	print "No images created.\n";
     }
 }
 
