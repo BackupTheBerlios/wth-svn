@@ -4,7 +4,7 @@ Timeseries weather data are stored in round robin archives with
 the use of rrdtool. Weather data which is stored in database is
 periodically copied to the rrdtool database.
 
-The rrdproc perl script provides functionality to 
+The wthrrd perl script provides functionality to 
 - create the round robin archives 
 - update the round robin archives
 - graph images of the rrdtool data
@@ -13,12 +13,12 @@ Commandline options
 
 include
 --create this option is to create round robin archives as configured
-         in the configuration file rrdproc.conf
+         in the configuration file wthrrd.conf
 
 --update to enter data to round robin archives. The archives must be 
          created first with the --create option. The data are read
          from the wth database. Location of the database is configured
-         in the rrdproc.conf file. The update data are entered from 
+         in the wthrrd.conf file. The update data are entered from 
          the first dataset available in the database which is older than 
          the last value of the round robin archive. Thus, if no data
          are in the round robin archive all data in the database are
@@ -27,7 +27,7 @@ include
 --info   display some information of the round robin archives
 
 --config <configfile> use <configfile>which holds the configuration data
-         which are then read by rrdproc.
+         which are then read by wthrrd.
 
---graph  create and display images from round robin archives
+--graph  create and display images from wth round robin archives
 

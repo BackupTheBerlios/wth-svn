@@ -27,7 +27,7 @@ my $rheight = 200;
 #
 sub
 usage {
-    print "Usage: rrdproc --<option>, where <option> is one of:\n";
+    print "Usage: wthrrd --<option>, where <option> is one of:\n";
     print "\tgraph:\tcreate and display some graphs\n";
     print "\tinfo:\tprint information of rrd data file\n";
     print "\tcreate:\tcreate rrd file\n";
@@ -227,7 +227,7 @@ graphrrd {
 #
 
 # prevent multiple execution
-$lockfile = "/tmp/rrdproc..lck";
+$lockfile = "/tmp/wthrrd..lck";
 @lckf = ( $lockfile);
 touch(@lckf);
 
@@ -242,7 +242,7 @@ if ($stat and $pid) {
  print  "Warn: exiting because $pid exists\n";
  exit 1;
 }
-open (LH, ">/tmp/rrdproc..lck");
+open (LH, ">/tmp/wthrrd..lck");
 print LH "$$\n";
 close LH;
 
@@ -266,7 +266,7 @@ GetOptions( "create"   => \$create,
 if ($config) {
   $cfgfile = $config;
 } else {
-  $cfgfile = "rrdproc.conf";
+  $cfgfile = "wthrrd.conf";
 }
 if ( ! -r $cfgfile ) {
   print "Error: configuration file $cfgfile is not readable: exit\n";
@@ -297,7 +297,7 @@ NEXTSENSOR:  foreach $sensor ( @Sensors ) {
         my $numkeys = keys % { $createopts{$sensor}} ;
         if ( $numkeys == 0 ) {
           print "Create options missing for sensor: $sensor\n";
-          print "Please check rrdproc.conf!\n";
+          print "Please check wthrrd.conf!\n";
           next NEXTSENSOR;
         }
         foreach $copt ( keys %{ $createopts{$sensor}} ) {
@@ -306,7 +306,7 @@ NEXTSENSOR:  foreach $sensor ( @Sensors ) {
         }
         if ( !defined $createdefs{$sensor}) {
           print "Create definitions missing for sensor: $sensor\n";
-          print "Please check rrdproc.conf!\n";
+          print "Please check wthrrd.conf!\n";
           next NEXTSENSOR;
         } else {
           push ( @creatstr, @{ $createdefs{$sensor}}) 
