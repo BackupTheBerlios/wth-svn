@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use RRDs;
+
+my $startval = 946681500;
+my $timeval = $startval;
+my $random_number;
+my $cycles = 100000;
+
+for ( my $i = 0; $i < $cycles; $i++) {
+  $random_number = 15.0 + 5*rand();
+  $timeval = $timeval + 300;
+  print $timeval . ":" . $random_number . "\n";
+
+  RRDs::update ("thin_sensor.rrd", "--template", "temperature", "$timeval:$random_number");
+  my $ERR=RRDs::error;
+  die "ERROR while updating thin_sensor.rrd: $ERR\n" if $ERR;
+}

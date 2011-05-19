@@ -16,7 +16,7 @@ use DBI;
 
 my $version = "wthrrd - RRD processing tool - Version 0.0.2\n";
 
-my ( $create, $info, $fetch, $graph, $show, $update, $verbose, $help, $config);
+my ( $create, $info, $last, $graph, $show, $update, $verbose, $help, $config);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
@@ -28,19 +28,20 @@ my $rheight = 200;
 sub
 usage {
     print "Usage: wthrrd --<option>, where <option> is one of:\n";
-    print "\tgraph:\tcreate some graphs\n";
-    print "\tshow:\tdisplay the graphes created by [--create] option\n";
-    print "\tinfo:\tprint information of rrd data file\n";
-    print "\tcreate:\tcreate rrd file\n";
-    print "\tupdate:\tenter data into  rrd file\n";
-    print "\tverbose:\tshow more information\n";
+    print "\tgraph:\t\t\tcreate some graphs\n";
+    print "\tshow:\t\t\tdisplay the graphs created by [--create] option\n";
+    print "\tinfo:\t\t\tprint information of rrd data file\n";
+    print "\tlast:\t\t\tshow last data rrd data file\n";
+    print "\tcreate:\t\t\tcreate rrd file\n";
+    print "\tupdate:\t\t\tenter data into  rrd file\n";
+    print "\tverbose:\t\tshow more information\n";
     print "\tconfig=<filename>:\tuse <filename> as configuration file\n";
-    print "\thelp:\tprint this help\n";
+    print "\thelp:\t\t\tprint this help\n";
     exit 1;
 }
 
 #
-# option --fetch
+# option --last
 #
 sub
 getlast {
@@ -253,7 +254,7 @@ if ( $#ARGV == -1 ) {
 
 GetOptions( "create"   => \$create,
             "info"     => \$info,
-            "fetch"    => \$fetch,
+            "last"     => \$last,
             "graph"    => \$graph,
             "show"     => \$show,
             "update"   => \$update,
@@ -574,7 +575,7 @@ if ( $update) {
 #
 # Retrieving last rrd value
 #
-if ( $fetch) {
+if ( $last) {
     foreach $sensor ( @Sensors) {
         print "fetch (main)\t: Fetching rrd last data: $sensor\n" 
             if ( $DEBUG);
