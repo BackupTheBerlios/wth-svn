@@ -17,4 +17,6 @@ AND
   sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
 AND 
   parameternames.parameter_no = sensorparameters.parameter_no
+AND
+  sensornames.sensor_name = 'windsensor'
 ;

@@ -1,5 +1,6 @@
 SELECT DISTINCT 
-  sensornames.sensorname,parameternames.parameter_name,
+  sensornames.sensorname,sensordata.sensor_meas_no,
+  parameternames.parameter_name,
   sensorupdate.last_update, sensordata.meas_value,
   parameternames.parameter_unit 
 FROM  

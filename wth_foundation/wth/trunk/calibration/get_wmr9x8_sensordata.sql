@@ -1,6 +1,3 @@
---
--- get_umeter_sensordata.sql
---
 SELECT DISTINCT 
   sensornames.sensor_name,sensordata.sensor_meas_no,
   parameternames.parameter_name,
@@ -17,4 +14,6 @@ AND
   sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
 AND 
   parameternames.parameter_no = sensorparameters.parameter_no
+AND
+  sensornames.sensor_name = 'windsensor'
 ;

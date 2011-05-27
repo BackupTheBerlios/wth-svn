@@ -1,0 +1,133 @@
+#
+#
+# octave script to 
+#   read windspeed data of WS2000 weatherstation 
+#   read windspeed data of WMR928 weatherstation
+# 
+sqlite3;
+ws2000db = sqlite3_db("/proj/wetter/logs/ws2000_prod/ws2000_stand_May_27_2011.db");
+
+#
+# reading time and measurement value of ws2000 weatherstation 
+# in a two column matrix
+# windspeed ws2000 with sensor_meas_no = 18
+#
+ws2000_dat = cell2mat(sql(ws2000db,"select sd.dataset_date, sd.meas_value from sensordata sd where sd.sensor_meas_no = 18 and sd.dataset_date > 1306450000;"));
+
+# 
+# indexing 
+# row 1, 2 and 3 of column 1 and 2
+# 
+#ws2000_dat([1,2,3],[1,2])
+
+#
+# use of colon operator
+# row 1 to last , column 1 
+#ws2000_dat( 1:end , 1);
+
+#
+# create 1 row vector t_ws2000 containing all time values
+#
+t_ws2000 = ws2000_dat(1:end, 1)';
+disp("Length of row vector t_ws2000:"), disp(length(t_ws2000))
+format long;
+disp("First element of row vector t_ws2000: "), disp(t_ws2000(1))
+disp("Last element of row vector t_ws2000: "), disp(t_ws2000(end))
+#
+# create 1 row vector wspd_ws2000 containg all measurement values
+#
+wspd_ws2000 = ws2000_dat(1:end, 2)';
+disp("Length of row vector wspd_ws2000:"), disp(length(wspd_ws2000))
+
+#
+# interpolated time values starting from 1st value tp last value in
+# steps of 60
+#
+t_intp = [t_ws2000(1):60:t_ws2000(end)];
+disp("Length of row vector t_intp:"), disp(length(t_intp))
+
+#
+# calculate interpolated wspd_intp data 
+#
+wspd_intp = interp1(t_ws2000, wspd_ws2000, t_intp);
+disp("Length of row vector wspd_intp"), disp(length(wspd_intp))
+
+#
+# plotting original data wspd_ws2000 and interpolated data wspd_intp
+#
+plot(t_ws2000, wspd_ws2000, 'o');
+hold;
+plot(t_intp, wspd_intp, '-');
+print -dpng wspd_ws2000.png;
+
+#
+# connection to wmr9x8 database
+#
+wmr9x8db = sqlite3_db("/proj/wetter/logs/wmr9x8/wmr9x8_backup_20110527.db");
+#
+# reading time and measurement value of ws2000 weatherstation 
+# in a two column matrix
+# windspeed wmr9x8 with sensor_meas_no = 3
+#
+wmr9x8_dat = cell2mat(sql(wmr9x8db,"select sd.dataset_date, sd.meas_value from sensordata sd where sd.sensor_meas_no = 3 and sd.dataset_date > 1306000000;"));
+
+#
+# create 1 row vector t_wmr containing all time values
+#
+t_wmr = wmr9x8_dat(1:end, 1)';
+disp("Length of row vector t_wmr:"), disp(length(t_wmr))
+format long;
+disp("First element of row vector t_wmr: "), disp(t_wmr(1))
+disp("Last element of row vector t_wmr: "), disp(t_wmr(end))
+#
+# create 1 row vector wspd_ws2000 containg all measurement values
+#
+wspd_wmr = wmr9x8_dat(1:end, 2)'
+disp("Length of row vector wspd_wmr:"), disp(length(wspd_wmr))
+#
+# plotting original data wspd_wmr and interpolated data wspd_intp
+#
+plot(t_wmr, wspd_wmr, 'o');
+print -dpng wspd_wmr.png;
+
+exit;
+
+t_intp = [1227469000:60:1227811000];
+length(t_intp);
+
+t_pcwsr=pcwsr_dat(1,:);
+p_pcwsr=pcwsr_dat(2,:);
+p_pcwsri = interp1(t_pcwsr, p_pcwsr, t_intp);
+length(p_pcwsri);
+
+plot(t_pcwsr, p_pcwsr, 'o');
+hold;
+plot(t_intp, p_pcwsri, '-');
+print -dpng pcwsr_interpolated.png;
+
+t_onewr=onewr_dat(1,:);
+p_onewr=onewr_dat(2,:);
+p_owintp = interp1(t_onewr, p_onewr, t_intp);
+length(p_owintp);
+plot(t_onewr, p_onewr, 'o');
+hold;
+plot(t_intp, p_owintp, '*');
+print -dpng onewire_interpolated.png;
+
+#
+# least squares fit to polynom of degree 1
+#
+[ pcoeff, lsqs] = polyfit(p_owintp, p_pcwsri, 1);
+disp(lsqs.yf);
+disp(pcoeff);
+
+#
+# pressure (pcwsr) vs. Vad/Vdd (1-wire)
+#
+plot(p_owintp, p_pcwsri, 'b');
+hold;
+plot(p_owintp, lsqs.yf, 'r');
+title('Fitting V_ad/V_dd vs. pressure');
+ylabel('[mbar]');
+xlabel('V_ad/V_dd');
+print -dpng onewire_pcwsr_calib.png;

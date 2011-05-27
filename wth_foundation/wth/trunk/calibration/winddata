@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+use strict;
+use DBI;
+
+my $sql;
+my $res;
+my $ws2000db="/proj/wetter/logs/ws2000_prod/ws2000.db";
+my $wmr9x8db="/proj/wetter/logs/wmr9x8/wmr9x8.db";
+my $umeterdb="/proj/wetter/logs/umeter/umeter.db";
+my $dbh;
+
+$/ = undef;
+
+print "Printing database setup WS2000\n";
+open(DBF, " <get_ws2000_sensordata.sql")
+  or die "can't find get_ws2000_sensordata.sql";
+$sql = <DBF>;  
+close DBF;
+$dbh = DBI->connect("dbi:SQLite:dbname=$ws2000db","","")
+  or die ("Can't get DB handle: $DBI::Errstr");;
+
+$res = $dbh->selectall_arrayref($sql);
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+        print "$_->[$i] "
+    }
+    print "\n";
+}
+print "\n";
+$dbh->disconnect or
+  warn "Disconnection failed: $DBI::errstr\n";
+
+print "Printing database setup WMR928 NX\n";
+open(DBF, " <get_wmr9x8_sensordata.sql")
+  or die "can't find get_wmr9x8_sensordata.sql";
+$sql = <DBF>;  
+close DBF;
+$dbh = DBI->connect("dbi:SQLite:dbname=$wmr9x8db","","")
+  or die ("Can't get DB handle: $DBI::Errstr");;
+
+$res = $dbh->selectall_arrayref($sql);
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+        print "$_->[$i] "
+    }
+    print "\n";
+}
+print "\n";
+$dbh->disconnect or
+  warn "Disconnection failed: $DBI::errstr\n";
+
+print "Printing database setup Ultimeter 2100\n";
+open(DBF, " <get_umeter_sensordata.sql")
+  or die "can't find get_umeter_sensordata.sql";
+$sql = <DBF>;  
+close DBF;
+$dbh = DBI->connect("dbi:SQLite:dbname=$umeterdb","","")
+  or die ("Can't get DB handle: $DBI::Errstr");;
+
+$res = $dbh->selectall_arrayref($sql);
+foreach ( @$res) {
+    foreach my $i ( 0..$#$_) {
+        print "$_->[$i] "
+    }
+    print "\n";
+}
+print "\n";
+$dbh->disconnect or
+  warn "Disconnection failed: $DBI::errstr\n";
+
+print "Retrieving Windspeed data WS2000\n";
+my $starttime = 1306000000;
+$sql = "select 
+  sd.dataset_date, sd.meas_value 
+from 
+  sensordata sd
+where 
+  sd.sensor_meas_no = 18 
+and 
+  sd.dataset_date >  $starttime
+";
+
+$dbh = DBI->connect("dbi:SQLite:dbname=$ws2000db","","")
+  or die ("Can't get DB handle: $DBI::Errstr");;
+$res = $dbh->selectall_arrayref($sql);
+foreach my $row ( @$res) {
+  my ( $dataset_date, $meas_val) = @$row;
+  print "$dataset_date $meas_val\n";
+}
+print "\n";
+$dbh->disconnect or
+  warn "Disconnection failed: $DBI::errstr\n";
+
