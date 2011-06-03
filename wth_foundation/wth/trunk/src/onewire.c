@@ -131,7 +131,7 @@ void prtmdat( struct mset *mlist_p) {
 
   if ( mlist_p != NULL) {
     prtmdat(mlist_p->next);
-    syslog(LOG_DEBUG, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
+    syslog(LOG_INFO, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
 	   mlist_p->mtime, mlist_p->mval);
   }
 }
@@ -156,7 +156,7 @@ void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
   if ( count != 0 ) {
     avgtime = avgtime / count;
     avgval = avgval / count;
-    syslog( LOG_DEBUG, 
+    syslog( LOG_INFO, 
 	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, number: %d", 
 	    sens_meas_no, avgtime, avgval, count); 
     datadb( avgtime, sens_meas_no, avgval, onewiredb);

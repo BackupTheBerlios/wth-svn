@@ -263,7 +263,7 @@ typedef struct conf {
   int verbose;
   int timeout;
   int elevation;
-  int logfacility;
+  int log_facility;
   char *hostname;
   char *configfile;
   char *port;

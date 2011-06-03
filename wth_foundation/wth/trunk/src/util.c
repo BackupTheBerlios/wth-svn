@@ -42,9 +42,9 @@ wthd_init( ) {
 
   /* default parameters valid for all stations */
   wsconf.timeout     = 30;
-  wsconf.logfacility = LOG_LOCAL5;
   wsconf.verbose     = 1;
   wsconf.debug       = 1;
+  wsconf.log_facility = LOG_LOCAL5;
   wsconf.hostname    = "localhost";
   if ( wsconf.port == NULL ) {
     wsconf.port        = "2000";
@@ -59,20 +59,6 @@ wthd_init( ) {
   strncpy(ws2000station.config.monitor,"Sensormonitor.rrd", TBUFF);;
   ws2000station.status.interval      = 300;  
 
-  /* allocate sensornames WS2000 */
-  /*
-  strncpy(ws2000station.sensor[1].sensorname, "Sensor1", TBUFF);
-  strncpy(ws2000station.sensor[2].sensorname, "Sensor2", TBUFF);
-  strncpy(ws2000station.sensor[3].sensorname, "Sensor3", TBUFF);
-  strncpy(ws2000station.sensor[4].sensorname, "Sensor4", TBUFF);
-  strncpy(ws2000station.sensor[5].sensorname, "Sensor5", TBUFF);
-  strncpy(ws2000station.sensor[6].sensorname, "Sensor6", TBUFF);
-  strncpy(ws2000station.sensor[7].sensorname, "Sensor7", TBUFF);
-  strncpy(ws2000station.sensor[8].sensorname, "Sensor8", TBUFF);
-  strncpy(ws2000station.sensor[9].sensorname, "Rainsensor", TBUFF);
-  strncpy(ws2000station.sensor[10].sensorname, "Windsensor", TBUFF);
-  strncpy(ws2000station.sensor[11].sensorname, "Indoorsensor", TBUFF);
-  */
 
   /* PCWSR */
   strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
@@ -299,10 +285,31 @@ readconfig( ) {
         /* Interpret. */		
         if ( strcasecmp( name, "timeout" ) == 0 ) {
           wsconf.timeout = atoi(value);
+          printf("timeout:\t\"%s\"\n", value);
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 	  wsconf.port = strdup(value);
+          printf("port:\t\t\"%s\"\n", value);
         } else if ( strcasecmp( name, "elevation" ) == 0 ) {
 	  wsconf.elevation = atoi(value);
+          printf("elevation:\t\"%s\"\n", value);
+        } else if ( strcasecmp( name, "log_facility" ) == 0 ) {
+          if ( strcasecmp( value, "local0") == 0 )
+            wsconf.log_facility = LOG_LOCAL0;
+          else if ( strcasecmp( value, "local1") == 0 )
+            wsconf.log_facility = LOG_LOCAL1;
+          else if ( strcasecmp( value, "local2") == 0 )
+            wsconf.log_facility = LOG_LOCAL2;
+          else if ( strcasecmp( value, "local3") == 0 )
+            wsconf.log_facility = LOG_LOCAL3;
+          else if ( strcasecmp( value, "local4") == 0 )
+            wsconf.log_facility = LOG_LOCAL4;
+          else if ( strcasecmp( value, "local5") == 0 )
+            wsconf.log_facility = LOG_LOCAL5;
+          else if ( strcasecmp( value, "local6") == 0 )
+            wsconf.log_facility = LOG_LOCAL6;
+          else if ( strcasecmp( value, "local7") == 0 )
+            wsconf.log_facility = LOG_LOCAL7;
+          printf("log_facility:\t\"%s\"\n", value); 
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);

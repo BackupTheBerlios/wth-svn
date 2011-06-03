@@ -690,7 +690,7 @@ wstat(unsigned char *data, int mdat ) {
   snprintf( t, TBUFF,
 	     "Status\nVersion number\t:\t%x\nInterval time\t:\t%d (min)\n",
 	     ws2000station.status.version, 
-	     ws2000station.status.interval);
+	     (int)ws2000station.status.interval);
 
   if ( ws2000station.status.DCFstat == 1 ) {
 
@@ -902,7 +902,7 @@ datex ( unsigned char *data, int ndat) {
   */
   dataset_date = ( dataset_date/60 - age) * 60;
   clk  = ctime(&dataset_date);
-  snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
+  snprintf(tstrg,MAXMSGLEN, "%lu", (long)dataset_date);
 
   syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
 	 ws2000station.status.ndats);
