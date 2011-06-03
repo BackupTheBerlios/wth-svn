@@ -236,8 +236,17 @@ senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
 
 
 /*
-  sensdevpar - retrieve sensor number , devicetyp and parameter name of
-    1-wire device
+  sensdevpar - retrieve
+    sensor_meas_no,
+    sensor_name,
+    parameter_name,
+    gain,
+    offset, 
+    sensor number, 
+    devicetyp and 
+    parameter name of
+  1-wire device
+  returns these data in structure ssdp
 */
 int
 sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
@@ -247,7 +256,9 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
   sqlite3_stmt *qcomp;
 
   snprintf(query, SBUFF, 
-    "SELECT sp.sensor_meas_no, sn.sensor_name, pn.parameter_name, dt.devicetyp, dt.familycode, dt.serialnum "
+    "SELECT sp.sensor_meas_no, sn.sensor_name, "
+    "pn.parameter_name, pn.offset, pn.gain, "
+    "dt.devicetyp, dt.familycode, dt.serialnum "
     "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn, devicetyp AS dt "
     "WHERE sp.parameter_no = pn.parameter_no "
     "AND sp.sensor_no = sn.sensor_no "
@@ -270,10 +281,12 @@ sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
 
     ssdp->sensor_meas_no = sqlite3_column_int(qcomp, 0);
     strncpy(ssdp->sensorname, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
-    strncpy(ssdp->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  
-    strncpy(ssdp->devicetyp, (char *)sqlite3_column_text(qcomp,3), TBUFF);  
-    strncpy(ssdp->familycode, (char *)sqlite3_column_text(qcomp,4), TBUFF);  
-    strncpy(ssdp->serialnum, (char *)sqlite3_column_text(qcomp,5), TBUFF);  
+    strncpy(ssdp->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);
+    ssdp->offset = sqlite3_column_double(qcomp,3);
+    ssdp->gain   = sqlite3_column_double(qcomp,4);
+    strncpy(ssdp->devicetyp, (char *)sqlite3_column_text(qcomp,5), TBUFF);  
+    strncpy(ssdp->familycode, (char *)sqlite3_column_text(qcomp,6), TBUFF);  
+    strncpy(ssdp->serialnum, (char *)sqlite3_column_text(qcomp,7), TBUFF);  
     rowcnt++;
   }
   err = sqlite3_finalize(qcomp);
@@ -389,7 +402,6 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 char *
 readdb( char *wstation) {
   int err;
-  char *errmsg;
   static char rbuf[NBUFF+1];;
   char s[TBUFF+1], buf[TBUFF+1], query[SBUFF+1];
   sqlite3_stmt *qcomp;
@@ -404,14 +416,9 @@ readdb( char *wstation) {
   if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
     /* open sqlite db file */
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
-    syslog(LOG_DEBUG, 
-	 "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-	 ws2000station.config.dbfile,
-	 err, sqlite3_errmsg(ws2000db));
     if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
-	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-      free( errmsg);
+      syslog( LOG_ALERT, "readdb: failed to open database %s.\n", 
+	    ws2000station.config.dbfile);
       return (NULL);
     } else {
       syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
@@ -436,9 +443,8 @@ readdb( char *wstation) {
     err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
     if ( err != SQLITE_OK ) {
       snprintf( rbuf, TBUFF, 
-        "Error: readdb: select ws2000 data: err: %d : sqlite_errmsg: %s\n", 
-        err, sqlite3_errmsg(ws2000db));
-      syslog( LOG_ALERT, rbuf);
+        "Error: readdb: select ws2000 data: err: %d", err);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf( rbuf, TBUFF, "database error: please check installation\n");
       return(rbuf);
     }
@@ -461,7 +467,7 @@ readdb( char *wstation) {
       snprintf(rbuf, TBUFF, 
         "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(ws2000db));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf(rbuf, TBUFF, "database error: please check installation\n");
       return(rbuf);
     }
@@ -478,13 +484,12 @@ readdb( char *wstation) {
     /* open sqlite db file */
     err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
     syslog(LOG_DEBUG, 
-	 "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s", 
+	 "readdb: sqlite3_open %s return value: %d", 
 	 pcwsrstation.config.dbfile,
-	 err, sqlite3_errmsg(pcwsrdb));
+	 err);
     if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s", 
-	    pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
-      free( errmsg);
+      syslog( LOG_ALERT, "readdb: failed to open database %s.", 
+	    pcwsrstation.config.dbfile);
       return (NULL);
     } else {
       syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
@@ -512,7 +517,7 @@ readdb( char *wstation) {
       snprintf( rbuf, TBUFF,
         "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(pcwsrdb));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf( rbuf, TBUFF, "database error: please check installation\n");
       return(rbuf);
     }
@@ -540,7 +545,7 @@ readdb( char *wstation) {
       snprintf( rbuf, TBUFF, 
         "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(pcwsrdb));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
@@ -558,13 +563,11 @@ readdb( char *wstation) {
     /* open sqlite db file */
     err = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
     syslog(LOG_DEBUG, 
-	 "readdb: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-	 onewirestation.config.dbfile,
-	 err, sqlite3_errmsg(onewiredb));
+	 "readdb: sqlite3_open %s return value: %d", 
+	 onewirestation.config.dbfile, err);
     if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s. error: %s\n", 
-	    onewirestation.config.dbfile, sqlite3_errmsg(onewiredb));
-      free( errmsg);
+      syslog( LOG_ALERT, "readdb: failed to open database %s.", 
+	    onewirestation.config.dbfile);
       return (NULL);
     } else {
       syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
@@ -592,7 +595,7 @@ readdb( char *wstation) {
       snprintf( rbuf, TBUFF,
         "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
         err, sqlite3_errmsg(onewiredb));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
@@ -620,7 +623,7 @@ readdb( char *wstation) {
       snprintf( rbuf, TBUFF, 
         "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(onewiredb));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       snprintf( rbuf, TBUFF, "database error: please check installation");
       return(rbuf);
     }
@@ -691,7 +694,6 @@ readpar( time_t *meastim, float *measval,
   int err, num;
   char query[SBUFF+1];
   char rbuf[NBUFF+1];
-  char *errmsg;
   sqlite3_stmt *qcomp;
 
   /* handle ws2000 weatherstation */
@@ -699,13 +701,11 @@ readpar( time_t *meastim, float *measval,
     /* open sqlite db file */
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG, 
-	 "readpar: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-	 ws2000station.config.dbfile,
-	 err, sqlite3_errmsg(ws2000db));
+	 "readpar: sqlite3_open %s return value: %d", 
+	 ws2000station.config.dbfile, err);
     if ( err) {
-      syslog( LOG_ALERT, "readpar: failed to open database %s. error: %s\n", 
-	    ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-      free( errmsg);
+      syslog( LOG_ALERT, "readpar: failed to open database %s.", 
+	    ws2000station.config.dbfile);
       return(err);
     } else {
       syslog(LOG_DEBUG, "readpar: sqlite3_open: OK\n");
@@ -756,7 +756,7 @@ readpar( time_t *meastim, float *measval,
       snprintf(rbuf, TBUFF, 
         "Error: readpar: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	err, sqlite3_errmsg(ws2000db));
-      syslog( LOG_ALERT, rbuf);
+      syslog( LOG_ALERT, "%s", rbuf);
       return(err);
     }
 
@@ -769,13 +769,11 @@ readpar( time_t *meastim, float *measval,
     /* open sqlite db file */
     err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
     syslog(LOG_DEBUG, 
-	 "readpar: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-	 pcwsrstation.config.dbfile,
-	 err, sqlite3_errmsg(pcwsrdb));
+	 "readpar: sqlite3_open %s return value: %d", 
+	 pcwsrstation.config.dbfile, err);
     if ( err) {
-      syslog( LOG_ALERT, "readpar: failed to open database %s. error: %s\n", 
-	    pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
-      free( errmsg);
+      syslog( LOG_ALERT, "readpar: failed to open database %s.", 
+	    pcwsrstation.config.dbfile);
       return(err);
     } else {
       syslog(LOG_DEBUG, "readpar: sqlite3_open: OK\n");
@@ -823,9 +821,8 @@ readpar( time_t *meastim, float *measval,
     err = sqlite3_finalize(qcomp);
     if ( err != SQLITE_OK ) {
       snprintf( rbuf, TBUFF, 
-        "Error: readpar: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	err, sqlite3_errmsg(pcwsrdb));
-      syslog( LOG_ALERT, rbuf);
+        "Error: readpar: select parametername: err: %d", err);
+      syslog( LOG_ALERT, "%s", rbuf);
       return(err);
     }
 
@@ -847,7 +844,6 @@ readpar( time_t *meastim, float *measval,
 char *
 readstat ( char *wstation) {
   int err, sensor_no, sensoraddr;
-  char *errmsg;
   static char rbuf[NBUFF+1], s[TBUFF+1], buf[TBUFF+1];
   char query[SBUFF+1], sensorvers[TBUFF+1], sensorname[TBUFF+1];
   char devicetyp[TBUFF+1], serialnum[TBUFF+1], parametername[TBUFF+1];
@@ -864,14 +860,12 @@ readstat ( char *wstation) {
 
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG, 
-      "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-      ws2000station.config.dbfile,
-       err, sqlite3_errmsg(ws2000db));
+      "readstat: sqlite3_open %s return value: %d", 
+      ws2000station.config.dbfile, err);
 
     if ( err) {
-      syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
-	ws2000station.config.dbfile, sqlite3_errmsg(ws2000db));
-      free( errmsg);
+      syslog( LOG_ALERT, "readstat: failed to open database %s", 
+	ws2000station.config.dbfile);
       snprintf(rbuf, SBUFF, "WS2000 database problem");
       return NULL;
     } else {
@@ -989,13 +983,11 @@ readstat ( char *wstation) {
   } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0) {
     err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
     syslog(LOG_DEBUG, 
-      "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-      pcwsrstation.config.dbfile,
-       err, sqlite3_errmsg(pcwsrdb));
+      "readstat: sqlite3_open %s return value: %d ", 
+      pcwsrstation.config.dbfile, err);
     if ( err) {
-      syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
-	pcwsrstation.config.dbfile, sqlite3_errmsg(pcwsrdb));
-      free( errmsg);
+      syslog( LOG_ALERT, "readstat: failed to open database %s.", 
+	pcwsrstation.config.dbfile);
       snprintf(rbuf, SBUFF, "PCWSR database problem.");
       return NULL;
     } else {
@@ -1034,9 +1026,9 @@ readstat ( char *wstation) {
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
       sensor_no   = sqlite3_column_int(qcomp,0); 
-      snprintf( sensorname, SBUFF, (char *)sqlite3_column_text(qcomp,1));
+      snprintf( sensorname, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,1));
       sensoraddr  = sqlite3_column_int(qcomp,2);
-      snprintf( sensorvers, SBUFF, (char *)sqlite3_column_text(qcomp,3)); 
+      snprintf( sensorvers, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,3)); 
       //pcwsrstation.sensor[sensor_no].lastseen = sqlite3_column_int(qcomp,4);  
       //tm = gmtime(&pcwsrstation.sensor[sensor_no].lastseen);
       //strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
@@ -1074,13 +1066,11 @@ readstat ( char *wstation) {
   } else if ( ( err = strncmp( wstation,"onewire",6)) == 0) {
     err = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
     syslog(LOG_DEBUG, 
-      "readstat: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n", 
-      onewirestation.config.dbfile,
-       err, sqlite3_errmsg(onewiredb));
+      "readstat: sqlite3_open %s return value: %d", 
+      onewirestation.config.dbfile, err);
     if ( err) {
-      syslog( LOG_ALERT, "readstat: failed to open database %s. error: %s\n", 
-	onewirestation.config.dbfile, sqlite3_errmsg(onewiredb));
-      free( errmsg);
+      syslog( LOG_ALERT, "readstat: failed to open database %s", 
+	onewirestation.config.dbfile);
       snprintf(rbuf, SBUFF, "ONEWIRE database problem.\n");
       return NULL;
     } else {
@@ -1121,14 +1111,14 @@ readstat ( char *wstation) {
 
     while( SQLITE_ROW == sqlite3_step(qcomp)) {
       sensor_no   = sqlite3_column_int(qcomp,0); 
-      snprintf( sensorname, SBUFF, (char *)sqlite3_column_text(qcomp,1));
-      snprintf( devicetyp, SBUFF, (char *)sqlite3_column_text(qcomp,2));
+      snprintf( sensorname, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,1));
+      snprintf( devicetyp, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,2));
       familycode  = sqlite3_column_int(qcomp,3);
-      snprintf( serialnum, SBUFF, (char *)sqlite3_column_text(qcomp,4)); 
-      snprintf( parametername, SBUFF, (char *)sqlite3_column_text(qcomp,5)); 
-      snprintf( unit, SBUFF, (char *)sqlite3_column_text(qcomp,6)); 
-      snprintf( gain, SBUFF, (char *)sqlite3_column_text(qcomp,7)); 
-      snprintf( offset, SBUFF, (char *)sqlite3_column_text(qcomp,8)); 
+      snprintf( serialnum, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,4)); 
+      snprintf( parametername, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,5)); 
+      snprintf( unit, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,6)); 
+      snprintf( gain, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,7)); 
+      snprintf( offset, SBUFF, "%s", (char *)sqlite3_column_text(qcomp,8)); 
       lastseen = sqlite3_column_int(qcomp,9);  
       tm = gmtime(&lastseen);
       strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
@@ -1175,7 +1165,7 @@ maxsensmeas( sqlite3 *onewiredb) {
   sqlite3_stmt *qcomp;
 
   snprintf(query, SBUFF, "SELECT COUNT(*) "
-    "FROM sensordevparameters");
+    "FROM sensorparameters");
   syslog(LOG_DEBUG, "maxsensmeas: sql: %s", query);
 
   err = sqlite3_prepare( onewiredb, query, -1, &qcomp, 0);

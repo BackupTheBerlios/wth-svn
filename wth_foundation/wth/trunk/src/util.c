@@ -298,9 +298,11 @@ readconfig( ) {
 		
         /* Interpret. */		
         if ( strcasecmp( name, "timeout" ) == 0 ) {
-		  wsconf.timeout = atoi(value);
+          wsconf.timeout = atoi(value);
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 	  wsconf.port = strdup(value);
+        } else if ( strcasecmp( name, "elevation" ) == 0 ) {
+	  wsconf.elevation = atoi(value);
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);

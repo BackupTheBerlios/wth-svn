@@ -173,6 +173,8 @@ typedef struct sensdevpar {
   char devicetyp[TBUFF+1];
   char familycode[TBUFF+1];
   char serialnum[TBUFF+1];
+  float offset;
+  float gain;
 } sensdevpar_t;
 
 typedef struct ws2000stat {
@@ -260,6 +262,7 @@ typedef struct conf {
   int debug;
   int verbose;
   int timeout;
+  int elevation;
   int logfacility;
   char *hostname;
   char *configfile;

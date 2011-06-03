@@ -179,7 +179,7 @@ onewire_hd( void *arg) {
   double mtime, temp2438;
   uchar serialnum[9];
   char port[TBUFF+1];
-  char *errmsg;
+  char *errmsg = "";
   sensdevpar_t ssdp;
   struct timezone tz;
   struct timeval  tv;
@@ -302,12 +302,12 @@ onewire_hd( void *arg) {
           /* pressure - derived quantity calculated from vad and vdd */
           else if ( ( rslt = sensdevpar( "Pressure", echo_serialnum( serialnum), &ssdp, onewiredb)) == 0 ) {
             syslog(LOG_DEBUG,
-              "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
-              ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
+              "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s ssdp.gain: %f ssdp.offset: %f", 
+              ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name, ssdp.gain, ssdp.offset); 
             cvad = vad;
             cvdd = vdd;
             if ( ( cvad > 0) || ( cvdd > 0)) {
-              press2438 = 110.76 * ( vad/vdd) + 850.34;
+              press2438 = ssdp.gain * ( vad/vdd) + ssdp.offset;
 	      addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, press2438);
               syslog(LOG_DEBUG,"onewire_hd: pressure sensor discovered: pressure[hPa] : %f", press2438);
             } else {
