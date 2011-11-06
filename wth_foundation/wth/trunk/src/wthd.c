@@ -73,7 +73,7 @@ main ( int argc, char **argv )
 
 
   if ( nobg == 0 ) {
-    daemon_init();
+    //daemon_init();
     openlog("wthd", LOG_PID , wsconf.log_facility);
   } else {
     openlog("wthd", LOG_PID | LOG_PERROR , wsconf.log_facility);

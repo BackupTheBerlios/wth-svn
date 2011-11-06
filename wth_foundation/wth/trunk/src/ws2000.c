@@ -31,7 +31,7 @@
 char *lockfile = WS2000LOCK;
 /*
   wloghandler
-  logging WS2000 data to rrd and sqlite DB
+  logging WS2000 data to sqlite DB
 
 */
 void *
@@ -639,7 +639,17 @@ wstat(unsigned char *data, int mdat ) {
 
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
-  statdb( sdata, statusset_date);
+
+  if ( isdefined_sqlite() == TRUE ) {
+    if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
+      syslog(LOG_ALERT, "wstat: Failed to open database %s.",
+        ws2000station.config.dbfile);
+    }
+    statdb( sdata, statusset_date, ws2000db);
+    sqlite3_close( ws2000db);
+  } else {
+    syslog(LOG_ALERT, "wstat: no database type defined");
+  }
 	
   /* interval time */
   ws2000station.status.interval = data [18];
@@ -858,8 +868,6 @@ settime ( ) {
 int 
 datex ( unsigned char *data, int ndat) {
   int i, j, err, mbit, nbit, nval, sensor_no, sensor_meas_no[3];
-  time_t omtim;
-  float omval;
   int Hi, Lo, new;
   time_t dataset_date;
   long age;
@@ -868,8 +876,6 @@ datex ( unsigned char *data, int ndat) {
   float meas_value[3];
 	
   syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
-  syslog(LOG_DEBUG, "datex : rrdpath in datex : %s", 
-    ws2000station.config.rrdpath);
 
   /* block number */
   syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
@@ -911,11 +917,28 @@ datex ( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
   syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
 
+  /* open db file */
+  if ( isdefined_sqlite() == TRUE ) {
+    err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+    syslog(LOG_DEBUG,
+      "datex: sqlite3_open %s return value: %d",
+      ws2000station.config.dbfile, err);
+    if ( err) {
+      syslog( LOG_ALERT, "datex: failed to open database %s.",
+      ws2000station.config.dbfile);
+      return (-1);
+    } else {
+      syslog(LOG_DEBUG, "datex: sqlite3_open: OK\n");
+    }
+  }
+
   nval = 0;
   new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
-    err = issens( i);
+    if ( isdefined_sqlite() == TRUE ) {
+      err = issens( i, ws2000db);
+    }
     if ( err != 0 )  {
       nval = 2;
       sensor_no = i;
@@ -983,15 +1006,17 @@ datex ( unsigned char *data, int ndat) {
         "sensor_meas_no: %d new flag: %d\n",
         i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
 
-      err = newdb( dataset_date, i, new);
+      if ( isdefined_sqlite() == TRUE ) {
+        err = newdb( dataset_date, i, new, ws2000db);
+      } else { err = 1; }
       if ( err != 0 ) {
         syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-        return(-1);
       }
-      err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+      if ( isdefined_sqlite() == TRUE ) {
+        err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, ws2000db);
+      } else { err = 1; }
       if ( err != 0 ) {
         syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-        return(-1);
       }
     } else {
       syslog(LOG_DEBUG,"datex: sensor #%d temperature/humidity not found\n", i);
@@ -999,7 +1024,11 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* Sensor #9: Rainsensor */
-  err = issens( 9);
+  if ( isdefined_sqlite() == TRUE ) {
+    err = issens( 9, ws2000db);
+  } else {
+    err = 1;
+  }
   if ( err != 0 )  {
     nval = 1;
     sensor_no = 9;
@@ -1009,27 +1038,33 @@ datex ( unsigned char *data, int ndat) {
     meas_value[0]   = Hi + Lo;
     sensor_meas_no[0] = 17;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    err =newdb( dataset_date, 9, new);
+    if ( isdefined_sqlite() == TRUE ) {
+      err =newdb( dataset_date, 9, new, ws2000db);
+    } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
-      return(-1);
     }
-    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( isdefined_sqlite() == TRUE ) {
+      err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
+                     meas_value, ws2000db);
+    } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
-      return(-1);
     }
     syslog(LOG_DEBUG,
 	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
            "meas_value: %f new: %d\n", 
 	   (long int)dataset_date, meas_value[0], new);
-    readpar( &omtim, &omval, sensor_no, 17, 3600, "ws2000");
   } else {
     syslog(LOG_DEBUG,"datex: sensor #9 rain not found\n");
   }
 
   /* sensor #10: Windsensor */
-  err = issens( 10);
+  if ( isdefined_sqlite() == TRUE ) {
+    err =  issens( 10, ws2000db);
+  } else {
+    err = 1;
+  }
   if ( err != 0 )  {
     nval = 3;
     sensor_no = 10;
@@ -1044,10 +1079,11 @@ datex ( unsigned char *data, int ndat) {
 
     /* wind new flag */
     new = getbits ( data[27], 7, 1);
-    err = newdb( dataset_date, 10, new);
+    if ( isdefined_sqlite() == TRUE ) {
+      err = newdb( dataset_date, 10, new, ws2000db);
+    } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
-      return(-1);
     }
     syslog(LOG_DEBUG,
      "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
@@ -1072,17 +1108,21 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,
       "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value[2]);
-    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( isdefined_sqlite() == TRUE ) {
+      err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
+                     meas_value, ws2000db);
+    } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
-      return(-1);
     }
   } else {
     syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
   } 
 
   /* sensor #11: Indoorsensor */
-  err = issens( 11);
+  if ( isdefined_sqlite() == TRUE ) {
+    err = issens( 11, ws2000db);
+  }
   if ( err != 0 )  {
     nval = 3;
     sensor_no = 11;
@@ -1122,21 +1162,30 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
     /* write database */
-    err = newdb( dataset_date, 11, new); 
+    if ( isdefined_sqlite() == TRUE ) {
+      err = newdb( dataset_date, 11, new, ws2000db); 
+    } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-      return(-1);
     }
-    err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value);
+    if ( isdefined_sqlite() == TRUE ) {
+      err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
+            meas_value, ws2000db);
+    } else { err =1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-      return(-1);
     }
   } else {
     syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
   }
 
-  return(0);
+  /* cleanup and close */
+  if ( isdefined_sqlite() == TRUE ) {
+    err = sqlite3_close( ws2000db);
+  } else {
+    err = 1;
+  }
+  return(err);
 };
 
 

@@ -102,7 +102,7 @@ static int closepcwsr( int fd, struct termios *oldtio) {
 
 /*
    pcwsr_loghandler
-   logging pcwsr data to rrd and Sqlite DB
+   logging pcwsr data to sqlite DB
 */
 void *
 pcwsr_hd( void *arg) {
@@ -121,22 +121,11 @@ pcwsr_hd( void *arg) {
     unsigned char data[MAXMSGLEN+1];
     char clk[MAXMSGLEN+1];
     char msg[TBUFF+1];
-    char tstrg[TBUFF+1];
-    char rrdfile[TBUFF+1];
-    char template[TBUFF+1];
-    char **ustrg;
     static char buf[TBUFF+1];
     time_t dataset_date;
     struct tm *ctm;
-    senspar_t spar;
 
     syslog( LOG_DEBUG, "pcwsr_hd: start of execution\n");
-
-    if (( ustrg = malloc(sizeof(char *)*MAXMSGLEN+1)) == NULL )
-      return( ( void *) &failure);
-
-    if (( ustrg[2] = malloc(sizeof(char)*NBUFF+1)) == NULL)
-      return( ( void *) &failure);
 
     /* setting timezone */
     tzset(); 
@@ -368,47 +357,9 @@ pcwsr_hd( void *arg) {
         pcwsrstation.status.is_present); 
 
       /* database and rrd handling */
-      snprintf(tstrg,MAXMSGLEN, "%d", dataset_date);
       for ( i = 0; i < nval; i++) 
       {
         datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
-        /* handling rrd */
-        /* fetch names from database */
-        if ( ( err = senspardb( sensor_meas_no[i], &spar, pcwsrdb)) != 0 ) {
-	  syslog(LOG_DEBUG,"pcwsr_hd: senspardb returned error: %d\n", err);
-          break;
-	} else {
-          if ( spar.sensor_no != sensor_no ) {
-	    syslog(LOG_WARNING, 
-              "pcwsr_hd: sensor_no mismatch: sensor_no: %d : "
-              "spar.sensor_no: %d\n", sensor_no, spar.sensor_no);
-            break;
-	  }
-          syslog(LOG_DEBUG, 
-            "pcwsr_hd: sensor_meas_no: %d : spar.sensor_no: %d: "
-            "spar.sensor_name: %s: spar.par_name: %s\n", 
-	    sensor_meas_no[i], spar.sensor_no, spar.sensor_name, spar.par_name);
-          syslog(LOG_INFO, 
-            "pcwsr_hd: %lu : sensor: %s%d : parameter: %s: %f\n",
-	    (long int)dataset_date, spar.sensor_name, spar.sensor_no, 
-            spar.par_name, meas_value[i]);
-          snprintf(template,MAXMSGLEN,"%f", meas_value[i]);
-          strncat(tstrg, ":", 1);
-          strncat(tstrg, template, strlen(template));
-        }
-      }
-      if ( err == 0 ) {
-        snprintf( rrdfile, MAXMSGLEN, "%s%s%d.rrd", 
-          pcwsrstation.config.rrdpath, spar.sensor_name, spar.sensor_no);
-        syslog(LOG_DEBUG, "pcwsr_hd: rrdfile: %s: update string: %s\n", 
-          rrdfile, tstrg);
-        snprintf(ustrg[2], MAXMSGLEN-2, "%s", tstrg);
-        rrd_clear_error();
-        rrd_get_context();
-        rrd_update_r( rrdfile, NULL, 1, (const char **)(ustrg + 2));
-        if ( rrd_test_error()) {
-          syslog( LOG_ALERT, "pcwsr_hd: RRD Error: %s\n", rrd_get_error());
-        }
       }
     }
 

@@ -260,7 +260,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   /*
     parse data in packetmode
   */
-  printf("packetdata: '%s'\n", packetdata);
+  syslog(LOG_DEBUG, "packetdata: '%s'", packetdata);
   time(&dataset_date);
 
   /* open sqlite db file */
@@ -307,7 +307,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   umeterstr[4] = 0;
   baro = (float)strtol(umeterstr, NULL, base);
   baro = baro/10.0; /* 0.1mbar to mbar */
-  measval_db( "tp_in_sensor", "Current Barometer", dataset_date, (float)baro, umeterdb);
+  measval_db( "tp_in_sensor", "pressure", dataset_date, (float)baro, umeterdb);
   syslog(LOG_DEBUG, "packet_rd: baro: %f\n", baro);
 
   /* Barometer Delta value */
@@ -322,7 +322,8 @@ packet_rd( unsigned char * packetdata, int ndat) {
   strncpy(umeterlstr, (const char *)(packetdata+29), 9); 
   umeterlstr[8] = 0;
   baro_corr = strtol(umeterlstr, NULL, base);
-  measval_db( "tp_in_sensor", "pressure_corr", dataset_date, (float)baro_corr, umeterdb);
+  statval_db( "tp_in_sensor", "pressure_corr", 
+      dataset_date, (float)baro_corr, umeterdb);
   syslog(LOG_DEBUG, "packet_rd: baro_corr: %d\n", baro_corr);
 
   /* Current Outdoor Humidity */

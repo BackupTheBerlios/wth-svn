@@ -10,7 +10,8 @@ ws2000db = sqlite3_db("/proj/wetter/logs/ws2000_prod/ws2000_stand_May_27_2011.db
 #
 # reading time and measurement value of ws2000 weatherstation 
 # in a two column matrix
-# windspeed ws2000 with sensor_meas_no = 18
+# windspeed     ws2000 has sensor_meas_no = 18
+# winddirection ws2000 has sensor_meas_no = 20
 #
 ws2000_dat = cell2mat(sql(ws2000db,"select sd.dataset_date, sd.meas_value from sensordata sd where sd.sensor_meas_no = 18 and sd.dataset_date > 1306450000;"));
 

@@ -57,7 +57,6 @@
 #include <unistd.h>
 #include <math.h>
 #include <pthread.h>
-#include <rrd.h>
 
 #include "ownet.h"
 #include "findtype.h"
@@ -224,10 +223,10 @@ typedef struct umeterstat {
 
 typedef struct wsconf {
   int mcycle;
+  char dbtype[TBUFF+1];
   char dbfile[TBUFF+1];
   char device[TBUFF+1];
   char dbpath[SBUFF+1];
-  char rrdpath[SBUFF+1]; 
   char monitor[TBUFF+1];
 } wsconf_t;
 
@@ -356,15 +355,15 @@ char *initcmd (char *args);
 
 int datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
-int statdb( int sensor_status[], time_t statusset_date );
-int newdb( long statusset_date, int sensor_no, int new_flag);
+int statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
+int newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
-      float meas_value[] );
+      float meas_value[], sqlite3 *ws2000db );
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
 int sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
 char *readdb( char *wstation);
-int issens( int sensor_no);
+int issens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 char *readstat( char *wstation);
@@ -397,6 +396,7 @@ int measval_db( char *sensorname, char *parametername,
   time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
   time_t dataset_date, long unsigned int sval, sqlite3 *database);
+int isdefined_sqlite( void);
 
 void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);

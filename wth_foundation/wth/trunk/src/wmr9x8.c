@@ -129,7 +129,7 @@ wmr9x8rd( int rfd) {
       data[2] = dtyp;
 
       if ( dtyp == WINDTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is WINDTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is WINDTYP");
 	for ( i = 0; i < WINDLEN - 3 ; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -137,7 +137,7 @@ wmr9x8rd( int rfd) {
 	ndat = WINDLEN;
 
       } else if ( dtyp == RAINTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is RAINTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is RAINTYP");
 	for ( i = 0; i < RAINLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -145,7 +145,7 @@ wmr9x8rd( int rfd) {
 	ndat = RAINLEN;
 
       } else if ( dtyp == THINTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THINTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THINTYP");
 	for ( i = 0; i < THINLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -153,7 +153,7 @@ wmr9x8rd( int rfd) {
 	ndat = THINLEN;
 
       } else if ( dtyp == THOUTTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THOUTTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THOUTTYP");
 	for ( i = 0; i < THOUTLEN-3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -161,14 +161,14 @@ wmr9x8rd( int rfd) {
 	ndat = THOUTLEN;
 
       } else if ( dtyp == TINTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is TINTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is TINTYP");
 	for ( i = 0; i < TINLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
 	}
 	ndat = TINLEN;
       } else if ( dtyp == THBTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THBTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBTYP");
 	for ( i = 0; i < THBLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -176,14 +176,14 @@ wmr9x8rd( int rfd) {
 	ndat = THBLEN;
 
       } else if ( dtyp == MINTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is MINTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is MINTYP");
 	for ( i = 0; i < MINLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
 	}
 	ndat = MINLEN;
       } else if ( dtyp == CLOCKTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is CLOCKTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is CLOCKTYP");
 	for ( i = 0; i < CLOCKLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -191,7 +191,7 @@ wmr9x8rd( int rfd) {
 	ndat = CLOCKLEN;
 
       } else if ( dtyp == THBNEWTYP ) {
-	syslog(LOG_DEBUG, "wmr9x8rd: devicetyp is THBNEWTYP");
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBNEWTYP");
 	for ( i = 0; i < THBNEWLEN - 3; i++) {
 	  err = getschar( rfd, &schr);
           data[i+3] = schr;
@@ -221,7 +221,7 @@ wmr9x8rd( int rfd) {
 */
 int
 wmr9x8dac( unsigned char *data, int ndat) {
-  int err;
+  int err = 0;
   unsigned char devtype = 0xff;
 
   syslog(LOG_DEBUG, "wmr9x8dac: data record");
@@ -282,45 +282,45 @@ wind_dac( unsigned char *data) {
   int windchill;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"wind_dac: data acquisition of wind data");
+  syslog( LOG_INFO,"wind_dac: data acquisition of wind data");
 
   time(&dataset_date);
 
   gust_overrange    = getbits( data[3], 4, 1);
   average_overrange = getbits( data[3], 5, 1);
   low_battery       = getbits( data[3], 6, 1);
-  syslog(LOG_DEBUG,"wind_dac: gust_overrange: %d\n", gust_overrange);
-  syslog(LOG_DEBUG,"wind_dac: average_overrange: %d\n", average_overrange);
-  syslog(LOG_DEBUG,"wind_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO,"wind_dac: gust_overrange: %d\n", gust_overrange);
+  syslog(LOG_INFO,"wind_dac: average_overrange: %d\n", average_overrange);
+  syslog(LOG_INFO,"wind_dac: low_battery: %d\n", low_battery);
 
   wind_direction =      lownibble(data[4]) + 
                    10 * highnibble(data[4]) + 
                   100 * lownibble(data[5]);
-  syslog(LOG_DEBUG,"wind_dac: wind_direction: %d\n", wind_direction);
+  syslog(LOG_INFO,"wind_dac: wind_direction: %d\n", wind_direction);
 
   gust_windspeed =  0.1 * highnibble(data[5]) +
                     1.0 * lownibble(data[6]) +
                    10.0 * highnibble(data[6]);
-  syslog(LOG_DEBUG,"wind_dac: gust_windspeed: %f\n", gust_windspeed);
+  syslog(LOG_INFO,"wind_dac: gust_windspeed: %f\n", gust_windspeed);
 
   average_windspeed =  0.1 * lownibble(data[7]) +
                        1.0 * highnibble(data[7]) +
                       10.0 * lownibble(data[8]);
-  syslog(LOG_DEBUG,"wind_dac: average_windspeed: %f\n", average_windspeed);
+  syslog(LOG_INFO,"wind_dac: average_windspeed: %f\n", average_windspeed);
 
   chill_nodata    = getbits( data[8], 5, 1);
   chill_overrange = getbits( data[8], 6, 1);
   sign            = getbits( data[8], 7, 1);
 
-  syslog(LOG_DEBUG,"wind_dac: chill_nodata: %d\n", chill_nodata);
-  syslog(LOG_DEBUG,"wind_dac: chill_overrange: %d\n", chill_overrange);
-  syslog(LOG_DEBUG,"wind_dac: sign: %d\n", sign);
+  syslog(LOG_INFO,"wind_dac: chill_nodata: %d\n", chill_nodata);
+  syslog(LOG_INFO,"wind_dac: chill_overrange: %d\n", chill_overrange);
+  syslog(LOG_INFO,"wind_dac: sign: %d\n", sign);
   windchill =  1.0  * lownibble(data[9]) +
                 10.0 * highnibble(data[9]);
   if ( sign == 1) 
     windchill = - windchill;
 
-  syslog(LOG_DEBUG,"wind_dac: windchill: %d\n", windchill); 
+  syslog(LOG_INFO,"wind_dac: windchill: %d\n", windchill); 
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -371,7 +371,7 @@ rain_dac( unsigned char *data) {
   time_t dataset_date;
   char tbuf[TBUFF];
 
-  syslog( LOG_DEBUG,"rain_dac: data acquisition of rain data");
+  syslog( LOG_INFO,"rain_dac: data acquisition of rain data");
   time(&dataset_date);
   time(&startdate);
   total_startdate = gmtime(&startdate);
@@ -420,22 +420,22 @@ rain_dac( unsigned char *data) {
   startdate = mktime( total_startdate);
   strftime(tbuf, sizeof(tbuf), "%x %X", total_startdate);
 
-  syslog(LOG_DEBUG, "rain_dac: rate_overrange: %d\n", rate_overrange);
-  syslog(LOG_DEBUG, "rain_dac: total_overrange: %d\n", total_overrange);
-  syslog(LOG_DEBUG, "rain_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG, "rain_dac: yesterday_overrange: %d\n", yesterday_overrange);
+  syslog(LOG_INFO, "rain_dac: rate_overrange: %d\n", rate_overrange);
+  syslog(LOG_INFO, "rain_dac: total_overrange: %d\n", total_overrange);
+  syslog(LOG_INFO, "rain_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO, "rain_dac: yesterday_overrange: %d\n", yesterday_overrange);
 
-  syslog(LOG_DEBUG, "rain_dac: current_rainrate: %f\n", current_rainrate);
-  syslog(LOG_DEBUG, "rain_dac: total_rainfall: %f\n", total_rainfall);
-  syslog(LOG_DEBUG, "rain_dac: yesterday_rainfall: %f\n", yesterday_rainfall);
+  syslog(LOG_INFO, "rain_dac: current_rainrate: %f\n", current_rainrate);
+  syslog(LOG_INFO, "rain_dac: total_rainfall: %f\n", total_rainfall);
+  syslog(LOG_INFO, "rain_dac: yesterday_rainfall: %f\n", yesterday_rainfall);
 
-  syslog(LOG_DEBUG, "rain_dac: t_minute: %d\n", t_minute);
-  syslog(LOG_DEBUG, "rain_dac: t_hour: %d\n", t_hour);
-  syslog(LOG_DEBUG, "rain_dac: t_day: %d\n", t_day);
-  syslog(LOG_DEBUG, "rain_dac: t_month: %d\n", t_month);
-  syslog(LOG_DEBUG, "rain_dac: t_year: %d\n", t_year);
-  syslog(LOG_DEBUG, "rain_dac: total_startdate: %lu\n", (long unsigned int)startdate);
-  syslog(LOG_DEBUG, "rain_dac: total_startdate: %s\n", tbuf);
+  syslog(LOG_INFO, "rain_dac: t_minute: %d\n", t_minute);
+  syslog(LOG_INFO, "rain_dac: t_hour: %d\n", t_hour);
+  syslog(LOG_INFO, "rain_dac: t_day: %d\n", t_day);
+  syslog(LOG_INFO, "rain_dac: t_month: %d\n", t_month);
+  syslog(LOG_INFO, "rain_dac: t_year: %d\n", t_year);
+  syslog(LOG_INFO, "rain_dac: total_startdate: %lu\n", (long unsigned int)startdate);
+  syslog(LOG_INFO, "rain_dac: total_startdate: %s\n", tbuf);
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -477,7 +477,7 @@ thin_dac( unsigned char *data) {
   float dew_temperature;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"thin_dac: data acquisition of indoor temperature/humidity data");
+  syslog( LOG_INFO,"thin_dac: data acquisition of indoor temperature/humidity data");
   time(&dataset_date);
   channel_no      = lownibble(data[3]);
   dew_underrange  = getbits(data[3], 4, 1);
@@ -499,12 +499,12 @@ thin_dac( unsigned char *data) {
   dew_temperature =  1.0 * lownibble(data[7]) +
                     10.0 * highnibble(data[7]);
 
-  syslog(LOG_DEBUG, "thin_dac: dew_underrange: %d\n", dew_underrange);
-  syslog(LOG_DEBUG, "thin_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG, "thin_dac: temperature: %f\n", temperature);
-  syslog(LOG_DEBUG, "thin_dac: humidity: %f\n", humidity);
-  syslog(LOG_DEBUG, "thin_dac: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_DEBUG, "thin_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO, "thin_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_INFO, "thin_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO, "thin_dac: temperature: %f\n", temperature);
+  syslog(LOG_INFO, "thin_dac: humidity: %f\n", humidity);
+  syslog(LOG_INFO, "thin_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO, "thin_dac: over_underrange: %d\n", over_underrange);
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
     syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
@@ -541,7 +541,7 @@ thout_dac( unsigned char *data) {
   float dew_temperature;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"thout_dac: data acquisition of outdoor temperature/humidity data");
+  syslog( LOG_INFO,"thout_dac: data acquisition of outdoor temperature/humidity data");
   time(&dataset_date);
   dew_underrange  = getbits(data[3], 4, 1);
   low_battery     = getbits(data[3], 6, 1);
@@ -562,12 +562,12 @@ thout_dac( unsigned char *data) {
   dew_temperature =  1.0 * lownibble(data[7]) +
                     10.0 * highnibble(data[7]);
 
-  syslog(LOG_DEBUG,"thout_dac: dew_underrange: %d\n", dew_underrange);
-  syslog(LOG_DEBUG,"thout_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG,"thout_dac: temperature: %f\n", temperature);
-  syslog(LOG_DEBUG,"thout_dac: humidity: %f\n", humidity);
-  syslog(LOG_DEBUG,"thout_dac: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_DEBUG,"thout_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO,"thout_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_INFO,"thout_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO,"thout_dac: temperature: %f\n", temperature);
+  syslog(LOG_INFO,"thout_dac: humidity: %f\n", humidity);
+  syslog(LOG_INFO,"thout_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO,"thout_dac: over_underrange: %d\n", over_underrange);
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -604,7 +604,7 @@ tin_dac( unsigned char *data) {
   float temperature;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"tin_dac: data acquisition of indoor temperature data");
+  syslog( LOG_INFO,"tin_dac: data acquisition of indoor temperature data");
   time(&dataset_date);
   channel_no      = lownibble(data[3]);
   low_battery     = getbits(data[3], 6, 1);
@@ -620,9 +620,9 @@ tin_dac( unsigned char *data) {
   if ( sign == 1) 
     temperature = -temperature;
 
-  syslog(LOG_DEBUG,"tin_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG,"tin_dac: temperature: %f\n", temperature);
-  syslog(LOG_DEBUG,"tin_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO,"tin_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO,"tin_dac: temperature: %f\n", temperature);
+  syslog(LOG_INFO,"tin_dac: over_underrange: %d\n", over_underrange);
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -662,7 +662,7 @@ thb_dac( unsigned char *data) {
   int sealevel_offset;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"thb_dac: data acquisition of indoor temperature/humdity/barometer  data");
+  syslog( LOG_INFO,"thb_dac: data acquisition of indoor temperature/humdity/barometer  data");
   time(&dataset_date);
   dew_underrange = getbits( data[3], 4,1);
   low_battery    = getbits( data[3], 6,1);
@@ -689,14 +689,14 @@ thb_dac( unsigned char *data) {
                    10.0 * lownibble(data[11]) +
                   100.0 * highnibble(data[11]);
 
-  syslog(LOG_DEBUG, "thb_dac: dew_underrange: %d\n", dew_underrange);
-  syslog(LOG_DEBUG, "thb_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG, "thb_dac: temperature: %f\n", temperature);
-  syslog(LOG_DEBUG, "thb_dac: over_underrange: %d\n", over_underrange);
-  syslog(LOG_DEBUG, "thb_dac: humidity: %f\n", humidity);
-  syslog(LOG_DEBUG, "thb_dac: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_DEBUG, "thb_dac: weatherstatus: %x\n", weatherstatus);
-  syslog(LOG_DEBUG, "thb_dac: sealevel_offset: %d\n", sealevel_offset);
+  syslog(LOG_INFO, "thb_dac: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_INFO, "thb_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO, "thb_dac: temperature: %f\n", temperature);
+  syslog(LOG_INFO, "thb_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO, "thb_dac: humidity: %f\n", humidity);
+  syslog(LOG_INFO, "thb_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO, "thb_dac: weatherstatus: %x\n", weatherstatus);
+  syslog(LOG_INFO, "thb_dac: sealevel_offset: %d\n", sealevel_offset);
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -723,7 +723,7 @@ thb_dac( unsigned char *data) {
 }
 
 /*
-  thb_dac
+  thbnew_dac
   temperature, humidity, barometric pressure sensor
   devicetype 0x06 - new version
 */
@@ -742,7 +742,7 @@ thbnew_dac( unsigned char *data) {
   int sealevel_offset;
   time_t dataset_date;
 
-  syslog(LOG_DEBUG,"thbnew_dac: data acquisition of indoor temperature/humdity/barometer data");
+  syslog(LOG_INFO,"thbnew_dac: data acquisition of indoor temperature/humdity/barometer data");
   time(&dataset_date);
   dew_underrange = getbits( data[3], 4,1);
   low_battery    = getbits( data[3], 6,1);
@@ -772,15 +772,15 @@ thbnew_dac( unsigned char *data) {
                   100.0 * lownibble(data[12]) +
                  1000.0 * highnibble(data[12]);
 
-  syslog(LOG_DEBUG,"thbnew_sensor: dew_underrange: %d\n", dew_underrange);
-  syslog(LOG_DEBUG,"thbnew_sensor: low_battery: %d\n", low_battery);
-  syslog(LOG_DEBUG,"thbnew_sensor: temperature: %f\n", temperature);
-  syslog(LOG_DEBUG,"thbnew_sensor: over_underrange: %d\n", over_underrange);
-  syslog(LOG_DEBUG,"thbnew_sensor: humidity: %f\n", humidity);
-  syslog(LOG_DEBUG,"thbnew_sensor: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_DEBUG,"thbnew_sensor: pressure: %f\n", pressure);
-  syslog(LOG_DEBUG,"thbnew_sensor: weatherstatus: %d\n", weatherstatus);
-  syslog(LOG_DEBUG,"thbnew_sensor: sealevel_offset: %d\n", sealevel_offset);
+  syslog(LOG_INFO,"thbnew_sensor: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_INFO,"thbnew_sensor: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO,"thbnew_sensor: temperature: %f\n", temperature);
+  syslog(LOG_INFO,"thbnew_sensor: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO,"thbnew_sensor: humidity: %f\n", humidity);
+  syslog(LOG_INFO,"thbnew_sensor: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO,"thbnew_sensor: pressure: %f\n", pressure);
+  syslog(LOG_INFO,"thbnew_sensor: weatherstatus: %d\n", weatherstatus);
+  syslog(LOG_INFO,"thbnew_sensor: sealevel_offset: %d\n", sealevel_offset);
 
   /* open sqlite db file */
   if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
@@ -813,16 +813,16 @@ minute_dac( unsigned char *data) {
   int minute;
   unsigned char low_battery;
 
-  syslog( LOG_DEBUG,"minute_dac: data acquisition of minute data");
+  syslog( LOG_INFO,"minute_dac: data acquisition of minute data");
   err = 0;
   onedigit = lownibble( data[3]);
   tendigit = getbits( data[3],6,3);
   minute   =      onedigit + 
              10 * tendigit;
-  syslog(LOG_DEBUG, "minute_dac: minute: %d\n", minute);
+  syslog(LOG_INFO, "minute_dac: minute: %d\n", minute);
 
   low_battery = getbits( data[3],7,1);
-  syslog(LOG_DEBUG, "minute_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO, "minute_dac: low_battery: %d\n", low_battery);
 
   return err;
 }
@@ -838,7 +838,7 @@ clock_dac( unsigned char *data) {
   int year;
   time_t dataset_date;
 
-  syslog( LOG_DEBUG,"clock_dac: data acquisition of clock data");
+  syslog( LOG_INFO,"clock_dac: data acquisition of clock data");
   err = 0;
   time(&dataset_date);
 
@@ -858,8 +858,8 @@ clock_dac( unsigned char *data) {
   year        = 1 * lownibble(data[7]) +
                10 * highnibble(data[7]);
 
-  printf("clock: hour:minute %d:%d\n", hour, minute);
-  printf("clock: day.month.year %d.%d.%d\n", day, month, year);
+  syslog(LOG_INFO, "clock_dac: hour:minute %d:%d", hour, minute);
+  syslog(LOG_INFO, "clock_dac: day.month.year %d.%d.%d", day, month, year);
 
   return err;
 }

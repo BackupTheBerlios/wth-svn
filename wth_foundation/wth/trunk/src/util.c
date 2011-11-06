@@ -55,8 +55,6 @@ wthd_init( ) {
   /* WS2000 */  
   strncpy(ws2000station.config.dbfile, "ws2000.db", TBUFF);
   strncpy(ws2000station.config.device, "n.a.", TBUFF);
-  strncpy(ws2000station.config.rrdpath, ".", TBUFF);
-  strncpy(ws2000station.config.monitor,"Sensormonitor.rrd", TBUFF);;
   ws2000station.status.interval      = 300;  
 
 
@@ -313,15 +311,15 @@ readconfig( ) {
         } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "ws2000.dbtype" ) == 0 ) {
+	  strncpy( ws2000station.config.dbtype, value, TBUFF);
+	  printf("ws2000.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
 	  strncpy( ws2000station.config.dbfile, value, TBUFF);
 	  printf("ws2000.dbfile: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.monitor" ) == 0 ) {
 	  strncpy( ws2000station.config.monitor, value, TBUFF);
 	  printf("ws2000.monitor: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "ws2000.rrdpath" ) == 0 ) {
-	  strncpy( ws2000station.config.rrdpath, value, SBUFF);
-	  printf("ws2000.rrdpath: \"%s\"\n", value);
 
         } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
 	  printf("pcwsr.device: \"%s\"\n", value);
@@ -332,9 +330,6 @@ readconfig( ) {
         } else if ( strcasecmp( name, "pcwsr.monitor" ) == 0 ) {
 	  strncpy(pcwsrstation.config.monitor, value, TBUFF);
 	  printf("pcwsr.monitor: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "pcwsr.rrdpath" ) == 0 ) {
-	  strncpy( pcwsrstation.config.rrdpath, value, SBUFF);
-	  printf("pcwsr.rrdpath: \"%s\"\n", value);
 
         } else if ( strcasecmp( name, "onewire.device" ) == 0 ) {
 	  printf("onewire.device: \"%s\"\n", value);
@@ -342,9 +337,6 @@ readconfig( ) {
         } else if ( strcasecmp( name, "onewire.dbfile" ) == 0 ) {
 	  printf("onewire.dbfile: \"%s\"\n", value);
 	  strncpy(onewirestation.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "onewire.rrdpath" ) == 0 ) {
-	  printf("onewire.rrdpath: \"%s\"\n", value);
-	  strncpy(onewirestation.config.rrdpath, value, TBUFF);
         } else if ( strcasecmp( name, "onewire.mcycle" ) == 0 ) {
 	  printf("onewire.mcycle: \"%s\"\n", value);
 	  onewirestation.config.mcycle = atoi(value);
@@ -355,9 +347,6 @@ readconfig( ) {
         } else if ( strcasecmp( name, "wmr9x8.dbfile" ) == 0 ) {
 	  printf("wmr9x8.dbfile: \"%s\"\n", value);
 	  strncpy(wmr9x8station.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "wmr9x8.rrdpath" ) == 0 ) {
-	  printf("wmr9x8.rrdpath: \"%s\"\n", value);
-	  strncpy(wmr9x8station.config.rrdpath, value, TBUFF);
         } else if ( strcasecmp( name, "wmr9x8.mcycle" ) == 0 ) {
 	  printf("wmr9x8.mcycle: \"%s\"\n", value);
 	  wmr9x8station.config.mcycle = atoi(value);
@@ -368,9 +357,6 @@ readconfig( ) {
         } else if ( strcasecmp( name, "umeter.dbfile" ) == 0 ) {
 	  printf("umeter.dbfile: \"%s\"\n", value);
 	  strncpy(umeterstation.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "umeter.rrdpath" ) == 0 ) {
-	  printf("umeter.rrdpath: \"%s\"\n", value);
-	  strncpy(umeterstation.config.rrdpath, value, TBUFF);
         } else if ( strcasecmp( name, "umeter.mcycle" ) == 0 ) {
 	  printf("umeter.mcycle: \"%s\"\n", value);
 	  umeterstation.config.mcycle = atoi(value);
@@ -416,10 +402,10 @@ echoconfig ( char *station) {
     if ( strncmp( ws2000station.config.device, "n.a.", 4) == 0) 
       return(t);
     snprintf(s, TBUFF, 
-      "\tdatabase\t\t%s\n",ws2000station.config.dbfile);
+      "\tdatabase file\t\t%s\n",ws2000station.config.dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
-      "\trrdpath\t\t\t%s\n",ws2000station.config.rrdpath);
+      "\tdatabase type\t\t%s\n",ws2000station.config.dbtype);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
       "\tmonitor\t\t\t%s\n",ws2000station.config.monitor);
@@ -436,9 +422,6 @@ echoconfig ( char *station) {
     snprintf(s, TBUFF,
       "\tdatabase\t\t%s\n",pcwsrstation.config.dbfile);
     strncat(t,s, strlen(s));
-    snprintf(s, TBUFF, 
-      "\trrdpath\t\t\t%s\n",pcwsrstation.config.rrdpath);
-    strncat(t,s, strlen(s));
   } else if ( ( err = strncmp( station, "onewire", 5)) == 0 ) {
     snprintf(s, TBUFF, 
       "1wire configuration\n");
@@ -450,9 +433,6 @@ echoconfig ( char *station) {
       return(t);
     snprintf(s, TBUFF,
       "\tdatabase\t\t%s\n",onewirestation.config.dbfile);
-    strncat(t,s, strlen(s));
-    snprintf(s, TBUFF, 
-      "\trrdpath\t\t\t%s\n",onewirestation.config.rrdpath);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
       "\tmeasurement cycles\t%d\n",onewirestation.config.mcycle);
