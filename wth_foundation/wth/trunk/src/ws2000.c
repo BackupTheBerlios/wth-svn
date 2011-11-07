@@ -644,9 +644,20 @@ wstat(unsigned char *data, int mdat ) {
     if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
       syslog(LOG_ALERT, "wstat: Failed to open database %s.",
         ws2000station.config.dbfile);
+      return(NULL);
     }
     statdb( sdata, statusset_date, ws2000db);
     sqlite3_close( ws2000db);
+  } else if ( isdefined_pgsql() == TRUE ) {
+    pg_conn = PQconnectdb( ws2000station.config.dbconn);
+    if (PQstatus(pg_conn) != CONNECTION_OK)
+    {
+        syslog(LOG_ALERT, "wstat: connection to database failed: %s",
+                PQerrorMessage(pg_conn));
+        PQfinish(pg_conn);
+    }
+    pg_statdb( sdata, statusset_date, pg_conn);
+    PQfinish(pg_conn);
   } else {
     syslog(LOG_ALERT, "wstat: no database type defined");
   }

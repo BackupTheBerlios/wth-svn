@@ -1135,7 +1135,7 @@ statval_db( char *sensorname, char *flagname,
 
 */
 int
-isdefined_sqlite( void) {
+isdefined_sqlite( void ) {
   int err;
 
   if ( strncmp(ws2000station.config.dbtype,"sqlite",6) == 0) {

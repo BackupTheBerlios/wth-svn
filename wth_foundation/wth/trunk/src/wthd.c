@@ -36,8 +36,7 @@ int
 main ( int argc, char **argv ) 
 {
   int op, ret, nobg;
-  pthread_t ctid, ptid, wtid, owtid, wmrtid, umtid, stoptid;
-  sigset_t signals_to_block;
+  pthread_t ptid, wtid, owtid, wmrtid, umtid;
 
   char *lockfile = WS2000LOCK;
 
@@ -82,21 +81,6 @@ main ( int argc, char **argv )
 
   unlink( lockfile);
   tzset();
-
-  /* block signals in main */
-  /*
-  sigemptyset( &signals_to_block);
-  sigaddset(&signals_to_block, SIGUSR1);
-  pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
-  */
-
-  /* thread to catch shutdown signal */
-  /*
-  pthread_create(&stoptid, NULL, signal_hd, NULL);
-  pthread_info.num_active = 0;
-  pthread_cond_init(&pthread_info.thread_exit_cv, NULL);
-  pthread_mutex_init(&pthread_info.mutex, NULL);
-  */
 
   /* PCWSR thread */
   if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
@@ -170,18 +154,5 @@ main ( int argc, char **argv )
   } else { syslog(LOG_INFO,"wthd: no ULTIMETER port configured\n"); }
 
 
-  /* thread to handle interactive commands */
-  pthread_create( &ctid, NULL, cmd_hd, NULL);
-  pthread_join( ctid, NULL);
-
-  if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
-    pthread_join( ptid, NULL);
-  }
-  if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
-    pthread_join( wtid, NULL);
-  }
-  if ( strncmp( onewirestation.config.device, "/dev/", 5) == 0) {
-    pthread_join( owtid, NULL);
-  }
   exit(0);
 }

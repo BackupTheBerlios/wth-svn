@@ -49,24 +49,6 @@ Weatherstation configuration is done in wth.conf which must be in directory
 /usr/local/etc/wth
 
 
-Telnet commands
----------------
-Connecting
-use telnet command to connect to wthd
-telnet localhost 2000
-
-available commands are
-
-show data <weatherstation>
-show status <weatherstation>
-show config <weatherstation>
-exec <weatherstation> <command>
-restart
-reload <weatherstation>
-
-<weatherstation> in ws2000, pcwsr
-
-
 Troubleshooting
 ---------------
 Start wthd in debugging mode

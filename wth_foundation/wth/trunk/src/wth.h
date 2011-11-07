@@ -52,6 +52,7 @@
 #include <sys/wait.h>
 #include <syslog.h>
 #include <sqlite3.h>
+#include <pgsql/libpq-fe.h>
 #include <termios.h>
 #include <time.h>	/* timespec{} for pselect() */
 #include <unistd.h>
@@ -225,6 +226,7 @@ typedef struct wsconf {
   int mcycle;
   char dbtype[TBUFF+1];
   char dbfile[TBUFF+1];
+  char dbconn[TBUFF+1];
   char device[TBUFF+1];
   char dbpath[SBUFF+1];
   char monitor[TBUFF+1];
@@ -287,6 +289,8 @@ sqlite3 *onewiredb;
 sqlite3 *wmr9x8db;
 sqlite3 *umeterdb;
 
+PGconn  *pg_conn;
+
 ws2000_t  ws2000station;
 pcwsr_t   pcwsrstation;
 onewire_t onewirestation;
@@ -327,8 +331,8 @@ void *pcwsr_hd( void *arg);
 void *ws2000_hd( void *arg);
 void *onewire_hd( void *arg);
 void *wmr9x8_hd( void *arg);
-void *cmd_hd( void *arg);
-int docmd( int sockfd);
+//void *cmd_hd( void *arg);
+//int docmd( int sockfd);
 
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);
@@ -345,14 +349,15 @@ int readdata( int fd, unsigned char *data, int *ndat);
 ws2000key_t *c( int n);
 int wstrlen( unsigned char *s);
 
-char *tnstat( char *station);
-char *tnusage (int exitcode, char *error, char *addl);
-char *helpread (int exitcode, char *error, char *addl);
-char *tnhelp( char *args);
-char *execmd( char *args);
-char *showcmd( char *args);
-char *initcmd (char *args);
+//char *tnstat( char *station);
+//char *tnusage (int exitcode, char *error, char *addl);
+//char *helpread (int exitcode, char *error, char *addl);
+//char *tnhelp( char *args);
+//char *execmd( char *args);
+//char *showcmd( char *args);
+//char *initcmd (char *args);
 
+/* sqlite database functions */
 int datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
 int statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
@@ -368,6 +373,25 @@ int readpar( time_t *meastim, float *measval,
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 char *readstat( char *wstation);
 int maxsensmeas( sqlite3 *onewiredb);
+int isdefined_sqlite( void );
+
+/* pgsql database functions */
+int pg_datadb( long dataset_date, int sensor_param, float meas_value,
+  PGconn *pg_conn);
+int pg_statdb( int sensor_status[], time_t statusset_date, PGconn *pg_conn);
+int pg_newdb( long statusset_date, int sensor_no, int new_flag, PGconn *pg_conn);
+int pg_writedb( int sensor_no, int nval, int sensor_meas_no[], 
+  time_t dataset_date, float meas_value[], PGconn *pg_conn );
+int pg_senspardb( int sensor_meas_no, senspar_t *sspar, PGconn *pg_conn);
+int pg_sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp,
+  PGconn *pg_conn);
+char *pg_readdb( char *wstation);
+int pg_issens( int sensor_no, PGconn *pg_conn);
+int pg_readpar( time_t *meastim, float *measval, 
+  int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
+char *pg_readstat( char *wstation);
+int pg_maxsensmeas( PGconn *pg_conn);
+int isdefined_pgsql( void );
 
 char *ppagemem( uchar *pagemen);
 int bitprint( int byte, char *s_reg);
@@ -396,7 +420,6 @@ int measval_db( char *sensorname, char *parametername,
   time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
   time_t dataset_date, long unsigned int sval, sqlite3 *database);
-int isdefined_sqlite( void);
 
 void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);
