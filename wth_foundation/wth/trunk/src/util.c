@@ -24,6 +24,7 @@
 */
  
 #include "wth.h"
+extern int daemon_proc; 
 
 
 /* initdata 
@@ -495,4 +496,50 @@ void
   exit(0);
   return(NULL);
 }
+
+
+int
+daemon_init( )
+{
+        int             i;
+        pid_t   pid;
+
+        if ( (pid = Fork()) != 0)
+                exit(0);                        /* parent terminates */
+
+        /* 41st child continues */
+        setsid();                               /* become session leader */
+
+        signal(SIGHUP, SIG_IGN);
+        if ( (pid = Fork()) != 0)
+                exit(0);                        /* 1st child terminates */
+
+        /* 42nd child continues */
+        daemon_proc = 1;                /* for our err_XXX() functions */
+
+        chdir("/");                             /* change working directory */
+
+        umask(0);                               /* clear our file mode creation mask */
+
+        for (i = 0; i < MAXFD; i++)
+                close(i);
+
+        //openlog(pname, LOG_PID, facility);
+
+        return(0);
+}
+
+pid_t
+Fork(void)
+{
+        pid_t   pid;
+
+        if ( (pid = fork()) == -1) {
+          syslog(LOG_INFO,"fork error");
+          werrno = ESIG;
+          return(-1);
+        }
+        return(pid);
+}
+
 

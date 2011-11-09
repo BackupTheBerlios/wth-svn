@@ -68,7 +68,7 @@
     create table sensornames
     (
       sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      sensorname VARCHAR(255) NOT NULL,
+      sensor_name VARCHAR(255) NOT NULL,
       description VARCHAR(255) NOT NULL
     );
 
@@ -88,7 +88,9 @@
     (
       parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       parameter_name VARCHAR(64) NOT NULL,
-      parameter_unit VARCHAR(64) NOT NULL
+      unit VARCHAR(64) NOT NULL,
+      gain FLOAT NOT NULL,
+      offset FLOAT NOT NULL
     );
 
 --
@@ -109,14 +111,14 @@
 --
 -- table parameternames will not change (WS2000 can't do more)
 --
-INSERT INTO parameternames VALUES ('1','Temperature','°C');
-INSERT INTO parameternames VALUES ('2','Relative Humidity','%');
-INSERT INTO parameternames VALUES ('3','Precipitation','mm/m²');
-INSERT INTO parameternames VALUES ('4','Windspeed','m/s');
-INSERT INTO parameternames VALUES ('5','Winddrct Variance','°');
-INSERT INTO parameternames VALUES ('6','Winddirection','°');
-INSERT INTO parameternames VALUES ('7','Pressure','hPa');
-INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm/h');
+INSERT INTO parameternames VALUES ('1','Temperature','°C', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('2','Relative Humidity','%', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('3','Precipitation','mm/m²', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('4','Windspeed','m/s', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('5','Winddrct Variance','°', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('6','Winddirection','°', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('7','Pressure','hPa', 1.0, 0.0);
+INSERT INTO parameternames VALUES ('8','Precpt. Intensity','mm/h', 1.0, 0.0);
 
   --
   -- table sensornames will not change (WS2000 can't do more)

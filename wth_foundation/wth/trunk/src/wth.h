@@ -13,7 +13,7 @@
    $Id$
    $Revision$
 
-   Copyright 2009,2010 Volker Jahns, <volker@thalreit.de>
+   Copyright 2009-2011 Volker Jahns, <volker@thalreit.de>
  
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,9 +33,9 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
-#include <netdb.h>
-#include <poll.h>	/* for convenience */
+//#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
+//#include <netdb.h>
+//#include <poll.h>	/* for convenience */
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -82,10 +82,10 @@
 #define UMBAUDRATE  2400
 
 /* from unp.h */
-#define LISTENQ     1024    /* 2nd argument to listen() */
+//#define LISTENQ     1024    /* 2nd argument to listen() */
 
 /* Following shortens all the type casts of pointer arguments */
-#define	SA	     struct sockaddr
+//#define	SA	     struct sockaddr
 #define max(a,b)     ((a) > (b) ? (a) : (b))
 
 #define WS2000LOCK "/tmp/LCK...wth";
@@ -176,6 +176,19 @@ typedef struct sensdevpar {
   float offset;
   float gain;
 } sensdevpar_t;
+
+typedef struct sensorinfo {
+  int sensor_no;
+  char sensor_name[TBUFF+1];
+  int parameter_no;
+  char parameter_name[TBUFF+1];
+  int sensor_meas_no;
+  char devicetyp[TBUFF+1];
+  char familycode[TBUFF+1];
+  char serialnum[TBUFF+1];
+  float offset;
+  float gain;
+} sensorinfo_t;
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval WS2000 PC interface */
@@ -312,27 +325,13 @@ int readconfig();
 char *echoconfig( char *station);
 Sigfunc *signal(int signo, Sigfunc *func);
 void *signal_hd( void *arg);
-
-extern int Socket(int, int, int); 
-ssize_t Read(int, void *, size_t); 
-int Write(int, void *, size_t);   
-int Accept(int, SA *, socklen_t *);
-int Bind(int, const SA *, socklen_t);
-int Listen(int, int); 
-int Close(int); 
-pid_t Fork(void); 
-int Setsockopt(int, int, int, const void *, socklen_t); 
-int Writen(int, void *, size_t);  
-const char *inet_ntop(int, const void *, char *, size_t);
-int inet_pton(int, const char *, void *); 
-int daemon_init( );
+pid_t Fork(void);
+int daemon_init(void );
 
 void *pcwsr_hd( void *arg);
 void *ws2000_hd( void *arg);
 void *onewire_hd( void *arg);
 void *wmr9x8_hd( void *arg);
-//void *cmd_hd( void *arg);
-//int docmd( int sockfd);
 
 int demasq( unsigned char *data, int *mdat);
 int chkframe( unsigned char *data, int *mdat);
@@ -349,14 +348,6 @@ int readdata( int fd, unsigned char *data, int *ndat);
 ws2000key_t *c( int n);
 int wstrlen( unsigned char *s);
 
-//char *tnstat( char *station);
-//char *tnusage (int exitcode, char *error, char *addl);
-//char *helpread (int exitcode, char *error, char *addl);
-//char *tnhelp( char *args);
-//char *execmd( char *args);
-//char *showcmd( char *args);
-//char *initcmd (char *args);
-
 /* sqlite database functions */
 int datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
@@ -365,6 +356,10 @@ int newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *ws2000db );
+int get_sensor_meas_no( char *sensorname, char*parameter_name, char *serialnum, 
+      char *wstation);
+sensorinfo_t get_sensorinfo( int sensor_meas_no, char *wstation);
+
 int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
 int sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
 char *readdb( char *wstation);

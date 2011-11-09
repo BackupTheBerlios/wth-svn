@@ -26,7 +26,7 @@
 --
 -- 1-Wire database schema
 -- 
--- Table sensorname
+-- Table sensornames
 -- -----------------
 -- contains name and serial number of sensor
 -- 

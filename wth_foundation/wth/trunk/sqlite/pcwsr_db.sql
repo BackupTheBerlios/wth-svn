@@ -30,7 +30,7 @@ create table
 sensornames
 (
   sensor_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  sensorname VARCHAR(255) NOT NULL,
+  sensor_name VARCHAR(255) NOT NULL,
   address INTEGER NOT NULL,
   version VARCHAR(8) NOT NULL,
   description VARCHAR(255) NOT NULL

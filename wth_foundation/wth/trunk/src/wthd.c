@@ -154,5 +154,15 @@ main ( int argc, char **argv )
   } else { syslog(LOG_INFO,"wthd: no ULTIMETER port configured\n"); }
 
 
+  for(;;) { sleep(120); continue;}
+  if ( strncmp( pcwsrstation.config.device, "/dev/", 5) == 0) {
+    pthread_join( ptid, NULL);
+  }
+  if ( strncmp( ws2000station.config.device, "/dev/", 5) == 0) {
+    pthread_join( wtid, NULL);
+  }
+  if ( strncmp( onewirestation.config.device, "/dev/", 5) == 0) {
+    pthread_join( owtid, NULL);
+  }
   exit(0);
 }
