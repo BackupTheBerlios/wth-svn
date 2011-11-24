@@ -160,12 +160,6 @@ typedef struct threadinfo {
 
 thread_info_t pthread_info;
 
-typedef struct senspar {
-  int sensor_no;
-  char *sensor_name;
-  char *par_name;
-} senspar_t;
-
 typedef struct sensdevpar {
   int sensor_meas_no;
   char sensorname[TBUFF+1];
@@ -176,19 +170,6 @@ typedef struct sensdevpar {
   float offset;
   float gain;
 } sensdevpar_t;
-
-typedef struct sensorinfo {
-  int sensor_no;
-  char sensor_name[TBUFF+1];
-  int parameter_no;
-  char parameter_name[TBUFF+1];
-  int sensor_meas_no;
-  char devicetyp[TBUFF+1];
-  char familycode[TBUFF+1];
-  char serialnum[TBUFF+1];
-  float offset;
-  float gain;
-} sensorinfo_t;
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval WS2000 PC interface */
@@ -351,40 +332,30 @@ int wstrlen( unsigned char *s);
 /* sqlite database functions */
 int datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
-int statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
-int newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db);
+int stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
+int new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *ws2000db );
-int get_sensor_meas_no( char *sensorname, char*parameter_name, char *serialnum, 
-      char *wstation);
-sensorinfo_t get_sensorinfo( int sensor_meas_no, char *wstation);
-
-int senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb);
-int sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
-char *readdb( char *wstation);
-int issens( int sensor_no, sqlite3 *ws2000db);
+int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
+int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-char *readstat( char *wstation);
 int maxsensmeas( sqlite3 *onewiredb);
 int isdefined_sqlite( void );
 
 /* pgsql database functions */
 int pg_datadb( long dataset_date, int sensor_param, float meas_value,
   PGconn *pg_conn);
-int pg_statdb( int sensor_status[], time_t statusset_date, PGconn *pg_conn);
-int pg_newdb( long statusset_date, int sensor_no, int new_flag, PGconn *pg_conn);
+int pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn);
+int pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, PGconn *pg_conn);
 int pg_writedb( int sensor_no, int nval, int sensor_meas_no[], 
   time_t dataset_date, float meas_value[], PGconn *pg_conn );
-int pg_senspardb( int sensor_meas_no, senspar_t *sspar, PGconn *pg_conn);
-int pg_sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp,
+int pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp,
   PGconn *pg_conn);
-char *pg_readdb( char *wstation);
-int pg_issens( int sensor_no, PGconn *pg_conn);
+int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
   int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-char *pg_readstat( char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
 int isdefined_pgsql( void );
 

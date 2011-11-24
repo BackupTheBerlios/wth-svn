@@ -1,0 +1,141 @@
+#!/usr/bin/perl
+#
+###  check_wth
+# Nagios plugin to check wth status
+#
+
+use strict;
+use warnings;
+use DBI;
+use File::Basename;
+use Nagios::Plugin;
+
+use vars qw($VERSION $PROGNAME  $verbose $warn $critical $timeout $result);
+
+my %dbfile = (
+  'WS2000'  => '/proj/wetter/logs/ws2000_prod/ws2000.db',
+  'PCWSR'   => '/proj/wetter/logs/pcwsr/pcwsr.db',
+  '1WIRE' => '/proj/wetter/logs/onewire/onewire.db',
+  'WMR'     => '/proj/wetter/logs/wmr9x8/wmr9x8.db',
+  'UMETER'  => '/proj/wetter/logs/umeter/umeter.db'
+);
+
+my $sql = "select distinct last_update from sensorupdate where last_update = ( select max(last_update) from sensorupdate)";
+my $sth;
+my $currenttime = time();
+my $lastupdate;
+my $result;
+my @station = ( 'WS2000', 'PCWSR', '1WIRE', 'WMR', 'UMETER');
+my $wstation = "WS2000";
+
+$VERSION = '1.0';
+$PROGNAME = basename($0);
+
+my $np = Nagios::Plugin->new(
+    usage => "Usage: %s [ -v|--verbose ]  [-H <host>] [-t <timeout>]
+    [ -c|--critical=<critical threshold> ] 
+    [ -w|--warning=<warning threshold> ]  
+    [ -W|--weatherstation = <STRING> ]",
+    version => $VERSION,
+    blurb => 'Nagios plugin to check wth status',
+	extra => "
+
+THRESHOLDs for -w and -c are specified 'min:max' or 'min:' or ':max'
+(or 'max'). If specified '\@min:max', a warning status will be generated
+if the count *is* inside the specified range.
+
+See more threshold examples at http
+  : // nagiosplug
+  . sourceforge
+  . net / developer-guidelines
+  . html    #THRESHOLDFORMAT
+
+  Examples:
+
+  $PROGNAME -w 10 -c 18 Returns a warning
+  if the resulting number is greater than 10,
+  or a critical error
+  if it is greater than 18.
+
+  $PROGNAME -w 10 : -c 4 : Returns a warning
+  if the resulting number is less than 10,
+  or a critical error
+  if it is less than 4.
+
+  "
+);
+
+
+# usage, help, version, timeout and verbose are defined by default.
+
+$np->add_arg(
+	spec => 'warning|w=s',
+
+	help => 
+qq{-w, --warning=INTEGER:INTEGER
+   Minimum and maximum number of allowable result, outside of which a
+   warning will be generated.  If omitted, no warning is generated.},
+
+#	required => 1,
+#	default => 10,
+);
+
+$np->add_arg(
+	spec => 'critical|c=s',
+	help => 
+qq{-c, --critical=INTEGER:INTEGER
+   Minimum and maximum number of the generated result, outside of
+   which a critical will be generated. },
+);
+
+$np->add_arg(
+	spec => 'weatherstation|W=s',
+	help => 
+qq{-W, --weatherstation=STRING
+   Specify the weatherstation on the command line.},
+);
+
+# Parse arguments and process standard ones (e.g. usage, help, version)
+$np->getopts;
+
+
+# perform sanity checking on command line options
+if ( defined $np->opts->weatherstation) {
+  $wstation = $np->opts->weatherstation;
+  if ( ! grep( /^$wstation$/, @station ) ) {
+    $np->nagios_die( " invalid weatherstation value supplied for the -W option " );
+  }
+}
+
+unless ( defined $np->opts->warning || defined $np->opts->critical ) {
+	$np->nagios_die( " you didn't supply a threshold argument " );
+}
+
+# result - read last_update of windsensor
+if ( ! -r $dbfile{$wstation}) {
+  $np->nagios_exit( CRITICAL, "database file not readable");
+}
+
+my $dbh = DBI->connect("dbi:SQLite:dbname=$dbfile{$wstation}","","", { PrintError => 0});
+if (! defined $dbh) {
+  $np->nagios_exit( CRITICAL, "database connection failure");
+}
+
+$sth = $dbh->prepare( $sql);
+if (! defined $sth) {
+  $np->nagios_exit( CRITICAL, "database statement failure");
+}
+
+$sth->execute();
+( $lastupdate) = $sth->fetchrow_array();
+
+$result = int( ( $currenttime - $lastupdate) /3600 + 0.5);
+
+##############################################################################
+# check the result against the defined warning and critical thresholds,
+# output the result and exit
+$np->nagios_exit( 
+	 return_code => $np->check_threshold($result), 
+	 message => " age of last station data = $result hr  " 
+);
+

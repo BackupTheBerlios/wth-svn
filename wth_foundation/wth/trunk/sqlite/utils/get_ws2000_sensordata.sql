@@ -1,8 +1,8 @@
 SELECT DISTINCT 
-  sensornames.sensorname,sensordata.sensor_meas_no,
+  sensornames.sensor_name,sensordata.sensor_meas_no,
   parameternames.parameter_name,
   sensorupdate.last_update, sensordata.meas_value,
-  parameternames.parameter_unit 
+  parameternames.unit 
 FROM  
   sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
 WHERE sensorupdate.last_update = sensordata.dataset_date 

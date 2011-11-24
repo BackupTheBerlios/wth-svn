@@ -28,7 +28,7 @@
 #include <sys/resource.h>
 
 /*
-  datadb - insert measured values 
+  datadb - insert measured data values 
            for use in WS2000, PCWSR and 1-wire database
 
 */
@@ -67,11 +67,11 @@ datadb( long dataset_date, int sensor_meas_no, float meas_value,
 
 
 /*
-  statdb - insert status values
+  stat_ws2000db - insert status values of WS2000 sensors
 
 */
 int
-statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db) 
+stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db) 
 {
   int i, err;
   int querylen = MAXQUERYLEN;
@@ -89,13 +89,12 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db)
     }
 
   }
-
   return(err);
 }
 
 
 /*
-  newdb - insert new flag values
+  new_ws2000db - insert new flag values
 
   new flag is read which each datarecord read command ( 1 2)
   status value is read with status command ( 5)
@@ -107,7 +106,7 @@ statdb( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db)
 
 */
 int
-newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db) 
+new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db) 
 {
   int err = 0;
   int querylen = MAXQUERYLEN;
@@ -116,11 +115,11 @@ newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db)
   snprintf(query, querylen, 
 	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
 	   new_flag, sensor_no, sensor_no); 
-  syslog(LOG_DEBUG, "newdb: query: %s", query);
+  syslog(LOG_DEBUG, "new_ws2000db: query: %s", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_ALERT,
-	   "newdb: error: insert sensor status: err: %d", err);
+	   "new_ws2000db: error: insert sensor status: err: %d", err);
   }
 
   return(err);
@@ -128,263 +127,8 @@ newdb( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db)
 
 
 /*
-  senspardb - retrieve sensor number and parameter name
-*/
-int
-senspardb( int sensor_meas_no, senspar_t *sspar, sqlite3 *wthdb)
-{
-  int err, rowcnt;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-
-  snprintf(query, SBUFF, 
-    "SELECT sp.sensor_no, sn.sensor_name, pn.parameter_name "
-    "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
-    "AS pn WHERE sp.parameter_no = pn.parameter_no "
-    "AND sp.sensor_no = sn.sensor_no AND sp.sensor_meas_no = %d", 
-    sensor_meas_no);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	    err, sqlite3_errmsg(wthdb));
-    return(1);
-  }
-
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d",
-	   sensor_meas_no, sqlite3_column_int(qcomp, 0));
-    syslog(LOG_DEBUG, "senspardb  : sensorname: %s : parametername: %s",
-	   (char *)sqlite3_column_text(qcomp, 1), (char *)sqlite3_column_text(qcomp, 2));
-    sspar->sensor_no   = sqlite3_column_int(qcomp,0); 
-    sspar->sensor_name = malloc(sizeof(char)*TBUFF+1); 
-    sspar->par_name    = malloc(sizeof(char)*TBUFF+1);
-    strncpy(sspar->sensor_name, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
-    strncpy(sspar->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);  
-    rowcnt++;
-  }
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	    err, sqlite3_errmsg(wthdb));
-    return(1);
-  }
-  if ( rowcnt == 0) {
-    syslog( LOG_ALERT, "Error: no configuration data in database");
-    return(1);
-  }
-  return(0);
-}
-
-
-char *
-get_dbfile( char *wstation) {
-  int err;
-  static char dbfile[TBUFF+1];
-
-  if ( ( err = strncmp( wstation,"ws2001",5)) == 0 ) {
-    strncpy( dbfile, ws2000station.config.dbfile, strlen(ws2000station.config.dbfile));
-  } else if ( ( err = strncmp( wstation, "pcwsr", 5)) == 0 ) {
-    strncpy( dbfile, pcwsrstation.config.dbfile, strlen(pcwsrstation.config.dbfile));
-  } else if ( ( err = strncmp( wstation, "onewire", 7)) == 0 ) {
-    strncpy( dbfile, onewirestation.config.dbfile, strlen(onewirestation.config.dbfile));
-  } else if ( ( err = strncmp( wstation, "wmr9x8", 6)) == 0 ) {
-    strncpy( dbfile, wmr9x8station.config.dbfile, strlen(wmr9x8station.config.dbfile));
-  } else if ( ( err = strncmp( wstation, "umeter", 6)) == 0 ) {
-    strncpy( dbfile, umeterstation.config.dbfile, strlen(umeterstation.config.dbfile));
-  } else {
-    strncpy(dbfile, "\0", 1); 
-  }
-
-  return(dbfile);
-}
-
-/*
-  get_sensor_meas_no
-
-  retrieve sensor_meas_no from sensorname and parametername ( and serialnum)
-
-  input parameters
-    sensor_name     - required
-    parameter_name  - required
-    serialnum       - optional, necessary for 1-wire device
-
-  output parameters
-    sensor_meas_no  - value of database
-                    - -255 if error has occurred
-*/
-int
-get_sensor_meas_no( char *sensor_name, char *parameter_name, char *serialnum,
-  char *wstation) 
-{
-  int p_sensor_meas_no = -255;
-  int err, rowcnt;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-  sqlite3 *wthdb;
-  char *dbfile;
-
-  if ( parameter_name == NULL ) {
-    syslog(LOG_ERR, 
-      "get_sensor_meas_no: parameter_name must not be NULL");
-    return(p_sensor_meas_no);
-  }
-
-  dbfile = get_dbfile( wstation);
-  err = sqlite3_open( dbfile, &wthdb);
-  if ( err) {
-    syslog( LOG_ALERT, "get_sensor_meas_no: failed to open database %s.\n",
-          ws2000station.config.dbfile);
-    return (p_sensor_meas_no);
-  } 
-
-  /* only 1-wire devices have serialnum */
-  if ( serialnum != NULL ) {
-    snprintf(query, SBUFF, 
-      "SELECT sp.sensor_meas_no "
-      "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn, devicetyp AS dt "
-      "WHERE sp.parameter_no = pn.parameter_no "
-      "AND sp.sensor_no = sn.sensor_no "
-      "AND sp.device_no = dt.device_no "
-      "AND dt.serialnum = '%s' " 
-      "AND pn.parameter_name = '%s' "
-      "AND sn.sensor_name = '%s' ", 
-    serialnum, parameter_name, sensor_name);
-  /* handle other weatherstation devices */
-  } else { 
-    snprintf(query, SBUFF, 
-      "SELECT sp.sensor_meas_no "
-      "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn "
-      "WHERE sp.parameter_no = pn.parameter_no "
-      "AND sp.sensor_no = sn.sensor_no "
-      "AND pn.parameter_name = '%s' "
-      "AND sn.sensor_name = '%s' ", 
-    parameter_name, sensor_name);
-  }
-
-  syslog(LOG_DEBUG, "get_sensor_meas_no: sensor_meas_no SELECT: %s", query);
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-      "get_sensor_meas_no: error: select sensor_meas_no: err: %d", err);
-    return(p_sensor_meas_no);
-  }
-
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    p_sensor_meas_no = sqlite3_column_int(qcomp, 0);
-    rowcnt++;
-  }
-  if ( rowcnt != 1) {
-    syslog( LOG_ALERT, 
-      "get_sensor_meas_no: error: configuration data in database");
-    p_sensor_meas_no = -255; return(p_sensor_meas_no);
-  }
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT, "get_sensor_meas_no: err: %d", err);
-    p_sensor_meas_no = -255; return(p_sensor_meas_no);
-  }
-  sqlite3_close( wthdb);
-  return(p_sensor_meas_no);
-}
-
-/*
-  get_sensorinfo
-
-  retrieve sensorinfo datastructure
-
-  needs 
-    sensor_meas_no
-    wstation
-
-  returns 
-    struct snesorinfo_t
-
-*/
-sensorinfo_t 
-get_sensorinfo( int sensor_meas_no, char *wstation)
-{
-  static sensorinfo_t devinfo;
-  int err, rowcnt;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-  sqlite3 *wthdb;
-  char *dbfile;
-
-  dbfile = get_dbfile( wstation);
-  err = sqlite3_open( dbfile, &wthdb);
-  if ( err) {
-    syslog( LOG_ALERT, "get_sensor_meas_no: failed to open database %s.\n",
-          ws2000station.config.dbfile);
-    return (devinfo);
-  } 
-
-  if ( strncmp( wstation, "onewire", 6) == 0 ) {
-    snprintf(query, SBUFF, 
-      "SELECT sp.sensor_no, sn.sensor_name, "
-      "pn.parameter_no, pn.parameter_name, pn.gain, pn.offset, "
-      "dt.device_no, dt.devicetyp, dt.familycode, dt.serialnum "
-      "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
-      "AS pn, devicetyp AS dt "
-      "WHERE sp.parameter_no = pn.parameter_no "
-      "AND sp.sensor_no = sn.sensor_no " 
-      "AND sp.device_no = dt.device_no "
-      "AND sp.sensor_meas_no = %d", 
-      sensor_meas_no);
-  } else {
-    snprintf(query, SBUFF, 
-      "SELECT sp.sensor_no, sn.sensor_name, pn.parameter_no, pn.parameter_name, "
-      "pn.gain, pn.offset "
-      "FROM sensorparameters AS sp, sensornames AS sn, parameternames "
-      "AS pn WHERE sp.parameter_no = pn.parameter_no "
-      "AND sp.sensor_no = sn.sensor_no " 
-      "AND sp.sensor_meas_no = %d", 
-      sensor_meas_no);
-  }
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	    err, sqlite3_errmsg(wthdb));
-    return(devinfo);
-  }
-
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "senspardb  : sensor_meas_no: %d : sensor_no: %d",
-	   sensor_meas_no, sqlite3_column_int(qcomp, 0));
-    syslog(LOG_DEBUG, "senspardb  : sensorname: %s : parametername: %s",
-	   (char *)sqlite3_column_text(qcomp, 1), (char *)sqlite3_column_text(qcomp, 2));
-    devinfo.sensor_no       = sqlite3_column_int(qcomp,0); 
-    strncpy(devinfo.sensor_name, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
-    devinfo.parameter_no    = sqlite3_column_int(qcomp, 2);
-    strncpy(devinfo.parameter_name, (char *)sqlite3_column_text(qcomp,3), TBUFF);  
-    devinfo.sensor_meas_no  = sensor_meas_no;
-    devinfo.gain            = (float)sqlite3_column_double(qcomp,4);
-    devinfo.offset          = (float)sqlite3_column_double(qcomp,5);
-
-    rowcnt++;
-  }
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-	    "Error: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	    err, sqlite3_errmsg(wthdb));
-    return(devinfo);
-  }
-  if ( rowcnt == 0) {
-    syslog( LOG_ALERT, "Error: no configuration data in database");
-    return(devinfo);
-  }
-  return(devinfo);
-}
-
-/*
-  sensdevpar - retrieve
+  get_onewireinfo - 
+  read
     sensor_meas_no,
     sensor_name,
     parameter_name,
@@ -397,7 +141,7 @@ get_sensorinfo( int sensor_meas_no, char *wstation)
   returns these data in structure ssdp
 */
 int
-sensdevpar( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
+get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
 {
   int err, rowcnt;
   char query[SBUFF+1];
@@ -471,258 +215,16 @@ writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
   return(err);
 }
 
-/*
-  read sensor data
-*/
-char *
-readdb( char *wstation) {
-  int err;
-  static char rbuf[NBUFF+1];;
-  char s[TBUFF+1], buf[TBUFF+1], query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-  struct tm *tm;
-  time_t meastim;
-
-  //snprintf(rbuf, NBUFF, "");
-  memset(rbuf, 0, NBUFF);
-  /* ---------------------------------- */
-  /* read data of ws2000 weatherstation */
-  /* ---------------------------------- */
-  if ( ( err = strncmp( wstation,"ws2000",5)) == 0 ) {
-    /* open sqlite db file */
-    err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
-    if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s.\n", 
-	    ws2000station.config.dbfile);
-      return (NULL);
-    } else {
-      syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
-    }
-
-    snprintf( query, SBUFF, 
-      "SELECT DISTINCT sensornames.sensor_name,parameternames.parameter_name, "
-      "sensorupdate.last_update, sensordata.meas_value, "
-      "parameternames.unit "
-      "FROM " 
-        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
-      "WHERE sensorupdate.last_update = sensordata.dataset_date "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
-      "AND "
-        "sensornames.sensor_no = sensorparameters.sensor_no "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
-      "AND "
-        "parameternames.parameter_no = sensorparameters.parameter_no"
-      );
-    err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
-    if ( err != SQLITE_OK ) {
-      snprintf( rbuf, TBUFF, 
-        "Error: readdb: select ws2000 data: err: %d", err);
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf( rbuf, TBUFF, "database error: please check installation\n");
-      return(rbuf);
-    }
-
-    while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      meastim = (time_t )sqlite3_column_int( qcomp, 2); 
-      tm = gmtime(&meastim);
-      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-      snprintf(s, SBUFF, "%-12s %-18s %8.2f %-8s %-12s\n",
-	(char *)sqlite3_column_text( qcomp, 0),
-        (char *)sqlite3_column_text( qcomp, 1),
-        (float)sqlite3_column_double( qcomp, 3),
-        (char *)sqlite3_column_text( qcomp, 4),
-        buf
-      );
-      strncat(rbuf,s,strlen(s));
-    }
-    err = sqlite3_finalize(qcomp);
-    if ( err != SQLITE_OK ) {
-      snprintf(rbuf, TBUFF, 
-        "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	err, sqlite3_errmsg(ws2000db));
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf(rbuf, TBUFF, "database error: please check installation\n");
-      return(rbuf);
-    }
-
-    /* cleanup and close */
-    sqlite3_close( ws2000db);
-    syslog(LOG_DEBUG,"readdb: sqlite3_close ws2000db done\n");
-
-  /* --------------------------------- */
-  /* read data of pcwsr weatherstation */      
-  /* --------------------------------- */
-  } else if ( ( err = strncmp( wstation,"pcwsr",5)) == 0 ) {
-    printf("readdb: pcwsr : %s\n", wstation);
-    /* open sqlite db file */
-    err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb);
-    syslog(LOG_DEBUG, 
-	 "readdb: sqlite3_open %s return value: %d", 
-	 pcwsrstation.config.dbfile,
-	 err);
-    if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s.", 
-	    pcwsrstation.config.dbfile);
-      return (NULL);
-    } else {
-      syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
-    }
-
-    snprintf( query, SBUFF, 
-      "SELECT DISTINCT sensornames.sensor_name, sensornames.sensor_no, "
-      "parameternames.parameter_name, "
-      "sensorupdate.last_update, sensordata.meas_value, "
-      "parameternames.unit "
-      "FROM " 
-        "sensorupdate, sensordata,sensornames,sensorparameters,parameternames "
-      "WHERE sensorupdate.last_update = sensordata.dataset_date "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
-      "AND "
-        "sensornames.sensor_no = sensorparameters.sensor_no "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no "
-      "AND "
-        "parameternames.parameter_no = sensorparameters.parameter_no"
-      );
-    err = sqlite3_prepare( pcwsrdb, query, -1, &qcomp, 0); 
-    if ( err != SQLITE_OK ) {
-      snprintf( rbuf, TBUFF,
-        "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
-        err, sqlite3_errmsg(pcwsrdb));
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf( rbuf, TBUFF, "database error: please check installation\n");
-      return(rbuf);
-    }
-
-    snprintf( s, TBUFF, 
-      "    sensorname parameter             value unit     dataset date\n"
-      "-------------- -----------   ------------- -------- -------------------------\n");
-    strncat(rbuf, s, strlen(s));
-    while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      meastim = (time_t )sqlite3_column_int( qcomp, 3); 
-      tm = gmtime(&meastim);
-      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-      snprintf( s, TBUFF, "%15s%d %-18s %8.2f %-8s %-12s\n",
-	(char *)sqlite3_column_text( qcomp, 0),
-        (int)sqlite3_column_int( qcomp, 1),
-        (char *)sqlite3_column_text( qcomp, 2),
-        (float)sqlite3_column_double( qcomp, 4),
-        (char *)sqlite3_column_text( qcomp, 5),
-        buf
-      );
-      strncat(rbuf,s,strlen(s));
-    }
-    err = sqlite3_finalize(qcomp);
-    if ( err != SQLITE_OK ) {
-      snprintf( rbuf, TBUFF, 
-        "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	err, sqlite3_errmsg(pcwsrdb));
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf( rbuf, TBUFF, "database error: please check installation");
-      return(rbuf);
-    }
-
-    /* cleanup and close */
-    sqlite3_close( pcwsrdb);
-    syslog(LOG_DEBUG,"readdb: sqlite3_close pcwsrdb done\n");      
-
-  /* ----------------------------------- */
-  /* read data of onewire weatherstation */
-  /* ----------------------------------- */
-  } else if ( ( err = strncmp( wstation,"onewire",5)) == 0 ) {
-
-    printf("readdb: onewire : %s\n", wstation);
-    /* open sqlite db file */
-    err = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
-    syslog(LOG_DEBUG, 
-	 "readdb: sqlite3_open %s return value: %d", 
-	 onewirestation.config.dbfile, err);
-    if ( err) {
-      syslog( LOG_ALERT, "readdb: failed to open database %s.", 
-	    onewirestation.config.dbfile);
-      return (NULL);
-    } else {
-      syslog(LOG_DEBUG, "readdb: sqlite3_open: OK\n");
-    }
-
-    snprintf( query, SBUFF, 
-      "SELECT DISTINCT sensorname.sensor_name, sensorname.sensor_no, "
-      "parametername.parameter_name, "
-      "sensorupdate.last_update, sensordata.meas_value, "
-      "parametername.unit "
-      "FROM " 
-        "sensorupdate, sensordata,sensorname,sensordevparameters,parametername "
-      "WHERE sensorupdate.last_update = sensordata.dataset_date "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensordata.sensor_meas_no "
-      "AND "
-        "sensorname.sensor_no = sensordevparameters.sensor_no "
-      "AND "
-        "sensorupdate.sensor_meas_no = sensordevparameters.sensor_meas_no "
-      "AND "
-        "parametername.parameter_no = sensordevparameters.parameter_no"
-      );
-    err = sqlite3_prepare( onewiredb, query, -1, &qcomp, 0); 
-    if ( err != SQLITE_OK ) {
-      snprintf( rbuf, TBUFF,
-        "Error: readdb: select pcwsr data: err: %d : sqlite_errmsg: %s\n", 
-        err, sqlite3_errmsg(onewiredb));
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf( rbuf, TBUFF, "database error: please check installation");
-      return(rbuf);
-    }
-
-    snprintf( s, TBUFF, 
-      "      sensorname parameter             value unit     dataset date\n"
-      "---------------- -----------   ------------- -------- -------------------------\n");
-    strncat(rbuf, s, strlen(s));
-    while( SQLITE_ROW == sqlite3_step(qcomp)) {
-      meastim = (time_t )sqlite3_column_int( qcomp, 3); 
-      tm = gmtime(&meastim);
-      strftime(buf, sizeof(buf), "%b %e, %Y %H:%M:%S %Z", tm);
-      snprintf( s, TBUFF, " %15s %-18s %8.2f %-8s %-12s\n",
-	(char *)sqlite3_column_text( qcomp, 0),
-        (char *)sqlite3_column_text( qcomp, 2),
-        (float)sqlite3_column_double( qcomp, 4),
-        (char *)sqlite3_column_text( qcomp, 5),
-        buf
-      );
-      strncat(rbuf,s,strlen(s));
-    }
-
-    err = sqlite3_finalize(qcomp);
-    if ( err != SQLITE_OK ) {
-      snprintf( rbuf, TBUFF, 
-        "Error: readdb: select parametername: err: %d : sqlite_errmsg: %s\n", 
-	err, sqlite3_errmsg(onewiredb));
-      syslog( LOG_ALERT, "%s", rbuf);
-      snprintf( rbuf, TBUFF, "database error: please check installation");
-      return(rbuf);
-    }
-
-    /* cleanup and close */
-    sqlite3_close( onewiredb);
-    syslog(LOG_DEBUG,"readdb: sqlite3_close onewiredb done\n");      
-
-  } else {
-      return(NULL);
-  }
-  return(rbuf);
-}
-
 
 /*
-  issens
+  is_ws2000sens
   
   check if status value of sensor is not equal to zero 
-  only works fpr WS2000 weatherstation 
+  only works for WS2000 weatherstation 
   
 */
 int
-issens( int sensor_no, sqlite3 *ws2000db)
+is_ws2000sens( int sensor_no, sqlite3 *ws2000db)
 {
   int err;
   time_t stattim;

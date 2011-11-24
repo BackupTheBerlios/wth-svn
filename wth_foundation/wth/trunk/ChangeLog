@@ -1,5 +1,11 @@
 wth - experimental test release 
 
+- ws2000 switch unit from km/h to m/s
+- added 1Wire support, Ultimeter 2100 support, WMR9x8 support
+- added sqlite support, postgres support
+- telnet access removed
+- rrd logging removed
+
 release 0.5.1
 - information on status, data, configuration and remote execution of ws2000
 commands available at port 2000
