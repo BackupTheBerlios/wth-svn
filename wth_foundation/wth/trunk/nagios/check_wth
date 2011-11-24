@@ -92,7 +92,14 @@ $np->add_arg(
 	spec => 'weatherstation|W=s',
 	help => 
 qq{-W, --weatherstation=STRING
-   Specify the weatherstation on the command line.},
+   Specify the weatherstation on the command line.
+   Supported weatherstations are
+   - WS2000
+   - PCWSR
+   - 1WIRE
+   - WMR
+   - UMETER
+   },
 );
 
 # Parse arguments and process standard ones (e.g. usage, help, version)
