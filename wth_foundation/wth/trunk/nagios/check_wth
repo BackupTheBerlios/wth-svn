@@ -44,12 +44,6 @@ THRESHOLDs for -w and -c are specified 'min:max' or 'min:' or ':max'
 (or 'max'). If specified '\@min:max', a warning status will be generated
 if the count *is* inside the specified range.
 
-See more threshold examples at http
-  : // nagiosplug
-  . sourceforge
-  . net / developer-guidelines
-  . html    #THRESHOLDFORMAT
-
   Examples:
 
   $PROGNAME -w 10 -c 18 Returns a warning

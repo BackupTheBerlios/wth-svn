@@ -1,0 +1,658 @@
+#!/usr/bin/perl -w
+
+#
+# Processing RRD files using RRDs shared perl module
+#
+#use strict;
+use RRDs;
+use File::Touch;
+use Getopt::Long;
+use Image::Magick;
+use Tk;
+use Tk::PNG;
+use Data::Dumper;
+use Env qw(DEBUG);
+use DBI;
+
+my $version = "RRD processing tool - Version 0.0.3\n";
+
+my ( $create, $info, $fetch, $graph, $view, $update, $verbose, $help, $config);
+my ( $sensor, $creatstr, $copt, $ERROR);
+my ( $cfgfile, $ret, $time, $val, $name);
+my $rwidth = 200;
+my $rheight = 200;
+
+#
+# subroutines
+#
+sub
+usage {
+    print "Usage: rrdproc --<option>, where <option> is one of:\n";
+    print "\tgraph:\tcreate some graph images\n";
+    print "\tview:\tdisplay graphs\n";
+    print "\tinfo:\tprint information of rrd data file\n";
+    print "\tcreate:\tcreate rrd file\n";
+    print "\tupdate:\tenter data into  rrd file\n";
+    print "\tverbose:\tshow more information\n";
+    print "\tconfig=<filename>:\tuse <filename> as configuration file\n";
+    print "\thelp:\tprint this help\n";
+    exit 1;
+}
+
+#
+# option --fetch
+#
+sub
+getlast {
+    my $rrdok;
+    my $dsname;
+    my $lasttim;
+    my $lastval;
+    my @retlist;
+
+    my ( $rrd, $gds)  = @_;
+    print "getlast: rrd: $rrd dsname: $gds\n" if ( $DEBUG);
+
+    foreach $sensor ( keys %fetchopts ) {
+        if ( $rrd eq $sensor ) {
+            print "fetch (getlast)\t: sensor valid: $sensor\n" 
+                if ( $DEBUG);
+            $rrdok = 1;
+        }
+    }
+
+    if ( $rrdok) {
+       my @fetchstr = ();
+       push ( @fetchstr, $extraopts{$rrd}->{rrdfile} );
+       foreach my $fopt ( keys %{ $fetchopts{$rrd}} ) {
+            push ( @fetchstr, $fopt);
+            push ( @fetchstr, $fetchopts{$rrd}{$fopt});
+       }
+
+       $#fetchstr = $#fetchstr -1;
+       print "fetch (getlast)\t: fetchstr: @fetchstr\n" if ( $DEBUG);
+
+       my ($sstart,$step,$names,$array) =
+           RRDs::fetch @fetchstr;
+
+       $ERROR = RRDs::error;
+       print "ERROR: < $ERROR >\n" if ( $ERROR);
+
+       my $dsiter = 0;
+       my $dsnum  = 0;
+       foreach $dsrrd (@$names) {
+         print "getlast: DS found: $dsrrd\n" if ( $DEBUG);
+         if ( $dsrrd eq $gds) {
+           $dsnum = $dsiter;
+           $dsname = $dsrrd;
+         }
+         $dsiter++;
+       }
+
+       #
+       # get last entry in rrd and store to $lastval
+       #
+       foreach my $line (@$array){
+         $dsiter = 0;
+         foreach $dsval (@$line) {
+           if ( ( defined $dsval) && ($dsval ne "") && ( $dsiter == $dsnum)) {
+             $lasttim = $sstart;
+             $lastval = $dsval;
+             push (@retlist, $sstart);
+             push (@retlist, $dsval);
+           }
+           $dsiter++;
+         }
+         $sstart += $step;
+       }
+
+       #
+       # no data found
+       #
+       if ( $lastval eq "") {
+         $lasttim= $sstart;
+         $lastval = "NA";
+         push(@retlist, $lasttim);
+         push(@retlist, $lastval);
+       }
+
+       push(@retlist, $dsname);
+    } else {
+        printf "fetch (getlast)\t: Can't find sensor : \"$rrd\"!\n" 
+            if ( $DEBUG);
+        $dsval = "NA";
+        push(@retlist, $dsval);
+    }
+    return wantarray ? @retlist : $retlist[0];
+}
+
+#
+#  option --graph
+#
+sub
+graphrrd {
+    my ( $rrd, $ds) = @_;
+    print "graphrrd: RRD: $rrd Datasource: $ds\n" if ( $DEBUG);
+    my $DAY   = 86400;
+    my $WEEK  = 604800;
+    my $MONTH = 18144000;
+    my $START = -86400;
+
+    my $ERROR;
+
+    my $Logtime;
+    my @graphstr;
+    my $imagefile = $rrd . "_" . $ds . ".png";
+    my $gopt;
+
+    my $rrdok     = 0;
+    my $sensor    = "";
+    my $errortext = "";
+
+    $Logtime = localtime;
+    # check if $rrd is a valid datasource
+    foreach $sensor ( keys %graphopts ) {
+        if ( $rrd eq $sensor ) {
+            $rrdok = 1;
+        }
+    }
+
+    # check if $ds is a valid datasource
+    foreach my $dsname ( keys %{ $graphopts{$rrd}} ) {
+        print "graphrrd: dsname: $dsname\n" if ($DEBUG);
+        if ( $ds eq $dsname ) {
+            print "graphrrd: datasource matches: $ds: OK\n" if ($DEBUG);
+            $rrdok = 1;
+        }
+    }   
+
+
+    if ( $rrdok) {
+        print "graphrrd: sensor: $rrd\n" if ( $DEBUG);
+        @graphstr = ();
+        push( @graphstr, $imagefile);
+        print "graphrrd: graphstr: @graphstr\n" if ( $DEBUG);
+
+        foreach my $gopt ( keys %{ $graphopts{$rrd}{$ds}} ) {
+            print "graphrrd: gopt: $gopt\n" if ( $DEBUG);
+            if ( "$gopt" eq "graphdefs" ) {
+                print "graphrrd: pushing graphdefs\n" if ( $DEBUG);
+		print "graphrrd: graphdefs: @{ $graphopts{$rrd}{$ds}{graphdefs}}\n" if ( $DEBUG);
+		push @graphstr, @{ $graphopts{$rrd}{$ds}{"graphdefs"}};
+	    } else {
+		push ( @graphstr, $gopt);
+		push ( @graphstr, $graphopts{$rrd}{$ds}{$gopt});
+	    }
+            
+        }
+
+        #print "graphrrd: graphdefs: $graphdefs{Pressure}[0]\n" if ( $DEBUG);
+        #push ( @graphstr, @{ $graphdefs{$ds}});
+
+        print "graphrrd: graphstr: @graphstr\n" if ( $DEBUG);
+        RRDs::graph @graphstr;
+
+        if ($ERROR = RRDs::error) {
+            $errortext = "RRDs ERROR:\n$ERROR";
+            print "ERROR: $ERROR\n";
+        } else {
+            open(FH,"<$imagefile");
+            my $file = <FH>;
+            close FH;
+        }
+    } else {
+        $errortext = "Can't find sensor : \"$rrd\"!";
+        print "graphrrd: errortext: $errortext\n" if ( $DEBUG);
+        return(-1);
+    }
+
+    # return image containing error text
+    if ( $errortext ne "" ) {
+        my $image = Image::Magick->new;
+        $image->Set(size=>'300x100');
+        $image->ReadImage('xc:white');
+        $image->Annotate( pointsize => 18, gravity=>'Center',
+                          text=>$errortext);
+        $image->Write($imagefile);
+
+        open(FH,"<$imagefile");
+        undef $/;
+        my $file = <FH>;
+        #unlink ($imagefile);
+    }
+    return(0);
+}
+
+#
+# main
+#
+
+# prevent multiple execution
+#$lockfile = "/tmp/rrdproc..lck";
+#@lckf = ( $lockfile);
+#touch(@lckf);
+#
+#open (LH, $lockfile)
+#  or die "Error: can't open lockfile $lockfile";
+#$pid=<LH>;
+#close LH;
+#$stat=kill 0, $pid ;
+#chomp $stat;
+#chomp $pid;
+#if ($stat and $pid) {
+# print  "Warn: exiting because $pid exists\n";
+# exit 1;
+#}
+#open (LH, ">/tmp/rrdproc..lck");
+#print LH "$$\n";
+#close LH;
+
+if ( $#ARGV == -1 ) {
+  usage();
+}
+
+GetOptions( "create"   => \$create,
+            "info"     => \$info,
+            "fetch"    => \$fetch,
+            "graph"    => \$graph,
+            "view"     => \$view,
+            "update"   => \$update,
+            "verbose"  => \$verbose,
+            "config=s" => \$config,
+            "help"     => \$help,
+          );
+
+#
+# read configuration file
+#
+if ($config) {
+  $cfgfile = $config;
+} else {
+  $cfgfile = "rrdproc.conf";
+}
+if ( ! -r $cfgfile ) {
+  print "Error: configuration file $cfgfile is not readable: exit\n";
+  exit 1;
+}
+
+unless ($ret = do $cfgfile) {
+    warn "Couldn't parse $cfgfile: $@"         if $@;
+    warn "Couldn't do $cfgfile: $!"            unless defined $ret;
+    warn "Couldn't run $cfgfile"               unless $ret;
+    print "Please check config file \"$cfgfile\"\n";
+    exit -1;
+}
+
+
+if ( $ENV{DEBUG} ) {
+    if ( $ENV{DEBUG} == 1) {
+        $DEBUG =1;
+    }
+}
+
+#
+# Go, create these rrd's
+#
+if ( $create) {
+NEXTSENSOR:  foreach $sensor ( @Sensors ) {
+        @creatstr = ();
+        my $numkeys = keys % { $createopts{$sensor}} ;
+        if ( $numkeys == 0 ) {
+          print "Create options missing for sensor: $sensor\n";
+          print "Please check rrdproc.conf!\n";
+          next NEXTSENSOR;
+        }
+        foreach $copt ( keys %{ $createopts{$sensor}} ) {
+          push ( @creatstr, $copt);
+          push ( @creatstr, $createopts{$sensor}{$copt});
+        }
+        if ( !defined $createdefs{$sensor}) {
+          print "Create definitions missing for sensor: $sensor\n";
+          print "Please check rrdproc.conf!\n";
+          next NEXTSENSOR;
+        } else {
+          push ( @creatstr, @{ $createdefs{$sensor}}) 
+        }
+        print "Creating rrd $extraopts{$sensor}->{rrdfile}\n";
+        RRDs::create  $extraopts{$sensor}->{rrdfile}, @creatstr;
+        $ERROR = RRDs::error;
+        print "errorcode RRDS: $ERROR\n" if ( $ERROR);
+    }
+}
+
+
+#
+# Checking rrd's
+#
+if ( $info) { 
+    print "Configured sensors: "; foreach (@Sensors) { print "$_ "}; print "\n";
+    foreach $sensor ( @Sensors) {
+
+        my $rrd = $extraopts{$sensor}{rrdfile};
+
+        if ( (-e $rrd) && (-r $rrd) ) {
+          my $hash = RRDs::info "$rrd";
+          my $dsname;
+          my $dsparam;
+          my %dsh;
+          my $rec;
+          my $rraid;
+          my $rraparam;
+          my @rra;
+          my $cdpid;
+          my $cdparam;
+          my @cdpa;
+          my $filename = "";
+          my $rrd_version = "";
+          my $step = "";
+          my $last_update = 0;
+          my $todays_time = scalar time ();
+          my $relativ;
+
+          foreach my $key (keys %$hash){
+            print "key: $key\n" if ($DEBUG);
+            $filename = $$hash{$key} 
+                if ( $key =~ /^filename/);
+            $rrd_version = $$hash{$key} 
+                if ( $key =~ /^rrd_version/);
+            $step = $$hash{$key} 
+                if ( $key =~ /^step/);
+            $last_update = $$hash{$key} 
+                if ( $key =~ /^last_update/);
+            if ( $key =~ /^ds/) {
+                ( $dsname, $dsparam) = ( $key =~ /^ds\[(.*)\]\.(.*)/ ); 
+                $dsh{ $dsname}{ $dsparam} = $$hash{ $key};
+            }
+            if ( $key =~ /^rra/ ) {
+                ( $rraid, $rraparam) = ( $key =~ /^rra\[(\d+)\]\.(.*)/ );
+                if ( $rraparam =~ /^cdp_prep/ ) {
+                    ( $cdpid, $cdparam ) = 
+                        ( $rraparam =~ /^cdp_prep\[(\d+)\]\.(.*)/ );
+                        $cdpa[ $rraid][ $cdpid]{ $cdparam} = $$hash{ $key};
+                } else {
+                    $rra[ $rraid]{ $rraparam} = $$hash{ $key};
+                }
+
+            }
+          }
+          print "Checking rrd: $sensor\n";
+          print "\tfilename:\t$filename\n";
+          print "\trrd version:\t$rrd_version\n";
+          print "\tstep size:\t$step\n";
+          $relativ = ( $last_update - $todays_time )/3600.0;
+          printf("\tlast update:\t%d ( %d hrs ago)\n", $last_update, $relativ);
+          print "\ttodays time:\t$todays_time\n";
+          foreach $dsname (keys %dsh) {
+            print "\tDataSource[ $dsname]:\n";
+            foreach $dsparam (keys %{ $dsh{ $dsname}}) {
+                print "\t\t$dsparam: $dsh{ $dsname}{ $dsparam}\n";
+            }
+          }
+
+          my $aref;
+          my $cfkt;
+          my $pdp;
+          my $rows;
+          for my $i ( 0 .. $#rra ) {
+            # RRA information
+            print "\tRoundRobin Archive[ $i]:\n";
+            foreach  my $key ( sort keys %{ $rra[ $i]} ) {
+                print "\t\t$key : $rra[ $i]->{$key}\n"
+                  if ($verbose);
+                if ( $key =~/cf/ ) {
+                  $cfkt = $rra[$i]->{$key};
+                }
+                if ( $key =~/pdp_per_row/ ) {
+                  $pdp = $rra[$i]->{$key};
+                }
+                if ( $key =~/rows/ ) {
+                  $rows = $rra[$i]->{$key};
+                }
+            }
+
+            print "\t\tConsolidation function\n";
+            print "\t\t\t$cfkt\n";
+            print "\t\tConsolidation time\n";
+            print "\t\t\t$step\n";
+            print "\t\tArchive contains\n";
+            print "\t\t\t$pdp\tPrimary data points (number of averaged values)\n";
+            print "\t\t\t$rows\tNumber data points (number of stored values)\n";
+            print "\t\tStored averages of:\n";
+            my $storeavg = $pdp*$step;
+            print "\t\t\t$pdp*$step = $storeavg seconds\n"; 
+            print "\t\tStored timeperiod:\n";
+            my $timep = $pdp*$step*$rows;
+            print "\t\t\t$pdp*$step*$rows = $timep seconds\n"; 
+            my $timeh = int($timep/86400);
+            my $timem = int(($timep - $timeh*86400)/60);
+            my $times = $timep - $timeh*86400 - $timem*60;
+            print "\t\t\t$timeh days $timem min $times sec\n";
+
+            if ($verbose) { 
+              $aref = $cdpa[$i];
+              for my $j ( 0 .. $#{$aref} ) {
+                print "\t\tCDP[ $j]:\n";
+                foreach  my $ckey ( keys %{ $cdpa[ $i][ $j]} ) {
+                  if ( defined $cdpa[ $i]->[ $j]{$ckey} ) {
+                     print "\t\t\t$ckey : $cdpa[ $i]->[ $j]{$ckey}\n";
+                  }
+                  else {
+                    print "\t\t\t$ckey : NaN\n";
+                  }
+                }
+              }
+            }
+          }
+          #$rraid = 0;
+          #foreach $rec ( @rra) {
+          #    print "\t$rraid\n";
+          #    $cdpid = 0;
+          #    foreach my $cdp ( @cdpa[$rraid] ) {
+          #        foreach my $key ( keys %$cdp ) {
+          #            print "cdp: $cdpa[ $rraid][ $cdpid]->$key\n";
+          #        } 
+          #    }
+          #    $rraid++;
+          #    foreach my $key ( keys %$rec ) {
+          #        print "\t\t$key : $rec->{$key}\n";
+          #    }
+          #}
+          #print Dumper(%dsh); 
+          #print Dumper(@rra); 
+          #print Dumper(@cdpa); 
+    } else {
+      print "Error: rrd file not found: $rrd\n";
+    }
+  }
+}
+
+
+#
+# Update rrd files
+#
+if ( $update) {
+  if ($DEBUG) {
+    print "Configured sensors: "; 
+    foreach (@Sensors) { print "$_ "}; print "\n";
+  }
+  foreach $sensor ( @Sensors) {
+    my $res;
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$WthDatabase","","")
+      or die ("Can't get DB handle: $DBI::errstr");
+    my $rrd = "$extraopts{$sensor}{rrdfile}";
+    if ( (-e $rrd) && (-r $rrd) ) {
+      print "WthDatabase: $WthDatabase\n" if ( $DEBUG);
+      print "RRD File: $rrd\n" if ($DEBUG);
+      my $last_update = RRDs::last $rrd;
+      print "Last update of $sensor was at $last_update\n";
+      print "update (main)\t: Entering rrd data: $sensor\n" if ($DEBUG);
+      # select last sensor parameter data
+      $data_sql  = "
+        SELECT DISTINCT 
+          sensornames.sensor_name,parameternames.parameter_name,
+          sensordata.dataset_date, sensordata.meas_value
+        FROM  
+          sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
+        WHERE 
+          sensordata.dataset_date 
+            BETWEEN $last_update AND sensorupdate.last_update
+        AND 
+          sensorupdate.sensor_meas_no = sensordata.sensor_meas_no 
+        AND 
+          sensornames.sensor_no = sensorparameters.sensor_no 
+        AND 
+          sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
+        AND 
+          parameternames.parameter_no = sensorparameters.parameter_no
+        AND
+          sensornames.sensor_name = '$sensor'
+        ORDER BY
+          sensordata.dataset_date";
+ 
+      print "data_sql: $data_sql\n" if ( $DEBUG); 
+      my $stmt = $dbh->prepare($data_sql);
+      $stmt->execute() 
+        or die ("Error: execute statement: $DBI::errstr");
+  
+      my $loopcnt = 0;
+      my $timeval = 0;
+      my @dsnames = ();
+      my @dsvalue = ();
+
+      while (my ($sensor_name, $parameter_name, $update_time, $meas_value) = $stmt->fetchrow_array() ) 
+      {
+        my $dsnam = "";
+        my $dsval = "";
+        push (@dsnames, $parameter_name);
+        push (@dsvalue, $meas_value);
+        if ( $DEBUG) {
+          print "Sensor Name: $sensor_name\n";
+          print "Parameter Name: $parameter_name\n";
+          print "Update Time: $update_time\n";
+          printf( "Data Value: %f\n", $meas_value);
+        }
+        if ( ( $timeval != $update_time) && ( $loopcnt != 0))  {
+          print "new group data! update_time: $update_time loopcnt: $loopcnt\n"
+            if ( $DEBUG);
+          $last_update = RRDs::last $rrd;
+          my $cnt = 1;
+          if ( $last_update == $timeval ) {
+            print "Info: no new data available: $rrd not updated\n";
+          } else {
+            $dsnam = $dsnames[0];
+            $dsval = $timeval. ":" . $dsvalue[0];
+            for ( $cnt = 1; $cnt < $loopcnt; $cnt++ ) {
+              $dsnam = $dsnam . ":" . $dsnames[$cnt];
+              $dsval = $dsval . ":" . $dsvalue[$cnt];
+            }
+            print "string update $rrd --template \"$dsnam\" \"$dsval\"\n"
+              if ($DEBUG);
+            RRDs::update( "$rrd", "--template", "$dsnam", "$dsval");
+            if ($ERROR = RRDs::error) {
+              print "Error: $0: unable to update `$rrd': $ERROR\n";
+            } else {
+              print "Info: updating $rrd at $timeval\n";
+            }
+          }
+          $loopcnt = 0;
+          my $tmpnam = $dsnames[$cnt];
+          my $tmpval = $dsvalue[$cnt];
+          @dsnames = ();
+          @dsvalue = ();
+          push(@dsnames, $tmpnam);
+          push(@dsvalue, $tmpval);
+        }
+        $timeval = $update_time;
+        $loopcnt++;
+      }
+    } else {
+      print "Error: rrd file not found: $rrd\n";
+    }
+  }
+}
+
+#
+# Retrieving last rrd value
+#
+if ( $fetch) {
+    foreach $sensor ( @Sensors) {
+        print "fetch (main)\t: Fetching rrd last data: $sensor\n" 
+            if ( $DEBUG);
+        foreach $fds ( keys %{ $graphopts{$sensor}}) {
+          ($time, $val, $name) = getlast($sensor, $fds);
+          print "$sensor\t$fds:\t$val\tat " . scalar localtime($time) . "\n";
+        }
+    }
+}
+
+#
+# Creating RRD image
+#
+if ( $graph) {
+    print "Imaging RRD\n";
+    my @sensorok = ();
+    foreach $sensor ( @Sensors) {
+        $serr = 0;
+        foreach $gds ( keys %{ $graphopts{$sensor}}) {
+          if ( ( my $err = graphrrd($sensor, $gds)) != 0 ) {
+	      print "Some problems processing images on sensor $sensor\n";
+	      $serr = 1;
+	  } 
+        }
+	if ( $serr != 1 ) {
+	    push(@sensorok, $sensor);
+	}
+    }
+    if ( $view) {
+        if ( $#sensorok != 0) {
+            print "DISPLAY: \"$ENV{DISPLAY}\"\n" if ( $DEBUG == 1);
+            if ( $ENV{DISPLAY}) {
+	        print "Got DISPLAY: Displaying\n";
+	        my $main = new MainWindow();
+	        my $quit_command = sub{exit};
+	        #$main ->Label(-text => 'Main')->place( -x => 0, -y =>0);
+	        $main->bind('<Control-Key-q>' => $quit_command);
+	   
+                $sx=0; $sxmax = 0; $symax = 0;
+	        foreach $sensor ( @sensorok) {
+                    $sy=0;
+		    foreach $gds ( keys %{ $graphopts{$sensor}}) {
+		        $imagefile = $sensor . "_" . $gds . ".png";
+		        print "Display: imagefile: $imagefile\n";
+		        my $rrdimage = $main ->Photo('-format' => 'png', 
+						 '-file' => $imagefile);
+                        $sxpos = $sx * $rwidth;
+                        $sypos = $sy * $rheight;
+		        $main->Label('-image' => $rrdimage)->place( -x => $sxpos, -y => $sypos);
+                        $sy++;
+                        if ( $sy >= $symax ) { $symax = $sy};
+		    }
+                    $sx++;
+                    if ( $sx >= $sxmax ) { $sxmax = $sx};
+	        }
+                $sxmax = $sxmax * $rwidth;
+                $symax = $symax * $rheight + 50;
+                $maingeom = "$sxmax" . "x" . "$symax";
+
+	        $main->Button(
+		    -text    => 'Quit',
+		    -underline => 0,
+		    -command => $quit_command,
+		    )->place(-x => 0, -y => 600);
+                $main->geometry("$maingeom");
+	        MainLoop;
+	    } else {
+	        print "DISPLAY is not set. Cannot run in terminal!\n";
+	    }
+        } else {
+	    print "No images created. Nothing to display\n";
+        }
+    }
+}
+
+#
+# 
+#
+if ( $help) {
+    usage();
+}
