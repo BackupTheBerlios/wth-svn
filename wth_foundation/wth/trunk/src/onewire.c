@@ -131,7 +131,7 @@ void prtmdat( struct mset *mlist_p) {
 
   if ( mlist_p != NULL) {
     prtmdat(mlist_p->next);
-    syslog(LOG_INFO, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
+    syslog(LOG_DEBUG, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
 	   mlist_p->mtime, mlist_p->mval);
   }
 }
@@ -234,7 +234,7 @@ onewire_hd( void *arg) {
           echo_serialnum(serialnum), echo_familycode( serialnum));
 
         /* DS2438 */
-        if ( strncmp(echo_familycode(serialnum), "26",1) == 0 ) {
+        if ( strncmp(echo_familycode(serialnum), "26",2) == 0 ) {
 
           /* read DS2438 VSENS */
           vsens = ReadVsens( 0, VSENS, serialnum, port);
@@ -327,8 +327,9 @@ onewire_hd( void *arg) {
             ds2438mem_dump(0, TRUE, serialnum, port);
           }
           */
+
         /* DS1820/DS1920 */
-        } else if ( strncmp(echo_familycode(serialnum), "10",1) == 0 ) {
+        } else if ( strncmp(echo_familycode(serialnum), "10",2) == 0 ) {
           if ( ( rslt = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
             temp10 = temp;
             syslog(LOG_DEBUG, "onewire_hd: %f DS1820/DS1920 serialnum: %s Temperature: %f",

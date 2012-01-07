@@ -31,6 +31,7 @@
 // ---------------------------------------------------------------------------
 //
 //
+#include <syslog.h>
 #include "ownet.h"
 #include "temp10.h"
 
@@ -63,15 +64,19 @@ int ReadTemperature(int portnum, uchar *SerialNum, float *Temp)
       if (owAccess(portnum))
       {
          // send the convert command and start power delivery
-         if (!owWriteBytePower(portnum,0x44))
-            return FALSE;
+         if (!owWriteBytePower(portnum,0x44)) {
+           perror("ReadTemperature: owWriteBytePower return FALSE\n");
+           return FALSE;
+         }
 
          // sleep for 1 second
          msDelay(1000);
 
          // turn off the 1-Wire Net strong pull-up
-         if (owLevel(portnum,MODE_NORMAL) != MODE_NORMAL)
-            return FALSE;
+         if (owLevel(portnum,MODE_NORMAL) != MODE_NORMAL) {
+           perror("ReadTemperature: owLevel != MODE_NORMAL\n");
+           return FALSE;
+         }
 
          // access the device
          if (owAccess(portnum))
@@ -105,10 +110,12 @@ int ReadTemperature(int portnum, uchar *SerialNum, float *Temp)
                   cpc = send_block[8];
                   if (((cpc - cr) == 1) && (loop == 0))
                      continue;
-                  if (cpc == 0)
-                     return FALSE;
+                  if (cpc == 0) {
+                    perror("cpc == 0\n");
+                    return FALSE;
+                  }
                   else
-                     tmp = tmp - (float)0.25 + (cpc - cr)/cpc;
+                    tmp = tmp - (float)0.25 + (cpc - cr)/cpc;
 
                   *Temp = tmp;
                   // success
@@ -118,9 +125,9 @@ int ReadTemperature(int portnum, uchar *SerialNum, float *Temp)
             }
          }
       }
-
    }
 
    // return the result flag rt
+   syslog(LOG_DEBUG, "ReadTemperature: rt %d *Temp %f\n", rt, *Temp);
    return rt;
 }

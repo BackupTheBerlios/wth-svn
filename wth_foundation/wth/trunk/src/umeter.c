@@ -1430,20 +1430,20 @@ umeter_rd( ) {
       /* check data logger mode */
       if ( ( strncmp( (const char *)data, (const char *)dataloghd, 2) == 0) 
             && ( ndat == dataloglen) ) {
-        syslog(LOG_DEBUG, "umeter_rd: datalogger mode\n");
+        syslog(LOG_INFO, "umeter_rd: received data in datalogger mode\n");
         datalogger_rd( data, ndat);
         /* check packet mode */
       } else if ( ( strncmp( (const char *)data, (const char *)packethd, 5) == 0) 
             && ( ndat ==packetlen )) {
-        syslog(LOG_DEBUG, "umeter_rd: packet mode\n");
+        syslog(LOG_INFO, "umeter_rd: received data in packet mode\n");
         packet_rd( data, ndat);
         /* check complete record mode */
       } else if ( ( strncmp( (const char *)data, (const char *)complethd, 4) == 0) 
             && ( ndat ==completlen )) {
-        syslog(LOG_DEBUG, "umeter_rd: complete record mode\n");
+        syslog(LOG_INFO, "umeter_rd: received data in complete record mode\n");
         complete_rd( data, ndat);
       } else {
-        syslog(LOG_DEBUG, "umeter_rd: data (garbage): '%s' : %d\n", data, ndat);
+        syslog(LOG_INFO, "umeter_rd: received data (garbage): '%s' : %d\n", data, ndat);
       }
     } else {
       syslog(LOG_WARNING,"umeter_rd: read ndat < 0");

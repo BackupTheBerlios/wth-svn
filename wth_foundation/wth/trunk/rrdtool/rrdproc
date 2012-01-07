@@ -4,6 +4,7 @@
 # Processing RRD files using RRDs shared perl module
 #
 #use strict;
+use diagnostics;
 use RRDs;
 use File::Touch;
 use Getopt::Long;
@@ -16,7 +17,7 @@ use DBI;
 
 my $version = "RRD processing tool - Version 0.0.3\n";
 
-my ( $create, $info, $fetch, $graph, $view, $update, $verbose, $help, $config);
+my ( $create, $force, $info, $fetch, $graph, $view, $update, $verbose, $help, $config);
 my ( $sensor, $creatstr, $copt, $ERROR);
 my ( $cfgfile, $ret, $time, $val, $name);
 my $rwidth = 200;
@@ -32,6 +33,7 @@ usage {
     print "\tview:\tdisplay graphs\n";
     print "\tinfo:\tprint information of rrd data file\n";
     print "\tcreate:\tcreate rrd file\n";
+    print "\tforce:\tforce creating rrd file even if file exists\n";
     print "\tupdate:\tenter data into  rrd file\n";
     print "\tverbose:\tshow more information\n";
     print "\tconfig=<filename>:\tuse <filename> as configuration file\n";
@@ -142,7 +144,7 @@ graphrrd {
 
     my $Logtime;
     my @graphstr;
-    my $imagefile = $rrd . "_" . $ds . ".png";
+    my $imagefile;
     my $gopt;
 
     my $rrdok     = 0;
@@ -150,6 +152,11 @@ graphrrd {
     my $errortext = "";
 
     $Logtime = localtime;
+    if ( $GraphOutdir) {
+      $imagefile = $GraphOutdir . $rrd . "_" . $ds . ".png";
+    } else {
+      $imagefile = $rrd . "_" . $ds . ".png";
+    }
     # check if $rrd is a valid datasource
     foreach $sensor ( keys %graphopts ) {
         if ( $rrd eq $sensor ) {
@@ -247,11 +254,8 @@ graphrrd {
 #print LH "$$\n";
 #close LH;
 
-if ( $#ARGV == -1 ) {
-  usage();
-}
-
-GetOptions( "create"   => \$create,
+usage() if ( $#ARGV == -1 or !GetOptions( "create"   => \$create,
+            "force"    => \$force,
             "info"     => \$info,
             "fetch"    => \$fetch,
             "graph"    => \$graph,
@@ -260,7 +264,7 @@ GetOptions( "create"   => \$create,
             "verbose"  => \$verbose,
             "config=s" => \$config,
             "help"     => \$help,
-          );
+          ));
 
 #
 # read configuration file
@@ -313,10 +317,22 @@ NEXTSENSOR:  foreach $sensor ( @Sensors ) {
         } else {
           push ( @creatstr, @{ $createdefs{$sensor}}) 
         }
-        print "Creating rrd $extraopts{$sensor}->{rrdfile}\n";
-        RRDs::create  $extraopts{$sensor}->{rrdfile}, @creatstr;
-        $ERROR = RRDs::error;
-        print "errorcode RRDS: $ERROR\n" if ( $ERROR);
+        if ( -e $extraopts{$sensor}->{rrdfile} ){
+          if ( $force) {
+            print "Force creating rrd $extraopts{$sensor}->{rrdfile}\n";
+            RRDs::create  $extraopts{$sensor}->{rrdfile}, @creatstr;
+            $ERROR = RRDs::error;
+            print "errorcode RRDS: $ERROR\n" if ( $ERROR);
+          } else {
+            print "Warn: will not overwrite existing rrdfile $extraopts{$sensor}->{rrdfile}!\n";
+            print "Use extra option --force to overwrite existing file. This might result in data loss\n";
+          }
+        } else {
+          print "Creating rrd $extraopts{$sensor}->{rrdfile}\n";
+          RRDs::create  $extraopts{$sensor}->{rrdfile}, @creatstr;
+          $ERROR = RRDs::error;
+          print "errorcode RRDS: $ERROR\n" if ( $ERROR);
+        }
     }
 }
 
@@ -592,8 +608,10 @@ if ( $graph) {
     print "Imaging RRD\n";
     my @sensorok = ();
     foreach $sensor ( @Sensors) {
+        print "\tsensor : $sensor\n";
         $serr = 0;
         foreach $gds ( keys %{ $graphopts{$sensor}}) {
+          print "\t\tdata source : $gds\n";
           if ( ( my $err = graphrrd($sensor, $gds)) != 0 ) {
 	      print "Some problems processing images on sensor $sensor\n";
 	      $serr = 1;
@@ -651,7 +669,7 @@ if ( $graph) {
 }
 
 #
-# 
+# option help 
 #
 if ( $help) {
     usage();
