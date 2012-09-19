@@ -75,7 +75,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   time_t dataset_date;
   int tdiff;
 
-  syslog(LOG_DEBUG, "datalog_rd: data: %s\n", datalogdata);
+  syslog(LOG_DEBUG, "datalog_rd: data: (temp_out data faulty?)%s\n", datalogdata);
   time(&dataset_date);
 
   /* open sqlite db file */
@@ -107,9 +107,10 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   temp_out = strtol(umeterstr, NULL, base);
+  syslog(LOG_DEBUG, "temp_out (before conversion): %f\n", temp_out);
   temp_out = ((1.0/10.0)*temp_out -32.0)*5.0/9.0; /* 0.1 degF to degC */
   /* temperature data will not be written to database until it is clear that no TH sensor is installed */
-  syslog(LOG_DEBUG, "tempout: %f\n", temp_out);
+  syslog(LOG_DEBUG, "tempout (conversion done): %f\n", temp_out);
 
   /* Rain longterm total */
   strncpy(umeterstr, (const char *)(datalogdata+14), 5); 
