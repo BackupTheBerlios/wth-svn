@@ -325,6 +325,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
 	  printf("pcwsr.device: \"%s\"\n", value);
 	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "pcwsr.dbtype" ) == 0 ) {
+	  strncpy( pcwsrstation.config.dbtype, value, TBUFF);
+	  printf("pcwsr.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "pcwsr.dbfile" ) == 0 ) {
 	  strncpy(pcwsrstation.config.dbfile, value, TBUFF);
 	  printf("pcwsr.dbfile: \"%s\"\n", value);
@@ -335,6 +338,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "onewire.device" ) == 0 ) {
 	  printf("onewire.device: \"%s\"\n", value);
 	  strncpy(onewirestation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "onewire.dbtype" ) == 0 ) {
+	  strncpy( onewirestation.config.dbtype, value, TBUFF);
+	  printf("onewire.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "onewire.dbfile" ) == 0 ) {
 	  printf("onewire.dbfile: \"%s\"\n", value);
 	  strncpy(onewirestation.config.dbfile, value, TBUFF);
@@ -345,6 +351,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "wmr9x8.device" ) == 0 ) {
 	  printf("wmr9x8.device: \"%s\"\n", value);
 	  strncpy(wmr9x8station.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "wmr9x8.dbtype" ) == 0 ) {
+	  strncpy( wmr9x8station.config.dbtype, value, TBUFF);
+	  printf("wmr9x8.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "wmr9x8.dbfile" ) == 0 ) {
 	  printf("wmr9x8.dbfile: \"%s\"\n", value);
 	  strncpy(wmr9x8station.config.dbfile, value, TBUFF);
@@ -355,6 +364,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "umeter.device" ) == 0 ) {
 	  printf("umeter.device: \"%s\"\n", value);
 	  strncpy(umeterstation.config.device, value, MAXMSGLEN);
+        } else if ( strcasecmp( name, "umeter.dbtype" ) == 0 ) {
+	  strncpy( umeterstation.config.dbtype, value, TBUFF);
+	  printf("umeter.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "umeter.dbfile" ) == 0 ) {
 	  printf("umeter.dbfile: \"%s\"\n", value);
 	  strncpy(umeterstation.config.dbfile, value, TBUFF);

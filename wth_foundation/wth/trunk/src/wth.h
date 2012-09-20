@@ -342,7 +342,7 @@ int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int maxsensmeas( sqlite3 *onewiredb);
-int isdefined_sqlite( void );
+int isdefined_sqlite( char * station );
 
 /* pgsql database functions */
 int pg_datadb( long dataset_date, int sensor_param, float meas_value,
@@ -357,7 +357,7 @@ int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
   int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
-int isdefined_pgsql( void );
+int isdefined_pgsql( char * station );
 
 char *ppagemem( uchar *pagemen);
 int bitprint( int byte, char *s_reg);

@@ -520,11 +520,21 @@ statval_db( char *sensorname, char *flagname,
 
 */
 int
-isdefined_sqlite( void ) {
+isdefined_sqlite( char * station ) {
   int err;
 
-  if ( strncmp(ws2000station.config.dbtype,"sqlite",6) == 0) {
+  printf ("isdefined_sqlite: station: %s\n", station);
+
+  if ( strncmp(station, "ws2000station", 14) == 0 ) {
+    if ( strncmp(ws2000station.config.dbtype,"sqlite",6) == 0) {
+      err = 1;
+    } else { err = 0; }   
+  } else if ( strncmp(station, "onewirestation", 14) == 0 ) {
+    if ( strncmp(onewirestation.config.dbtype,"sqlite",6) == 0) {
+      err = 1;
+    } else { err = 0; }   
+  } else {
     err = 1;
-  } else { err = 0; }   
+  }
   return(err);
 }

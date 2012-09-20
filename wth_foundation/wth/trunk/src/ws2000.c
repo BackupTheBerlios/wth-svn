@@ -640,7 +640,7 @@ wstat(unsigned char *data, int mdat ) {
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
 
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
       syslog(LOG_ALERT, "wstat: Failed to open database %s.",
         ws2000station.config.dbfile);
@@ -648,7 +648,7 @@ wstat(unsigned char *data, int mdat ) {
     }
     stat_ws2000db( sdata, statusset_date, ws2000db);
     sqlite3_close( ws2000db);
-  } else if ( isdefined_pgsql() == TRUE ) {
+  } else if ( isdefined_pgsql("ws2000station") == TRUE ) {
     pg_conn = PQconnectdb( ws2000station.config.dbconn);
     if (PQstatus(pg_conn) != CONNECTION_OK)
     {
@@ -929,7 +929,7 @@ datex ( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
 
   /* open db file */
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
     syslog(LOG_DEBUG,
       "datex: sqlite3_open %s return value: %d",
@@ -947,7 +947,7 @@ datex ( unsigned char *data, int ndat) {
   new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = is_ws2000sens( i, ws2000db);
     }
     if ( err != 0 )  {
@@ -1017,13 +1017,13 @@ datex ( unsigned char *data, int ndat) {
         "sensor_meas_no: %d new flag: %d\n",
         i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
 
-      if ( isdefined_sqlite() == TRUE ) {
+      if ( isdefined_sqlite("ws2000station") == TRUE ) {
         err = new_ws2000db( dataset_date, i, new, ws2000db);
       } else { err = 1; }
       if ( err != 0 ) {
         syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
       }
-      if ( isdefined_sqlite() == TRUE ) {
+      if ( isdefined_sqlite("ws2000station") == TRUE ) {
         err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, meas_value, ws2000db);
       } else { err = 1; }
       if ( err != 0 ) {
@@ -1035,7 +1035,7 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* Sensor #9: Rainsensor */
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     err = is_ws2000sens( 9, ws2000db);
   } else {
     err = 1;
@@ -1049,13 +1049,13 @@ datex ( unsigned char *data, int ndat) {
     meas_value[0]   = Hi + Lo;
     sensor_meas_no[0] = 17;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err =new_ws2000db( dataset_date, 9, new, ws2000db);
     } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
     }
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
                      meas_value, ws2000db);
     } else { err = 1; }
@@ -1071,7 +1071,7 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* sensor #10: Windsensor */
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     err =  is_ws2000sens( 10, ws2000db);
   } else {
     err = 1;
@@ -1091,7 +1091,7 @@ datex ( unsigned char *data, int ndat) {
 
     /* wind new flag */
     new = getbits ( data[27], 7, 1);
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = new_ws2000db( dataset_date, 10, new, ws2000db);
     } else { err = 1; }
     if ( err != 0 ) {
@@ -1120,7 +1120,7 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,
       "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
       (long int)dataset_date, meas_value[2]);
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
                      meas_value, ws2000db);
     } else { err = 1; }
@@ -1132,7 +1132,7 @@ datex ( unsigned char *data, int ndat) {
   } 
 
   /* sensor #11: Indoorsensor */
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     err = is_ws2000sens( 11, ws2000db);
   }
   if ( err != 0 )  {
@@ -1174,13 +1174,13 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
     /* write database */
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = new_ws2000db( dataset_date, 11, new, ws2000db); 
     } else { err = 1; }
     if ( err != 0 ) {
       syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
     }
-    if ( isdefined_sqlite() == TRUE ) {
+    if ( isdefined_sqlite("ws2000station") == TRUE ) {
       err = writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
             meas_value, ws2000db);
     } else { err =1; }
@@ -1192,7 +1192,7 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* cleanup and close */
-  if ( isdefined_sqlite() == TRUE ) {
+  if ( isdefined_sqlite("ws2000station") == TRUE ) {
     err = sqlite3_close( ws2000db);
   } else {
     err = 1;

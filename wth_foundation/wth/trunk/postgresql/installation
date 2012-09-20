@@ -1,0 +1,152 @@
+Postgresql installation for wth
+
+
+General configuration
+---------------------
+OpenSUSE 11.4
+
+install postgresql from RPM
+
+postgresql-plperl-9.0.3-1.6.1.x86_64
+postgresql-server-9.0.3-1.6.1.x86_64
+postgresql-devel-9.0.3-1.6.1.x86_64
+postgresql-9.0.3-1.6.1.x86_64
+
+
+start postgresql
+
+--
+/etc/init.d/postgresql start
+Initializing the PostgreSQL database at location /var/lib/pgsql/data done
+Starting PostgreSQL                                                  done
+--
+
+persist runlevel in YaST
+
+create db user
+
+--
+createuser wth -S -d -R -e
+CREATE ROLE wth NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+--
+
+connect to database with other user than login uid
+--
+psql -d umeter -U wth
+psql: FATAL:  Ident-Authentifizierung für Benutzer »wth« fehlgeschlagen
+--
+
+
+Fix login as user 'wth' which has no login uid and no password
+stop postgresql
+
+modify pg_hba.conf (OpenSUSE: /var/lib/pgsql/data)
+--
+# TYPE  DATABASE        USER            CIDR-ADDRESS            METHOD
+
+# "local" is for Unix domain socket connections only
+#local   all             all                                     ident
+local   all             all                                     trust
+--
+
+start postgresql
+
+connect as user "wth"
+--
+psql -d umeter -U wth
+psql (9.0.3)
+Type "help" for help.
+
+umeter-> \q
+--
+
+Create Database
+---------------
+create database as user 'wth'
+--
+createdb -U wth onewire
+--
+
+access database as user 'wth'
+--
+psql -U wth onewire
+psql (9.0.3)
+Geben Sie »help« für Hilfe ein.
+
+onewire=# 
+--
+
+exit from database
+--
+onewire=# \q
+--
+
+
+Drop Database
+-------------
+--
+dropdb -U wth onewire
+--
+
+Create tables for onewire weatherstation
+----------------------------------------
+
+create all tables using file 'onewire_db.sql' containing DDL
+--
+psql -U wth -d onewire -f onewire_db.sql
+--
+
+create table sensornames
+
+connect to database
+--
+psql -U wth onewire
+--
+
+execute DDL
+--
+onewire=# CREATE TABLE sensornames
+onewire-#     (
+onewire(#       sensor_no SERIAL PRIMARY KEY,
+onewire(#       sensor_name VARCHAR(255) NOT NULL,
+onewire(#       description VARCHAR(255) NOT NULL
+onewire(#     );
+HINWEIS:  CREATE TABLE erstellt implizit eine Sequenz »sensornames_sensor_no_seq« für die »serial«-Spalte »sensornames.sensor_no«
+HINWEIS:  CREATE TABLE / PRIMARY KEY erstellt implizit einen Index »sensornames_pkey« für Tabelle »sensornames«
+CREATE TABLE
+--
+
+Display information about table
+
+--
+onewire=# \dt
+            Liste der Relationen
+ Schema |    Name     |   Typ   | Eigentümer 
+--------+-------------+---------+------------
+ public | sensornames | Tabelle | postgres
+(1 Zeile)
+--
+
+
+Display information about sequence
+--
+onewire=# \ds
+                   Liste der Relationen
+ Schema |           Name            |   Typ   | Eigentümer 
+--------+---------------------------+---------+------------
+ public | sensornames_sensor_no_seq | Sequenz | postgres
+(1 Zeile)
+--
+
+
+Display information about index
+
+--
+onewire=# \di
+                     Liste der Relationen
+ Schema |       Name       |  Typ  | Eigentümer |   Tabelle   
+--------+------------------+-------+------------+-------------
+ public | sensornames_pkey | Index | postgres   | sensornames
+(1 Zeile)
+--
+

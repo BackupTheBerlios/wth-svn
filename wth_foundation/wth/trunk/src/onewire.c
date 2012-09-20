@@ -159,7 +159,11 @@ void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
     syslog( LOG_INFO, 
 	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, number: %d", 
 	    sens_meas_no, avgtime, avgval, count); 
-    datadb( avgtime, sens_meas_no, avgval, onewiredb);
+    if ( isdefined_sqlite("onewirestation") == TRUE ) {
+      datadb( avgtime, sens_meas_no, avgval, onewiredb);
+    } else if ( isdefined_pgsql("onewirestation") == TRUE ) {
+      pg_datadb( avgtime, sens_meas_no, avgval, pg_conn);
+    }
   }
 }
 
@@ -179,7 +183,6 @@ onewire_hd( void *arg) {
   double mtime, temp2438;
   uchar serialnum[9];
   char port[TBUFF+1];
-  char *errmsg = "";
   sensdevpar_t ssdp;
   struct timezone tz;
   struct timeval  tv;
@@ -194,9 +197,32 @@ onewire_hd( void *arg) {
   if((portnum = owAcquireEx(port)) < 0) {
     onewirestation.status.is_present = -1;
     OWERROR_DUMP(stdout);
+    syslog(LOG_ALERT,"onewire_hd: owAcquireEx error");
     return( ( void *) &failure);
   }
   onewirestation.status.is_present = 1;
+
+  if ( isdefined_sqlite("onewirestation") == TRUE ) {
+    if ( ( rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
+      syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
+        onewirestation.config.dbfile);
+      return( ( void *) &failure);
+    }
+  } else if ( isdefined_pgsql("onewirestation") == TRUE ) {
+    pg_conn = PQconnectdb( onewirestation.config.dbconn);
+    if (PQstatus(pg_conn) != CONNECTION_OK)
+    {
+        syslog(LOG_ALERT, "onewire_hd: connection to database failed: %s",
+                PQerrorMessage(pg_conn));
+        PQfinish(pg_conn);
+        return( ( void *) &failure);
+    }
+  } else {
+    syslog(LOG_ALERT, "onewire_hd: no database type defined");
+    return( ( void *) &failure);
+  }
+
+  /*	
   rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
   syslog(LOG_DEBUG,
     "onewire_hd: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n",
@@ -210,11 +236,16 @@ onewire_hd( void *arg) {
   } else {
     syslog(LOG_DEBUG, "onewire_hd: sqlite3_open: OK\n");
   }
-    
+  */ 
+
   syslog(LOG_DEBUG, "onewire_hd: mcycle: %d", onewirestation.config.mcycle);
   verbose = 0;
 
-  max_sens_meas = maxsensmeas( onewiredb);
+  if ( isdefined_sqlite("onewirestation") == TRUE ) {
+    max_sens_meas = maxsensmeas( onewiredb);
+  } else if ( isdefined_pgsql("onewirestation") == TRUE ) {
+    max_sens_meas = pg_maxsensmeas( pg_conn);
+  }
   syslog(LOG_DEBUG, "onewire_hd: max_sens_meas: %d", max_sens_meas);
 
   for (;;) {
@@ -372,7 +403,11 @@ onewire_hd( void *arg) {
   }
 
   /* database cleanup and close */
-  sqlite3_close( onewiredb);
+  if ( isdefined_sqlite("onewirestation") == TRUE ) {
+    sqlite3_close( onewiredb);
+  } else if ( isdefined_pgsql("onewirestation") == TRUE ) {
+    PQfinish(pg_conn);
+  } 
 
   /* release the 1-Wire Net */
   owRelease( portnum);
