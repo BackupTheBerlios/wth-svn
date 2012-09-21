@@ -337,11 +337,11 @@ int new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *ws2000db );
-int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
+int sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
 int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-int maxsensmeas( sqlite3 *onewiredb);
+int sqlite_maxsensmeas( sqlite3 *onewiredb);
 int isdefined_sqlite( char * station );
 
 /* pgsql database functions */
@@ -364,6 +364,8 @@ int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
+int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, char *dbtype);
+int maxsensmeas( char *dbtype);
 
 int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
 int resetwmr9x8( int fd);

@@ -183,7 +183,7 @@ int SetupVsens(int portnum, uchar *SNum, char *device)
 */
 float ReadVsens(int portnum, int vsens, uchar *SNum, char *device)
 {
-  int vs_sign;
+  //int vs_sign;
   long vs_low, vs_high, vs_val;
   uchar pageno;
   uchar pagemem[NBUFF+1] = "";

@@ -127,7 +127,7 @@ new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000d
 
 
 /*
-  get_onewireinfo - 
+  sqlite_get_onewireinfo - 
   read
     sensor_meas_no,
     sensor_name,
@@ -141,7 +141,7 @@ new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000d
   returns these data in structure ssdp
 */
 int
-get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
+sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
 {
   int err, rowcnt;
   char query[SBUFF+1];
@@ -256,7 +256,7 @@ is_ws2000sens( int sensor_no, sqlite3 *ws2000db)
 }
 
 int
-maxsensmeas( sqlite3 *onewiredb) {
+sqlite_maxsensmeas( sqlite3 *onewiredb) {
   int max_sens_meas;
   int err, rowcnt;
   char query[SBUFF+1];
@@ -522,8 +522,6 @@ statval_db( char *sensorname, char *flagname,
 int
 isdefined_sqlite( char * station ) {
   int err;
-
-  printf ("isdefined_sqlite: station: %s\n", station);
 
   if ( strncmp(station, "ws2000station", 14) == 0 ) {
     if ( strncmp(ws2000station.config.dbtype,"sqlite",6) == 0) {

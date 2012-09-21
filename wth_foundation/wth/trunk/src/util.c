@@ -341,6 +341,9 @@ readconfig( ) {
         } else if ( strcasecmp( name, "onewire.dbtype" ) == 0 ) {
 	  strncpy( onewirestation.config.dbtype, value, TBUFF);
 	  printf("onewire.dbtype: \"%s\"\n", value);
+        } else if ( strcasecmp( name, "onewire.dbconn" ) == 0 ) {
+	  printf("onewire.dbconn: \"%s\"\n", value);
+	  strncpy(onewirestation.config.dbconn, value, TBUFF);
         } else if ( strcasecmp( name, "onewire.dbfile" ) == 0 ) {
 	  printf("onewire.dbfile: \"%s\"\n", value);
 	  strncpy(onewirestation.config.dbfile, value, TBUFF);
