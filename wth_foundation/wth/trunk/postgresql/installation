@@ -88,9 +88,23 @@ Drop Database
 dropdb -U wth onewire
 --
 
+
 Create tables for onewire weatherstation
 ----------------------------------------
 
+Quickstart
+----------
+
+createdb -U wth umeter
+psql -U wth -d umeter -f umeter_db.sql
+createdb -U wth onewire
+psql -U wth -d onewire -f onewire_db.sql
+createdb -U wth wmr
+psql -U wth -d wmr -f wmr9x8_db.sql
+
+
+Extended version
+----------------
 create all tables using file 'onewire_db.sql' containing DDL
 --
 psql -U wth -d onewire -f onewire_db.sql
