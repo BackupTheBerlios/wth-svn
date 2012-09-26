@@ -274,6 +274,12 @@ typedef struct key {
   char *descr;
 } ws2000key_t;
 
+struct mset {
+  double mtime;
+  float mval;
+  struct mset *next;
+};
+
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
 

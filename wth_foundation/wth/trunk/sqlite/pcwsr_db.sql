@@ -46,9 +46,9 @@ sensorupdate
 create table
 parameternames
 (
-  parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  parameter_name VARCHAR(64) NOT NULL,
-  parameter_unit VARCHAR(64) NOT NULL
+  param_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  param_name VARCHAR(64) NOT NULL,
+  param_unit VARCHAR(64) NOT NULL
 );
 
 create table
@@ -56,8 +56,8 @@ sensorparameters
 (
   sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   sensor_no INTEGER NOT NULL,
-  parameter_no INTEGER NOT NULL,
-  FOREIGN KEY (parameter_no) REFERENCES parameternames (parameter_no),
+  param_no INTEGER NOT NULL,
+  FOREIGN KEY (param_no) REFERENCES parameternames (param_no),
   FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
 );
 

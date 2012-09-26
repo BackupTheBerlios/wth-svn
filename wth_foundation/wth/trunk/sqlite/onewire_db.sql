@@ -65,11 +65,11 @@ INSERT INTO devicetyp VALUES ( 4, 'DS2438', 'smart battery monitor', '26', 'D400
 -- 
 CREATE TABLE parameternames
     (
-      parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-      parameter_name VARCHAR(64) NOT NULL,
-      unit VARCHAR(64) NOT NULL,
-      gain FLOAT NOT NULL,
-      offset FLOAT NOT NULL
+      param_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      param_name VARCHAR(64) NOT NULL,
+      param_unit VARCHAR(64) NOT NULL,
+      param_gain FLOAT NOT NULL,
+      param_offset FLOAT NOT NULL
     );
 INSERT INTO parameternames VALUES (1, 'Temperature', '°C',  1.000, 0.000);
 INSERT INTO parameternames VALUES (2, 'VAD', 'V', 1.000, 0.000);
@@ -89,10 +89,10 @@ CREATE TABLE sensorparameters
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
       device_no INTEGER NOT NULL,
-      parameter_no INTEGER NOT NULL,
+      param_no INTEGER NOT NULL,
       FOREIGN KEY (device_no) REFERENCES devicetyp (device_no),
       FOREIGN KEY (sensor_no) REFERENCES sensorname (sensor_no)
-      FOREIGN KEY (parameter_no) REFERENCES parametername (parameter_no)
+      FOREIGN KEY (parameter_no) REFERENCES parametername (param_no)
     );
 INSERT INTO sensorparameters VALUES ( 1, 1, 1, 1); -- HTSsensor and DS2438 and Temperature
 INSERT INTO sensorparameters VALUES ( 2, 1, 1, 4); -- HTSsensor and DS2438 and VSENS

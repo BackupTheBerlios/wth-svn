@@ -30,11 +30,13 @@
 #include "temp10.h"
 #include <sys/resource.h>
 
+/*
 struct mset {
   double mtime;
   float mval;
   struct mset *next;
 };
+*/
 
 /*
   ppagemem
@@ -156,7 +158,7 @@ void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
   if ( count != 0 ) {
     avgtime = avgtime / count;
     avgval = avgval / count;
-    syslog( LOG_INFO, 
+    syslog( LOG_DEBUG, 
 	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, number: %d", 
 	    sens_meas_no, avgtime, avgval, count); 
     if ( isdefined_sqlite("onewirestation") == TRUE ) {

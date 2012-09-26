@@ -149,21 +149,21 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
 
   snprintf(query, SBUFF, 
     "SELECT sp.sensor_meas_no, sn.sensor_name, "
-    "pn.parameter_name, pn.offset, pn.gain, "
+    "pn.param_name, pn.param_offset, pn.param_gain, "
     "dt.devicetyp, dt.familycode, dt.serialnum "
     "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn, devicetyp AS dt "
-    "WHERE sp.parameter_no = pn.parameter_no "
+    "WHERE sp.param_no = pn.param_no "
     "AND sp.sensor_no = sn.sensor_no "
     "AND sp.device_no = dt.device_no "
     "AND dt.serialnum = '%s' " 
-    "AND pn.parameter_name = '%s' ", 
+    "AND pn.param_name = '%s' ", 
     serialnum, parname);
-  //syslog(LOG_DEBUG, "sensdevpar: sql: %s", query);
+  //syslog(LOG_DEBUG, "sqlite_get_onewireinfo: sql: %s", query);
 
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-	    "sensdevpar: error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
+	    "sqlite_get_onewireinfo: error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
     return(1);
   }
@@ -184,7 +184,7 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-	    "sensdevpar: error: select parametername: err: %d : sqlite_errmsg: %s\n", 
+	    "sqlite_get_onewireinfo: error: select parametername: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
     return(1);
   }
@@ -344,7 +344,7 @@ measval_db( char *sensorname, char *parametername,
 
   /* select parameter_no of parametername */
   snprintf(query, SBUFF, 
-    "SELECT parameter_no FROM parameternames WHERE parameter_name = '%s'",
+    "SELECT param_no FROM parameternames WHERE param_name = '%s'",
     parametername);
 
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
@@ -368,7 +368,7 @@ measval_db( char *sensorname, char *parametername,
 
   /* select sens_meas_no of windsensor and wind_direction */
   snprintf(query, SBUFF, 
-    "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND parameter_no = %d",
+    "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND param_no = %d",
     sensor_no, parameter_no);
 
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 

@@ -65,12 +65,12 @@ INSERT INTO sensornames VALUES ('6','tp_in_sensor','Indoor Temperature/Barometer
 --
 CREATE TABLE parameternames
   (
-    parameter_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    parameter_name VARCHAR(64) NOT NULL,
-    description VARCHAR(64) NOT NULL,
-    unit VARCHAR(64) NOT NULL,
-    gain FLOAT NOT NULL,
-    offset FLOAT NOT NULL
+    param_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    param_name VARCHAR(64) NOT NULL,
+    param_description VARCHAR(64) NOT NULL,
+    param_unit VARCHAR(64) NOT NULL,
+    param_gain FLOAT NOT NULL,
+    param_offset FLOAT NOT NULL
   );
 -- datalogger mode parameters
 INSERT INTO parameternames VALUES ('1','windspeed','Wind Speed','m/s', 1.000, 0.000);
@@ -100,9 +100,9 @@ CREATE TABLE sensorparameters
   (
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
-      parameter_no INTEGER NOT NULL,
+      param_no INTEGER NOT NULL,
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no),
-      FOREIGN KEY (parameter_no) REFERENCES parameternames (parameter_no)
+      FOREIGN KEY (param_no) REFERENCES parameternames (param_no)
   );
 
 
