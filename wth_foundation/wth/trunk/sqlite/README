@@ -23,13 +23,83 @@ e.g. for the Ultimeter station
 
 cat umeter_db.sql |sqlite3 umeter.db
 
-Useful sql
+
+Useful SQL with SQLITE
+======================
 
 COPY table contents
+-------------------
 INSERT INTO TABLE2 (COL1, COL2, COL3) SELECT COL1, COL4, COL7 FROM TABLE1
 
 RENAME TABLE
+------------
 ALTER TABLE TABLE_OLD RENAME TO TABLE_NEW
 
-Rename columnname
-not possible w/ sqlite
+
+Rename columnname in SQLITE database
+------------------------------------
+no simple SQL possible w/ sqlite
+
+This workaround follows documentation at
+  http://www.logicalvue.com/2011/05/changing-columns-in-sqlite-tables/
+
+
+1.  Create new table that matches original table, 
+    but with the changed columns. Call it parameternames_new:
+
+CREATE TABLE parameternames_new
+  (
+    param_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    param_name VARCHAR(64) NOT NULL,
+    param_description VARCHAR(64) NOT NULL,
+    param_unit VARCHAR(64) NOT NULL,
+    param_gain FLOAT NOT NULL,
+    param_offset FLOAT NOT NULL
+  );
+
+2.  Copy the original data to the new table:
+
+    INSERT INTO parameternames_new (param_no, param_name, param_description, param_unit, param_gain, param_offset)  SELECT parameter_no, parameter_name, description, unit, gain, offset from parameternames;
+
+
+3.  Review the data in parameternames_new to make sure it looks correct.
+
+
+4.  Rename the original table:
+
+    ALTER TABLE parameternames RENAME TO parameternames_org;
+
+5.  Rename the new table:
+
+    ALTER TABLE parameternames_new RENAME TO parameternames;
+
+6.  Optionally, delete the original table:
+
+    DROP TABLE parameternames_org;
+
+
+Analogous rename of columnnames in TABLE sensorparameters:
+
+1. 
+CREATE TABLE sensorparameters_new
+  (
+      sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      sensor_no INTEGER NOT NULL,
+      param_no INTEGER NOT NULL,
+      FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no),
+      FOREIGN KEY (param_no) REFERENCES parameternames (param_no)
+  );
+
+2. 
+INSERT INTO sensorparameters_new ( sensor_meas_no, sensor_no, param_no) SELECT sensor_meas_no, sensor_no, parameter_no FROM sensorparameters;
+
+3. Check table
+
+4.
+ALTER TABLE sensorparameters RENAME TO sensorparameters_org;
+
+5.
+
+
+6.
+( DROP TABLE sensorparameters_org;)

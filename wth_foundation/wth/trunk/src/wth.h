@@ -1,19 +1,18 @@
 /* 
    wth.h
 
-   global header file for serial weatherstation communication
-   for use of 
+   global header file for serial port communication with 
 
-     WS2000 weatherstation
-     PC weathersensor receiver
+     Ultimeter weatherstation
      1-Wire weatherstation
      WMR 9X8 weatherstation
-     Ultimeter weatherstation
+     WS2000 weatherstation
+     PC weathersensor receiver
 
    $Id$
    $Revision$
 
-   Copyright 2009-2011 Volker Jahns, <volker@thalreit.de>
+   Copyright 2009-2012 Volker Jahns, <volker@thalreit.de>
  
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -339,29 +338,33 @@ int wstrlen( unsigned char *s);
 int datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
 int stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
-int new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db);
+int new_ws2000db( long statusset_date, int sensor_no, int new_flag, 
+      sqlite3 *ws2000db);
 int writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *ws2000db );
-int sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb);
+int sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, 
+      sqlite3 *wthdb);
 int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int sqlite_maxsensmeas( sqlite3 *onewiredb);
 int isdefined_sqlite( char * station );
 
-/* pgsql database functions */
+/* postgresql database functions */
 int pg_datadb( long dataset_date, int sensor_param, float meas_value,
-  PGconn *pg_conn);
-int pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn);
-int pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, PGconn *pg_conn);
+      PGconn *pg_conn);
+int pg_stat_ws2000db( int sensor_status[], time_t statusset_date, 
+      PGconn *pg_conn);
+int pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, 
+      PGconn *pg_conn);
 int pg_writedb( int sensor_no, int nval, int sensor_meas_no[], 
-  time_t dataset_date, float meas_value[], PGconn *pg_conn );
+      time_t dataset_date, float meas_value[], PGconn *pg_conn );
 int pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp,
-  PGconn *pg_conn);
+      PGconn *pg_conn);
 int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
-  int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
+      int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
 int isdefined_pgsql( char * station );
 
@@ -370,7 +373,8 @@ int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 char *echo_serialnum( uchar *serialnum);
 char *echo_familycode( uchar *serialnum);
-int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, char *dbtype);
+int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, 
+      char *dbtype);
 int maxsensmeas( char *dbtype);
 
 int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
@@ -391,15 +395,15 @@ int clock_dac( unsigned char *data);
 int wmr9x8rd( int rfd);
 int checksum ( unsigned char *data, int ndat);
 int measval_db( char *sensorname, char *parametername, 
-  time_t dataset_date, float mval, sqlite3 *database);
+      time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
-  time_t dataset_date, long unsigned int sval, sqlite3 *database);
+      time_t dataset_date, long unsigned int sval, sqlite3 *database);
 
 void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);
 int packet_rd( unsigned char * packetdata, int ndat);
 int complete_rd( unsigned char * completedata, int ndat);
 int umeter_rd();
-int initumeter (int *pfd, struct termios *newtio,struct termios *oldtio);
+int initumeter ( int *pfd, struct termios *newtio,struct termios *oldtio);
 int closeumeter( int fd, struct termios *oldtio);
 

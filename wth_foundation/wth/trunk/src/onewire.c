@@ -7,7 +7,7 @@
    $Id$
    $Revision$
 
-   Copyright (C) 2008-2010 Volker Jahns <volker@thalreit.de>
+   Copyright (C) 2008-2012 Volker Jahns <volker@thalreit.de>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,13 +30,6 @@
 #include "temp10.h"
 #include <sys/resource.h>
 
-/*
-struct mset {
-  double mtime;
-  float mval;
-  struct mset *next;
-};
-*/
 
 /*
   ppagemem
@@ -44,12 +37,12 @@ struct mset {
   print contents of uchar array of memory
 */
 char 
-*ppagemem( uchar *pagemem) {
+*ppagemem( uchar *pagemem) 
+{
   int x;
   char tchr[4];
   static char pblock[NBUFF + 1] = "";
 
-  //sprintf( pblock, "");
   memset( pblock, 0, NBUFF);
   for ( x = 0; x < 10; x++) {
     snprintf( tchr, 4, "%x:", pagemem[x]);
@@ -63,12 +56,13 @@ char
 
    returns serial number of 1-Wire device in char array
 */
-char *echo_serialnum( uchar serialnum[]) {
+char 
+*echo_serialnum( uchar serialnum[]) 
+{
   int i;
   static char rbuf[65];
   char buf[65];
 
-  //snprintf(rbuf, 64, "");
   memset( rbuf, 0, 64);
   for ( i = 7; i >= 0; i--) {
     snprintf(buf, 3, "%02X", (int)serialnum[i]);
@@ -83,7 +77,9 @@ char *echo_serialnum( uchar serialnum[]) {
 
   returns familycode of 1-Wire device
 */
-char *echo_familycode( uchar serialnum[]) {
+char 
+*echo_familycode( uchar serialnum[]) 
+{
   static char rbuf[TBUFF];
   snprintf( rbuf, TBUFF-1, "%x", serialnum[0]);
   return(rbuf);
@@ -94,7 +90,11 @@ char *echo_familycode( uchar serialnum[]) {
 
   adding measurement data in linked list mlist
 */
-int addmdat( struct mset ** mlist_ref, double mtime, double mval) {
+int 
+addmdat( struct mset ** mlist_ref, 
+         double mtime, 
+         double mval) 
+{
   struct mset *meas_set;
   if ( ( meas_set = ( struct mset *)malloc ( sizeof ( struct mset))) == NULL ) {
     return 1;
@@ -112,7 +112,9 @@ int addmdat( struct mset ** mlist_ref, double mtime, double mval) {
 
   delete linked list mlist_p and set the head pointer to NULL
 */
-void rstmdat( struct mset ** mlist_ref) {
+void 
+rstmdat( struct mset ** mlist_ref) 
+{
   struct mset * current = *mlist_ref;
   struct mset * next;
 
@@ -129,8 +131,9 @@ void rstmdat( struct mset ** mlist_ref) {
 
   print data in linked list
 */
-void prtmdat( struct mset *mlist_p) {
-
+void 
+prtmdat( struct mset *mlist_p) 
+{
   if ( mlist_p != NULL) {
     prtmdat(mlist_p->next);
     syslog(LOG_DEBUG, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
@@ -143,7 +146,10 @@ void prtmdat( struct mset *mlist_p) {
 
   average data in linked list and write to database
 */
-void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
+void 
+avgmdat( struct mset ** mlist_ref, 
+         int sens_meas_no) 
+{
   struct mset *llist_p = *mlist_ref;
   int count = 0;
   double avgtime = 0;
@@ -171,7 +177,8 @@ void avgmdat( struct mset ** mlist_ref, int sens_meas_no) {
 
 
 int
-maxsensmeas( char * dbtype) {
+maxsensmeas( char * dbtype) 
+{
   int p_maxsensmeas = -1;
 
   if ( strncmp( dbtype, "sqlite", 6) == 0 ) {
@@ -183,7 +190,11 @@ maxsensmeas( char * dbtype) {
 }
 
 int
-get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, char *dbtype) {
+get_onewireinfo( char *parname, 
+                 char *serialnum, 
+                 sensdevpar_t *ssdp, 
+                 char *dbtype) 
+{
   int res;
 
   if ( strncmp( dbtype, "sqlite", 6) == 0 ) {
@@ -201,7 +212,8 @@ get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, char *dbtyp
    logging onewire sensor data to sqlite database
 */
 void *
-onewire_hd( void *arg) {
+onewire_hd( void *arg) 
+{
   int i, j, rslt, verbose, currsens, numsens;
   int portnum, svdd, cvdd, cvad;
   int max_sens_meas;
@@ -250,41 +262,18 @@ onewire_hd( void *arg) {
     return( ( void *) &failure);
   }
 
-  /*	
-  rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb);
-  syslog(LOG_DEBUG,
-    "onewire_hd: sqlite3_open %s return value: %d : sqlite_errmsg: %s\n",
-    onewirestation.config.dbfile,
-    rslt, sqlite3_errmsg(onewiredb));
-  if ( rslt) {
-    syslog( LOG_ALERT, "onewire_hd: failed to open database %s. error: %s\n",
-    onewirestation.config.dbfile, sqlite3_errmsg(onewiredb));
-    free( errmsg);
-    return( ( void *) &failure);
-  } else {
-    syslog(LOG_DEBUG, "onewire_hd: sqlite3_open: OK\n");
-  }
-  */ 
-
   syslog(LOG_DEBUG, "onewire_hd: mcycle: %d", onewirestation.config.mcycle);
   verbose = 0;
 
-  /*
-  if ( isdefined_sqlite("onewirestation") == TRUE ) {
-    max_sens_meas = sqlite_maxsensmeas( onewiredb);
-  } else if ( isdefined_pgsql("onewirestation") == TRUE ) {
-    max_sens_meas = pg_maxsensmeas( pg_conn);
-  }
-  */
   max_sens_meas = maxsensmeas(onewirestation.config.dbtype);
 
   if ( max_sens_meas <= 0 ) {
-    syslog(LOG_ALERT, "onewire_hd: database configuration error : verify table SENSORPARAMTERS" );
+    syslog(LOG_ALERT, "onewire_hd: database configuration error : "
+      "verify table SENSORPARAMTERS" );
     return( ( void *) &failure);
   } else {
     syslog(LOG_DEBUG, "onewire_hd: max_sens_meas: %d", max_sens_meas);
   }
-
 
   for (;;) {
     /* measurement loop */
@@ -299,33 +288,45 @@ onewire_hd( void *arg) {
         /* print the Serial Number of the device just found */
         owSerialNum( portnum,serialnum,TRUE);
         numsens++;
-        syslog( LOG_DEBUG, "onewire_hd: 1-wire device: serialnum: %s: familycode: %s", 
-          echo_serialnum(serialnum), echo_familycode( serialnum));
+        syslog( LOG_DEBUG, "onewire_hd: 1-wire device: serialnum: %s: "
+          "familycode: %s", echo_serialnum(serialnum), 
+                            echo_familycode( serialnum));
 
         /* DS2438 */
         if ( strncmp(echo_familycode(serialnum), "26",2) == 0 ) {
 
           /* read DS2438 VSENS */
           vsens = ReadVsens( 0, VSENS, serialnum, port);
-          if ( ( rslt  = get_onewireinfo( "VSENS+", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
-            syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+          if ( ( rslt  = get_onewireinfo( "VSENS+", echo_serialnum( serialnum), 
+                            &ssdp, onewirestation.config.dbtype)) == 0 ) {
+            syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): "
+             "ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
-            syslog(LOG_DEBUG, "onewire_hd: call to addmdat w/ mtime: %f and mval: %f\n", mtime, vsens);
+            syslog(LOG_DEBUG, "onewire_hd: call to addmdat w/ mtime: %f "
+              "and mval: %f\n", mtime, vsens);
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vsens);
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
+            syslog(LOG_ALERT, "onewire_hd: database problem "
+              "relation sensorname, parametername devicetyp: "
+              "check database setup of serialnum: %s", 
+              echo_serialnum(serialnum));
           }
 
           /* read DS2438 VAD */
           svdd = 0;
           SetupAtoD( portnum, svdd, serialnum);
           vad = ReadAtoD( portnum, svdd, serialnum);
-          if ( ( rslt  = get_onewireinfo( "VAD", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
-            syslog(LOG_DEBUG, "onewire_hd: DS2438(VAD): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+          if ( ( rslt  = get_onewireinfo( "VAD", echo_serialnum( serialnum), 
+                           &ssdp, onewirestation.config.dbtype)) == 0 ) {
+            syslog(LOG_DEBUG, "onewire_hd: DS2438(VAD): ssdp.sensor_meas_no: "
+              "%d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vad);
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
+            syslog(LOG_ALERT, "onewire_hd: database problem "
+              "relation sensorname, parametername devicetyp: "
+              "check database setup of serialnum: %s", 
+              echo_serialnum(serialnum));
           }
 
           /* read DS2438 VDD */
@@ -333,28 +334,41 @@ onewire_hd( void *arg) {
           SetupAtoD( portnum, svdd, serialnum);
           vdd = ReadAtoD( portnum, svdd, serialnum);
 
-          if ( ( rslt = get_onewireinfo( "VDD", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
-            syslog(LOG_DEBUG, "onewire_hd: DS2438(VDD): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+          if ( ( rslt = get_onewireinfo( "VDD", echo_serialnum( serialnum), 
+                          &ssdp, onewirestation.config.dbtype)) == 0 ) {
+            syslog(LOG_DEBUG, "onewire_hd: DS2438(VDD): ssdp.sensor_meas_no: %d "
+              "ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, vdd);
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
+            syslog(LOG_ALERT, "onewire_hd: database problem "
+              "relation sensorname, parametername devicetyp: "
+              "check database setup of serialnum: %s",
+              echo_serialnum(serialnum));
           }
 
           /* read DS2438 temperature */
           temp2438 = Get_Temperature( portnum, serialnum);
-          if ( ( rslt = get_onewireinfo( "Temperature", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
-            syslog(LOG_DEBUG, "onewire_hd: ds2438(Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+          if ( ( rslt = get_onewireinfo( "Temperature", 
+                          echo_serialnum( serialnum), 
+                          &ssdp, onewirestation.config.dbtype)) == 0 ) {
+            syslog(LOG_DEBUG, "onewire_hd: ds2438(Temperature): "
+              "ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, temp2438);
           } else {
-            syslog(LOG_ALERT, "onewire_hd: database problem relation sensorname, parametername devicetyp: check database setup of serialnum: %s", echo_serialnum(serialnum));
+            syslog(LOG_ALERT, "onewire_hd: database problem "
+              "relation sensorname, parametername devicetyp: "
+              "check database setup of serialnum: %s", 
+              echo_serialnum(serialnum));
           }
 
           /* humidity - derived quantity calculated from vad and vdd */
-          if ( ( rslt = get_onewireinfo( "Humidity", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
+          if ( ( rslt = get_onewireinfo( "Humidity", echo_serialnum( serialnum), 
+                          &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG,
-              "onewire_hd: DS2438(Humidity): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+              "onewire_hd: DS2438(Humidity): ssdp.sensor_meas_no: %d "
+              "ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             cvad = vad;
             cvdd = vdd;
@@ -362,34 +376,46 @@ onewire_hd( void *arg) {
               humid2438 = ( ( vad/vdd) - 0.16) * 161.29;
               humid2438 = humid2438 / ( 1.0546 - ( 0.00216 * temp2438));
 	      addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, humid2438);
-              syslog(LOG_DEBUG,"onewire_hd: humidity sensor discovered: %f", humid2438);
+              syslog(LOG_DEBUG,"onewire_hd: humidity sensor discovered: %f", 
+                humid2438);
             } else {
-              syslog(LOG_ALERT,"onewire_hd: humidity : negative value of VAD or VDD: skipping!");
+              syslog(LOG_ALERT,"onewire_hd: humidity : "
+                "negative value of VAD or VDD: skipping!");
             }
           }
 
           /* pressure - derived quantity calculated from vad and vdd */
-          else if ( ( rslt = get_onewireinfo( "Pressure", echo_serialnum( serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
+          else if ( ( rslt = get_onewireinfo( "Pressure", 
+                               echo_serialnum( serialnum), 
+                               &ssdp, 
+                               onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG,
-              "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s ssdp.gain: %f ssdp.offset: %f", 
-              ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name, ssdp.gain, ssdp.offset); 
+              "onewire_hd: DS2438(Pressure): ssdp.sensor_meas_no: %d "
+              "ssdp.sensorname: %s ssdp.par_name: %s ssdp.gain: %f "
+              "ssdp.offset: %f", 
+              ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name, 
+              ssdp.gain, ssdp.offset); 
             cvad = vad;
             cvdd = vdd;
             if ( ( cvad > 0) || ( cvdd > 0)) {
               press2438 = ssdp.gain * ( vad/vdd) + ssdp.offset;
 	      addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, press2438);
-              syslog(LOG_DEBUG,"onewire_hd: pressure sensor discovered: pressure[hPa] : %f", press2438);
+              syslog(LOG_DEBUG,"onewire_hd: pressure sensor discovered: "
+                "pressure[hPa] : %f", press2438);
             } else {
-              syslog(LOG_ALERT,"onewire_hd: pressure: negative value of VAD or VDD: skipping!");
+              syslog(LOG_ALERT,"onewire_hd: pressure: negative value "
+                "of VAD or VDD: skipping!");
             }
           }
 
           else {
-            syslog(LOG_ALERT,"onewire_hd: Error: sensor not configured for devicetyp DS2438. serialnum: %s", echo_serialnum(serialnum));
+            syslog(LOG_ALERT,"onewire_hd: Error: sensor not configured "
+              "for devicetyp DS2438. serialnum: %s", echo_serialnum(serialnum));
           }
 
           syslog(LOG_DEBUG, 
-            "onewire_hd: %f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f Temperature: %f\n", 
+            "onewire_hd: %f DS2438 serialnum: %s VSENS: %f VAD: %f VDD: %f "
+            "Temperature: %f\n", 
 	    mtime, echo_serialnum( serialnum), vsens, vad, vdd, temp2438);
           /*
           if ( verbose == 1 ) {
@@ -401,17 +427,23 @@ onewire_hd( void *arg) {
         } else if ( strncmp(echo_familycode(serialnum), "10",2) == 0 ) {
           if ( ( rslt = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
             temp10 = temp;
-            syslog(LOG_DEBUG, "onewire_hd: %f DS1820/DS1920 serialnum: %s Temperature: %f",
-		   mtime, echo_serialnum(serialnum),temp10); 
+            syslog(LOG_DEBUG, "onewire_hd: %f DS1820/DS1920 serialnum: %s "
+              "Temperature: %f",
+	      mtime, echo_serialnum(serialnum),temp10); 
           } else {
             syslog(LOG_ALERT, 
-	      "onewire_hd: %f DS1820/DS1920 serialnum: %s Temperature conversion error", 
+	      "onewire_hd: %f DS1820/DS1920 serialnum: %s "
+              "Temperature conversion error", 
 	      mtime, echo_serialnum( serialnum)); 
           }
 
-          if ( ( rslt = get_onewireinfo( "Temperature", echo_serialnum(serialnum), &ssdp, onewirestation.config.dbtype)) == 0 ) {
+          if ( ( rslt = get_onewireinfo( "Temperature", 
+                          echo_serialnum(serialnum), 
+                          &ssdp, 
+                          onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG, 
-              "onewire_hd: DS1820/DS1920 (Temperature): ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
+              "onewire_hd: DS1820/DS1920 (Temperature): ssdp.sensor_meas_no: %d "
+              "ssdp.sensorname: %s ssdp.par_name: %s", 
               ssdp.sensor_meas_no, ssdp.sensorname, ssdp.par_name); 
             addmdat( &mlist_p[ssdp.sensor_meas_no], mtime, temp10);
           }
@@ -428,7 +460,8 @@ onewire_hd( void *arg) {
           currsens, numsens);  
       }
       currsens = numsens;
-      syslog(LOG_DEBUG,"onewire_hd: onewire loop: mcycle: %d %f %f %f %f %f %f %f", 
+      syslog(LOG_DEBUG,"onewire_hd: onewire loop: mcycle: "
+        "%d %f %f %f %f %f %f %f", 
         i, mtime, vsens, vad, vdd, temp2438, humid2438, temp10);
     }
     syslog( LOG_DEBUG, "onewire_hd: end of measurement loop");
