@@ -505,7 +505,7 @@ if ( $update) {
       # select last sensor parameter data
       $data_sql  = "
         SELECT DISTINCT 
-          sensornames.sensor_name,parameternames.parameter_name,
+          sensornames.sensor_name,parameternames.param_name,
           sensordata.dataset_date, sensordata.meas_value
         FROM  
           sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
@@ -519,7 +519,7 @@ if ( $update) {
         AND 
           sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
         AND 
-          parameternames.parameter_no = sensorparameters.parameter_no
+          parameternames.param_no = sensorparameters.param_no
         AND
           sensornames.sensor_name = '$sensor'
         ORDER BY

@@ -41,9 +41,9 @@
   $wth_db = "/proj/wetter/logs/wmr9x8/wmr9x8.db";
 
   $status_sql = "SELECT DISTINCT 
-      sensornames.sensor_name,parameternames.parameter_name,
+      sensornames.sensor_name,parameternames.param_name,
       sensorupdate.last_update, sensordata.meas_value,
-      parameternames.unit 
+      parameternames.param_unit 
     FROM  
       sensorupdate, sensordata,sensornames,sensorparameters,parameternames 
     WHERE sensorupdate.last_update = sensordata.dataset_date 
@@ -54,7 +54,7 @@
     AND 
       sensorupdate.sensor_meas_no = sensorparameters.sensor_meas_no 
     AND 
-      parameternames.parameter_no = sensorparameters.parameter_no";
+      parameternames.param_no = sensorparameters.param_no";
 
 
   try {

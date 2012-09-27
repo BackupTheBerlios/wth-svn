@@ -2,39 +2,43 @@ PACKET MODE - RECORD STRUCTURE
 
 What comes over the wire? Example dataset:
 
-01234|5678|9 012|3456|789 0|1234|5678|9 012|3456|789 0|1234|5678|9 012|3456|
-$ULTW|0000|0 000|02CB|000 0|24F7|FFF9|8 47C|0001|--- -|010D|0401|0 000|0000|
+01234|5678|9012|3456|7890|1234|5678|9012|3456|7890|1234|5678|9012|3456|
 
-^     ^    ^     ^    ^     ^    ^    ^     ^    ^     ^    ^    ^     ^
-|     |    |     |    |     |    |    |     |    |     |    |    |     |
-|     |    |     |    |     |    |    |     |    |     |    |    |     |
-Header|    |     |    |     |    |    |     |    |     |    |    |     |
-      |    |     |    |     |    |    |     |    |     |    |    |     |
-      Wind Speed Peak over last 5 min(0.1kph)    |     |    |    |     |
-           |     |    |     |    |    |     |    |     |    |    |     |
-           Wind Direction of Wind Speed Peak(0-255)    |    |    |     |
-                 |    |     |    |    |     |    |     |    |    |     |
-                 Current Outdoor Temp(0.1 deg F) |     |    |    |     |
-                      |     |    |    |     |    |     |    |    |     |
-                      Rain long Term Total(0.01in)     |    |    |     |
-                            |    |    |     |    |     |    |    |     |
-                            Current Barometer(0.1mbar) |    |    |     |
-                                 |    |     |    |     |    |    |     |
-                                 Barometer Delta Value(0.1mbar)  |     |
-                                      |     |    |     |    |    |     |
-                                      Barometer Corr.Factor(LSW) |     |
-                                            |    |     |    |    |     |
-                                            Barometer Corr.Factor(MSW) |
-                                                 |     |    |    |     |
-                                                 Current Outdoor Humidity (0.1%)
-                                                       |    |    |     |
-                                                       Date (day of year)
-                                                            |    |     |
-                                                            Time (minute of day)
-                                                                 |     |
-                                                                 Today's Rain Total (0.0.1 inches)
-                                                                       |
-                                                                       5 Minute Wind Speed Average(0.1kph)
+
+$ULTW|0058|008F|0216|0000|2569|0009|847C|0001|----|010E|02FD|0000|0035|
+
+$ULTW|0000|0000|02CB|0000|24F7|FFF9|847C|0001|----|010D|0401|0000|0000|
+
+^     ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^
+|     |    |    |    |    |    |    |    |    |    |    |    |    |
+|     |    |    |    |    |    |    |    |    |    |    |    |    |
+Header|    |    |    |    |    |    |    |    |    |    |    |    |
+      |    |    |    |    |    |    |    |    |    |    |    |    |
+      Wind Speed Peak over last 5 min(0.1kph) |    |    |    |    |
+           |    |    |    |    |    |    |    |    |    |    |    |
+           Wind Direction of Wind Speed Peak(0-255)|    |    |    |
+                |    |    |    |    |    |    |    |    |    |    |
+                Current Outdoor Temp(0.1 deg F)    |    |    |    |
+                     |    |    |    |    |    |    |    |    |    |
+                     Rain long Term Total(0.01in)  |    |    |    |
+                          |    |    |    |    |    |    |    |    |
+                          Current Barometer(0.1mbar)    |    |    |
+                               |    |    |    |    |    |    |    |
+                               Barometer Delta Value(0.1mbar)|    |
+                                    |    |    |    |    |    |    |
+                                    Barometer Corr.Factor(LSW)    |
+                                         |    |    |    |    |    |
+                                         Barometer Corr.Factor(MSW) 
+                                              |    |    |    |    |
+                                              Current Outdoor Humidity (0.1%)
+                                                   |    |    |    |
+                                                   Date (day of year)
+                                                        |    |    |
+                                                        Time (minute of day)
+                                                             |    |
+                                                             Today's Rain Total (0.0.1 inches)
+                                                                  |
+                                                                  5 Minute Wind Speed Average(0.1kph)
 
 
 

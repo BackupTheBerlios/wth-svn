@@ -99,7 +99,7 @@ INSERT INTO sensorparameters_new ( sensor_meas_no, sensor_no, param_no) SELECT s
 ALTER TABLE sensorparameters RENAME TO sensorparameters_org;
 
 5.
-
+ALTER TABLE sensorparameters_new RENAME TO sensorparameters;
 
 6.
 ( DROP TABLE sensorparameters_org;)
