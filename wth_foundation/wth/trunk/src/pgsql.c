@@ -1,12 +1,12 @@
 /*
   pgsql.c
 
-  read and write wth database data 
+  read and write wth data to postgresql database
 
   $Id$
   $Revision$
 
-  Copyright (C) Volker Jahns <volker@thalreit.de>
+  Copyright (C) 20011-2012 Volker Jahns <volker@thalreit.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ pg_datadb( long dataset_date, int sensor_meas_no, float meas_value,
 
 
 /*
-  pg_statdb - insert status values
+  pg_stat_ws2000db - insert status values of WS2000 weatherstation
 
 */
 int
@@ -103,7 +103,7 @@ pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn)
 
 
 /*
-  pg_newdb - insert new flag values
+  pg_new_ws2000db - insert new flag values of WS2000 weatherstation
 
   new flag is read which each datarecord read command ( 1 2)
   status value is read with status command ( 5)
@@ -185,21 +185,13 @@ pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *
   }
 
   for ( i = 0; i < PQntuples(res); i++) {
-    //ssdp->sensor_meas_no = sqlite3_column_int(qcomp, 0);
     ssdp->sensor_meas_no = (int )atoi(PQgetvalue(res, i, 0));
-    //strncpy(ssdp->sensorname, (char *)sqlite3_column_text(qcomp,1), TBUFF);  
     strncpy(ssdp->sensorname, PQgetvalue(res, i, 1), TBUFF);  
-    //strncpy(ssdp->par_name, (char *)sqlite3_column_text(qcomp,2), TBUFF);
     strncpy(ssdp->par_name, PQgetvalue(res, i, 2), TBUFF);
-    //ssdp->offset = sqlite3_column_double(qcomp,3);
     ssdp->offset = (float )atof(PQgetvalue(res, i, 3));
-    //ssdp->gain   = sqlite3_column_double(qcomp,4);
     ssdp->gain   = (float )atof(PQgetvalue(res, i, 4));
-    //strncpy(ssdp->devicetyp, (char *)sqlite3_column_text(qcomp,5), TBUFF);  
     strncpy(ssdp->devicetyp, PQgetvalue(res, i, 5), TBUFF);  
-    //strncpy(ssdp->familycode, (char *)sqlite3_column_text(qcomp,6), TBUFF);  
     strncpy(ssdp->familycode, PQgetvalue(res, i, 6), TBUFF);  
-    //strncpy(ssdp->serialnum, (char *)sqlite3_column_text(qcomp,7), TBUFF);  
     strncpy(ssdp->serialnum, PQgetvalue(res, i, 7), TBUFF);  
   }
   PQclear(res);

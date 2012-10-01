@@ -25,9 +25,9 @@
 
 */
  
-#include "wth.h"
-#include "ds2438.h"
-#include "temp10.h"
+#include <wth.h>
+#include <ds2438.h>
+#include <temp10.h>
 #include <sys/resource.h>
 
 
@@ -214,7 +214,7 @@ get_onewireinfo( char *parname,
 void *
 onewire_hd( void *arg) 
 {
-  int i, j, rslt, verbose, currsens, numsens;
+  int i, j, err, rslt, verbose, currsens, numsens;
   int portnum, svdd, cvdd, cvad;
   int max_sens_meas;
   float vsens, vad, vdd, temp10;
@@ -244,7 +244,7 @@ onewire_hd( void *arg)
   currsens = 0;
 
   if ( isdefined_sqlite("onewirestation") == TRUE ) {
-    if ( ( rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
+    if ( ( err = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
       syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
         onewirestation.config.dbfile);
       return( ( void *) &failure);
@@ -298,7 +298,7 @@ onewire_hd( void *arg)
 
           /* read DS2438 VSENS */
           vsens = ReadVsens( 0, VSENS, serialnum, port);
-          if ( ( rslt  = get_onewireinfo( "VSENS+", echo_serialnum( serialnum), 
+          if ( ( err  = get_onewireinfo( "VSENS+", echo_serialnum( serialnum), 
                             &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VSENS+): "
              "ssdp.sensor_meas_no: %d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -317,7 +317,7 @@ onewire_hd( void *arg)
           svdd = 0;
           SetupAtoD( portnum, svdd, serialnum);
           vad = ReadAtoD( portnum, svdd, serialnum);
-          if ( ( rslt  = get_onewireinfo( "VAD", echo_serialnum( serialnum), 
+          if ( ( err  = get_onewireinfo( "VAD", echo_serialnum( serialnum), 
                            &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VAD): ssdp.sensor_meas_no: "
               "%d ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -335,7 +335,7 @@ onewire_hd( void *arg)
           SetupAtoD( portnum, svdd, serialnum);
           vdd = ReadAtoD( portnum, svdd, serialnum);
 
-          if ( ( rslt = get_onewireinfo( "VDD", echo_serialnum( serialnum), 
+          if ( ( err = get_onewireinfo( "VDD", echo_serialnum( serialnum), 
                           &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: DS2438(VDD): ssdp.sensor_meas_no: %d "
               "ssdp.sensorname: %s ssdp.par_name: %s", 
@@ -350,7 +350,7 @@ onewire_hd( void *arg)
 
           /* read DS2438 temperature */
           temp2438 = Get_Temperature( portnum, serialnum);
-          if ( ( rslt = get_onewireinfo( "Temperature", 
+          if ( ( err = get_onewireinfo( "Temperature", 
                           echo_serialnum( serialnum), 
                           &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG, "onewire_hd: ds2438(Temperature): "
@@ -365,7 +365,7 @@ onewire_hd( void *arg)
           }
 
           /* humidity - derived quantity calculated from vad and vdd */
-          if ( ( rslt = get_onewireinfo( "Humidity", echo_serialnum( serialnum), 
+          if ( ( err = get_onewireinfo( "Humidity", echo_serialnum( serialnum), 
                           &ssdp, onewirestation.config.dbtype)) == 0 ) {
             syslog(LOG_DEBUG,
               "onewire_hd: DS2438(Humidity): ssdp.sensor_meas_no: %d "
@@ -386,7 +386,7 @@ onewire_hd( void *arg)
           }
 
           /* pressure - derived quantity calculated from vad and vdd */
-          else if ( ( rslt = get_onewireinfo( "Pressure", 
+          else if ( ( err = get_onewireinfo( "Pressure", 
                                echo_serialnum( serialnum), 
                                &ssdp, 
                                onewirestation.config.dbtype)) == 0 ) {
@@ -426,7 +426,7 @@ onewire_hd( void *arg)
 
         /* DS1820/DS1920 */
         } else if ( strncmp(echo_familycode(serialnum), "10",2) == 0 ) {
-          if ( ( rslt = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
+          if ( ( err = ReadTemperature( portnum, serialnum, &temp)) == 1 ) {
             temp10 = temp;
             syslog(LOG_DEBUG, "onewire_hd: %f DS1820/DS1920 serialnum: %s "
               "Temperature: %f",
@@ -438,7 +438,7 @@ onewire_hd( void *arg)
 	      mtime, echo_serialnum( serialnum)); 
           }
 
-          if ( ( rslt = get_onewireinfo( "Temperature", 
+          if ( ( err = get_onewireinfo( "Temperature", 
                           echo_serialnum(serialnum), 
                           &ssdp, 
                           onewirestation.config.dbtype)) == 0 ) {
