@@ -241,6 +241,7 @@ onewire_hd( void *arg)
     return( ( void *) &failure);
   }
   onewirestation.status.is_present = 1;
+  currsens = 0;
 
   if ( isdefined_sqlite("onewirestation") == TRUE ) {
     if ( ( rslt = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
