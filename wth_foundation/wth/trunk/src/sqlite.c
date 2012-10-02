@@ -163,7 +163,7 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
   err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
     syslog( LOG_ALERT,
-	    "sqlite_get_onewireinfo: error: select sensdevpar: err: %d : sqlite_errmsg: %s\n", 
+	    "sqlite_get_onewireinfo: error: select sensor parameter info: err: %d : sqlite_errmsg: %s\n", 
 	    err, sqlite3_errmsg(wthdb));
     return(1);
   }
@@ -189,7 +189,7 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
     return(1);
   }
   if ( rowcnt == 0) {
-    //syslog( LOG_ALERT, "sensdevpar: error: no configuration data in database");
+    syslog( LOG_DEBUG, "sqlite_get_onewireinfo: no configuration data in database");
     return(1);
   }
   return(0);

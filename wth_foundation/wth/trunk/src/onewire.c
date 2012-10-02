@@ -284,6 +284,7 @@ onewire_hd( void *arg)
       mtime = tv.tv_sec+1.0e-6*tv.tv_usec; 
       /* find the first device (all devices not just alarming) */
       rslt = owFirst( portnum, TRUE, FALSE);
+      syslog( LOG_DEBUG,"onewire_hd: return value owFirst: %d\n", rslt);
       numsens = 0;
       while (rslt) {
         /* print the Serial Number of the device just found */

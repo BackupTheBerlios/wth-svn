@@ -172,13 +172,13 @@ pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *
     "AND dt.serialnum = '%s' " 
     "AND pn.param_name = '%s' ", 
     serialnum, parname);
-  syslog(LOG_DEBUG, "pg_sensdevpar: sql: %s", query);
+  syslog(LOG_DEBUG, "pg_get_onewireinfo: sql: %s", query);
 
   res = PQexec( pg_conn, query); 
   if (PQresultStatus(res) != PGRES_TUPLES_OK)
   {
     syslog( LOG_ALERT,
-	    "pg_sensdevpar: error: select sensdevpar: %s\n", 
+	    "pg_get_onewireinfo: error: select sensor parameter info: %s\n", 
 	     PQerrorMessage(pg_conn));
     PQclear(res);
     return(1);
@@ -196,7 +196,7 @@ pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *
   }
   PQclear(res);
   if ( PQntuples(res) == 0) {
-    //syslog( LOG_ALERT, "sensdevpar: error: no configuration data in database");
+    syslog( LOG_DEBUG, "pg_get_onewireinfo: no configuration data in database");
     return(1);
   }
   return(0);
