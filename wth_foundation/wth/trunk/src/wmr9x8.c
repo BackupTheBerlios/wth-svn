@@ -45,222 +45,7 @@
 #define MINTYP    0x0e
 #define CLOCKTYP  0x0f
 
-/*
-  wmr9x8_hd
 
-  POSIX thread to handle WMR9x8 weatherstation
-
-  opens port
-  call to data reading subroutine
-
-*/
-void *
-wmr9x8_hd( void *arg) {
-  int rfd, err;
-  struct termios tp, op;
-
-  syslog( LOG_DEBUG, "wmr9x8_hd: start of execution");
-
-  /* initialize serial port */
-  if ( initwmr9x8(&rfd, &tp, &op) == -1 )
-    return( ( void *) &failure);
-  
-  wmr9x8station.status.is_present = 1;
-
-  /* read WMR 9x8 weatherstation */
-  err = wmr9x8rd( rfd);
-
-  closewmr9x8(rfd, &op);
-
-  return( ( void *) &success);
-}
-
-
-/*
-  wmr9x8rd
-
-  reading data records from serial port
-  data acquisition to database
-  
-  note: checksum might be 0xff
-
-*/
-int 
-wmr9x8rd( int rfd) {
-  int i;
-  int err = -1;
-  int sync = 0;
-  int ndat = 0;
-  int dtyp = -1;
-  unsigned char schr = 0x00;
-  unsigned char data[TBUFF+1];
-
-  memset( data, 0 , TBUFF);
-  for (;;) {
-    
-    err = resetwmr9x8( rfd);
-    if ( err == 1) {
-      syslog(LOG_ALERT, "wmr9x8rd: reset serial port failure");
-    }
-    err = getschar( rfd, &schr);
-    if ( err == 1) {
-      data[ndat] = schr;
-      ndat++;
-    } else {
-      syslog(LOG_DEBUG, "wmr9x8rd: could not read 1 char err: %d\n", err);
-    }
-
-    if ( schr == 0xff) {
-      sync++;
-    }
-
-    if (sync == 2) {
-      if (( schr == 0x00) || ( schr == 0x01 ) || (schr == 0x02) || (schr == 0x03) || (schr == 0x05) || ( schr == 0x0e) || ( schr == 0x0f) || ( schr == 0x06)) {
-        syslog( LOG_DEBUG,"devicetyp: %x", schr);
-	dtyp = schr;
-	sync++;
-      }
-    }
-    
-    if ( sync == 3) {
-      syslog(LOG_DEBUG, "wmr9x8rd: header sync + devicetype %x received", dtyp);
-      data[0] = 0xff;
-      data[1] = 0xff;
-      data[2] = dtyp;
-
-      if ( dtyp == WINDTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is WINDTYP");
-	for ( i = 0; i < WINDLEN - 3 ; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = WINDLEN;
-
-      } else if ( dtyp == RAINTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is RAINTYP");
-	for ( i = 0; i < RAINLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = RAINLEN;
-
-      } else if ( dtyp == THINTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THINTYP");
-	for ( i = 0; i < THINLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = THINLEN;
-
-      } else if ( dtyp == THOUTTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THOUTTYP");
-	for ( i = 0; i < THOUTLEN-3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = THOUTLEN;
-
-      } else if ( dtyp == TINTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is TINTYP");
-	for ( i = 0; i < TINLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = TINLEN;
-      } else if ( dtyp == THBTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBTYP");
-	for ( i = 0; i < THBLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = THBLEN;
-
-      } else if ( dtyp == MINTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is MINTYP");
-	for ( i = 0; i < MINLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = MINLEN;
-      } else if ( dtyp == CLOCKTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is CLOCKTYP");
-	for ( i = 0; i < CLOCKLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = CLOCKLEN;
-
-      } else if ( dtyp == THBNEWTYP ) {
-	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBNEWTYP");
-	for ( i = 0; i < THBNEWLEN - 3; i++) {
-	  err = getschar( rfd, &schr);
-          data[i+3] = schr;
-	}
-	ndat = THBNEWLEN;
-      } else {
-	syslog(LOG_ALERT, "wmr9x8rd: UNKNOWN devicetyp");
-
-      }
-      syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
-      echodata( data, ndat);
-      wmr9x8dac( data, ndat);
-
-      sync = 0; ndat = 0; memset( data, 0, TBUFF);    
-    }
-
-  }
-
-  return(err); 
-}
-
-/*
-  wmr9x8dac
-
-  data acquisition
-
-*/
-int
-wmr9x8dac( unsigned char *data, int ndat) {
-  int err = 0;
-  unsigned char devtype = 0xff;
-
-  syslog(LOG_DEBUG, "wmr9x8dac: data record");
-  echodata( data, ndat);
-
-  //err = checksum( data, ndat);
-
-  devtype = data[2];
-  //syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);
-
-  if ( devtype == 0x00 && ndat == WINDLEN) 
-    wind_dac( data); 
-  
-  if ( devtype == 0x01 && ndat == RAINLEN) 
-    rain_dac( data); 
-  
-  if ( devtype == 0x02 && ndat == THINLEN) 
-    thin_dac( data); 
-  
-  if ( devtype == 0x03 && ndat == THOUTLEN) 
-    thout_dac( data); 
-  
-  if ( devtype == 0x04 && ndat == TINLEN) 
-    tin_dac( data); 
-  
-  if ( devtype == 0x05 && ndat == THBLEN) 
-    thb_dac( data); 
-  
-  if ( devtype == 0x06 && ndat == THBNEWLEN) 
-    thbnew_dac( data); 
-  
-  if ( devtype == 0x0e && ndat == MINLEN) 
-    minute_dac( data); 
-  
-  if ( devtype == 0x0f && ndat == CLOCKLEN) 
-    clock_dac( data); 
-  
-  return(err);
-}
 
 /*
   wind_dac
@@ -1138,5 +923,223 @@ checksum ( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "checksum calculated: %x", checksum);
   syslog(LOG_DEBUG, "checksum: last data byte: %x", data[ndat-1]);
   return(err);
+}
+
+
+/*
+  wmr9x8dac
+
+  data acquisition
+
+*/
+int
+wmr9x8dac( unsigned char *data, int ndat) {
+  int err = 0;
+  unsigned char devtype = 0xff;
+
+  syslog(LOG_DEBUG, "wmr9x8dac: data record");
+  echodata( data, ndat);
+
+  //err = checksum( data, ndat);
+
+  devtype = data[2];
+  //syslog(LOG_DEBUG, "wmr9x8dac: devicetype: %d", devtype);
+
+  if ( devtype == 0x00 && ndat == WINDLEN) 
+    wind_dac( data); 
+  
+  if ( devtype == 0x01 && ndat == RAINLEN) 
+    rain_dac( data); 
+  
+  if ( devtype == 0x02 && ndat == THINLEN) 
+    thin_dac( data); 
+  
+  if ( devtype == 0x03 && ndat == THOUTLEN) 
+    thout_dac( data); 
+  
+  if ( devtype == 0x04 && ndat == TINLEN) 
+    tin_dac( data); 
+  
+  if ( devtype == 0x05 && ndat == THBLEN) 
+    thb_dac( data); 
+  
+  if ( devtype == 0x06 && ndat == THBNEWLEN) 
+    thbnew_dac( data); 
+  
+  if ( devtype == 0x0e && ndat == MINLEN) 
+    minute_dac( data); 
+  
+  if ( devtype == 0x0f && ndat == CLOCKLEN) 
+    clock_dac( data); 
+  
+  return(err);
+}
+
+
+/*
+  wmr9x8rd
+
+  reading data records from serial port
+  data acquisition to database
+  
+  note: checksum might be 0xff
+
+*/
+int 
+wmr9x8rd( int rfd) {
+  int i;
+  int err = -1;
+  int sync = 0;
+  int ndat = 0;
+  int dtyp = -1;
+  unsigned char schr = 0x00;
+  unsigned char data[TBUFF+1];
+
+  memset( data, 0 , TBUFF);
+  for (;;) {
+    
+    err = resetwmr9x8( rfd);
+    if ( err == 1) {
+      syslog(LOG_ALERT, "wmr9x8rd: reset serial port failure");
+    }
+    err = getschar( rfd, &schr);
+    if ( err == 1) {
+      data[ndat] = schr;
+      ndat++;
+    } else {
+      syslog(LOG_DEBUG, "wmr9x8rd: could not read 1 char err: %d\n", err);
+    }
+
+    if ( schr == 0xff) {
+      sync++;
+    }
+
+    if (sync == 2) {
+      if (( schr == 0x00) || ( schr == 0x01 ) || (schr == 0x02) || (schr == 0x03) || (schr == 0x05) || ( schr == 0x0e) || ( schr == 0x0f) || ( schr == 0x06)) {
+        syslog( LOG_DEBUG,"devicetyp: %x", schr);
+	dtyp = schr;
+	sync++;
+      }
+    }
+    
+    if ( sync == 3) {
+      syslog(LOG_DEBUG, "wmr9x8rd: header sync + devicetype %x received", dtyp);
+      data[0] = 0xff;
+      data[1] = 0xff;
+      data[2] = dtyp;
+
+      if ( dtyp == WINDTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is WINDTYP");
+	for ( i = 0; i < WINDLEN - 3 ; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = WINDLEN;
+
+      } else if ( dtyp == RAINTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is RAINTYP");
+	for ( i = 0; i < RAINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = RAINLEN;
+
+      } else if ( dtyp == THINTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THINTYP");
+	for ( i = 0; i < THINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THINLEN;
+
+      } else if ( dtyp == THOUTTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THOUTTYP");
+	for ( i = 0; i < THOUTLEN-3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THOUTLEN;
+
+      } else if ( dtyp == TINTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is TINTYP");
+	for ( i = 0; i < TINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = TINLEN;
+      } else if ( dtyp == THBTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBTYP");
+	for ( i = 0; i < THBLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THBLEN;
+
+      } else if ( dtyp == MINTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is MINTYP");
+	for ( i = 0; i < MINLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = MINLEN;
+      } else if ( dtyp == CLOCKTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is CLOCKTYP");
+	for ( i = 0; i < CLOCKLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = CLOCKLEN;
+
+      } else if ( dtyp == THBNEWTYP ) {
+	syslog(LOG_INFO, "wmr9x8rd: devicetyp is THBNEWTYP");
+	for ( i = 0; i < THBNEWLEN - 3; i++) {
+	  err = getschar( rfd, &schr);
+          data[i+3] = schr;
+	}
+	ndat = THBNEWLEN;
+      } else {
+	syslog(LOG_ALERT, "wmr9x8rd: UNKNOWN devicetyp");
+
+      }
+      syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
+      echodata( data, ndat);
+      wmr9x8dac( data, ndat);
+
+      sync = 0; ndat = 0; memset( data, 0, TBUFF);    
+    }
+
+  }
+
+  return(err); 
+}
+
+/*
+  wmr9x8_hd
+
+  POSIX thread to handle WMR9x8 weatherstation
+
+  opens port
+  call to data reading subroutine
+
+*/
+void *
+wmr9x8_hd( void *arg) {
+  int rfd, err;
+  struct termios tp, op;
+
+  syslog( LOG_DEBUG, "wmr9x8_hd: start of execution");
+
+  /* initialize serial port */
+  if ( initwmr9x8(&rfd, &tp, &op) == -1 )
+    return( ( void *) &failure);
+  
+  wmr9x8station.status.is_present = 1;
+
+  /* read WMR 9x8 weatherstation */
+  err = wmr9x8rd( rfd);
+
+  closewmr9x8(rfd, &op);
+
+  return( ( void *) &success);
 }
 

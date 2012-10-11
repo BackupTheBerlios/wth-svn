@@ -38,8 +38,6 @@ main ( int argc, char **argv )
   int op, ret, nobg;
   pthread_t ptid, wtid, owtid, wmrtid, umtid;
 
-  char *lockfile = WS2000LOCK;
-
   nobg = 0;
   /* parse commandline */
   while ((op = getopt(argc, argv, "dp:f:h")) != -1) {
@@ -79,7 +77,6 @@ main ( int argc, char **argv )
   }
   syslog(LOG_INFO, "wthd: %s begin of execution\n", VERSION);
 
-  unlink( lockfile);
   tzset();
 
   /* PCWSR thread */

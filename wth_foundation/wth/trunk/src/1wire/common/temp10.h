@@ -30,4 +30,4 @@
 //
 // ---------------------------------------------------------------------------
 
-int ReadTemperature(int,uchar *,float *);
+int ReadTemperature(int portnum, uchar *SerialNum, float *Temp);

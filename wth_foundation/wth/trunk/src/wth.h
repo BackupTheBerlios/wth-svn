@@ -32,14 +32,12 @@
 
 #include <errno.h>
 #include <fcntl.h>
-//#include <netinet/in.h>	/* sockaddr_in{} and other Internet defns */
-//#include <netdb.h>
-//#include <poll.h>	/* for convenience */
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> 
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>	/* for S_xxx file mode constants */
@@ -58,40 +56,40 @@
 #include <math.h>
 #include <pthread.h>
 
-#include "ownet.h"
-#include "findtype.h"
-#include "atod26.h"
 
-#define VERSION     "0.5.0"
-#define	MAXLINE     4096	
-#define	MAXSOCKADDR 128
-#define	BUFFSIZE    8192
-#define MAXFD       64
-#define MAXBUFF     131072
-#define NBUFF       8192
-#define SBUFF       1024
-#define TBUFF       256
-#define MAXSENSORS  24
-#define MAXSENSMEAS 128
-#define MAXPARAM    8
-#define MAXDATA     256
-#define PCWSRLEN    8
-#define MAXMSGLEN   256
-#define MAXQUERYLEN 1024
-#define UMBAUDRATE  2400
+#define VERSION         "0.5.0"
+#define	MAXLINE         4096	
+#define	BUFFSIZE        8192
+#define MAXFD           64
+#define NBUFF           8192
+#define SBUFF           1024
+#define TBUFF           256
+#define MAXSENSMEAS     128
+#define MAXMSGLEN       256
+#define MAXQUERYLEN     1024
+#define NOSENSORPARAM  -1
+#define FALSE          0
+#define TRUE           1
 
-/* from unp.h */
-//#define LISTENQ     1024    /* 2nd argument to listen() */
 
-/* Following shortens all the type casts of pointer arguments */
-//#define	SA	     struct sockaddr
 #define max(a,b)     ((a) > (b) ? (a) : (b))
 
-#define WS2000LOCK "/tmp/LCK...wth";
 
-#define SBATTERY_FAM  0x26
-#define VSENS 1
-#define VACC  2
+/* weatherstation type */
+enum {
+  UMETER  = 1,
+  ONEWIRE = 2,
+  WMR9X8  = 3,
+  WS2000  = 4,
+  PCWSR   = 5
+};
+
+enum {
+  POSTGRESQL = 1,
+  MYSQL      = 2, 
+  SQLITE     = 3,
+  ORACLE     = 4
+};
 
 enum {
   SOH = 0x01,
@@ -106,7 +104,6 @@ enum {
   NAK = 0x15
 };
 
-
 /* weatherstation errors */
 enum {
   ESERIAL = -2,
@@ -117,33 +114,6 @@ enum {
   ESIG    = -7,
   ECMD    = -8,
   EODB    = -9
-};
-
-/* sensor parameter assignment */
-enum {
-  SENSOR1TEMP      = 1,
-  SENSOR1HUM       = 2,
-  SENSOR2TEMP      = 3,
-  SENSOR2HUM       = 4,
-  SENSOR3TEMP      = 5,
-  SENSOR3HUM       = 6,
-  SENSOR4TEMP      = 7,
-  SENSOR4HUM       = 8,
-  SENSOR5TEMP      = 9,
-  SENSOR5HUM       = 10,
-  SENSOR6TEMP      = 11,
-  SENSOR6HUM       = 12,
-  SENSOR7TEMP      = 13,
-  SENSOR7HUM       = 14,
-  SENSOR8TEMP      = 15,
-  SENSOR8HUM       = 16,
-  RAINSENSOR       = 17,
-  WINDSENSORSPEED  = 18,
-  WINDSENSORDIR    = 19,
-  WINDSENSORVAR    = 20,
-  INDOORPRESS      = 21,
-  INDOORTEMP       = 22,
-  INDOORHUM        = 23
 };
 
 static const int success = 0;
@@ -217,7 +187,7 @@ typedef struct umeterstat {
 
 typedef struct wsconf {
   int mcycle;
-  char dbtype[TBUFF+1];
+  int dbtype;
   char dbfile[TBUFF+1];
   char dbconn[TBUFF+1];
   char device[TBUFF+1];
@@ -319,28 +289,27 @@ void *ws2000_hd( void *arg);
 void *onewire_hd( void *arg);
 void *wmr9x8_hd( void *arg);
 
-int demasq( unsigned char *data, int *mdat);
-int chkframe( unsigned char *data, int *mdat);
-int datex( unsigned char *data, int ndat);
-int getcd(unsigned char *data, int *mdat);
-int getrd(unsigned char *data, int *mdat);
-int getsrd(unsigned char *data, int *mdat);
 
-char *wstat(unsigned char *data, int mdat);
-time_t dcftime(unsigned char *data, int ndat);
-int settime();
-int wcmd();
-int readdata( int fd, unsigned char *data, int *ndat);
-ws2000key_t *c( int n);
-int wstrlen( unsigned char *s);
+
+int bitprint( int byte, char *s_reg);
+int longprint( int byte, char *s_reg);
+int maxsensmeas( int dbtype);
+
+sensdevpar_t get_sensorparams( 
+                char *sensorname, char *parametername,
+                int stationtype, int dbtype);
+ 
+int measval_hd( char *sensorname, char *parametername,
+                int stationtype, int dbtype, 
+                double mtime, float mval);
 
 /* sqlite database functions */
-int datadb( long dataset_date, int sensor_param, float meas_value,
+int sqlite_datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
 int stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
 int new_ws2000db( long statusset_date, int sensor_no, int new_flag, 
       sqlite3 *ws2000db);
-int writedb( int sensor_no, int nval, int sensor_meas_no[], 
+int sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[], 
       time_t dataset_date,
       float meas_value[], sqlite3 *ws2000db );
 int sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, 
@@ -349,7 +318,14 @@ int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int sqlite_maxsensmeas( sqlite3 *onewiredb);
-int isdefined_sqlite( char * station );
+//int isdefined_sqlite( char * station );
+sensdevpar_t
+sqlite_get_sensorparams( char *sensorname, char*parametername,
+                         int stationtype);
+int measval_db( char *sensorname, char *parametername, 
+      time_t dataset_date, float mval, sqlite3 *database);
+int statval_db( char *sensorname, char *statusname, 
+      time_t dataset_date, long unsigned int sval, sqlite3 *database);
 
 /* postgresql database functions */
 int pg_datadb( long dataset_date, int sensor_param, float meas_value,
@@ -366,17 +342,10 @@ int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
-int isdefined_pgsql( char * station );
+//int isdefined_pgsql( char * station );
 
-char *ppagemem( uchar *pagemen);
-int bitprint( int byte, char *s_reg);
-int longprint( int byte, char *s_reg);
-char *echo_serialnum( uchar *serialnum);
-char *echo_familycode( uchar *serialnum);
-int get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, 
-      char *dbtype);
-int maxsensmeas( char *dbtype);
 
+/*
 int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
 int resetwmr9x8( int fd);
 int closewmr9x8( int fd, struct termios *oldtio);
@@ -394,10 +363,7 @@ int minute_dac( unsigned char *data);
 int clock_dac( unsigned char *data);
 int wmr9x8rd( int rfd);
 int checksum ( unsigned char *data, int ndat);
-int measval_db( char *sensorname, char *parametername, 
-      time_t dataset_date, float mval, sqlite3 *database);
-int statval_db( char *sensorname, char *statusname, 
-      time_t dataset_date, long unsigned int sval, sqlite3 *database);
+*/
 
 void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);

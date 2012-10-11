@@ -12,6 +12,21 @@
 */
 
 #define MAXSENSMEAS 256
+#define TBUFF 256
+
+enum {
+  UMETER  = 1,
+  ONEWIRE = 2,
+  WMR9X8  = 3,
+  WS2000  = 4,
+  PCWSR   = 5
+};
+
+enum {
+  POSTGRESQL = 1,
+  MYSQL      = 2, 
+  SQLITE     = 3
+};
 
 #include <string.h>
 #include <stdio.h>
@@ -90,8 +105,69 @@ avgmdat( struct mset ** mlist_ref,
     avgval = avgval / count;
     printf( "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, number: %d\n", 
             sens_meas_no, avgtime, avgval, count); 
+    /*
+       add code to write data to database
+       datadb( sensor_meas_no, ... )
+    */
   }
 }
+
+
+int measval_hd(char * sensorname, char *parametername, 
+               int stationtype, int dbtype,
+               double mtime, long mval)
+{
+  int err = 0;
+
+  if ( stationtype == ONEWIRE ) {
+    printf("measval_hd: serialnum: %s\n",   sensorname);
+  } else {
+    printf("measval_hd: sensorname: %s\n",  sensorname);
+  }
+
+  printf("measval_hd: parametername: %s\n", parametername);
+  switch(dbtype) {
+    case SQLITE:
+      printf("measval_hd: dbtype is SQLITE\n");
+      break;
+    case POSTGRESQL:
+      printf("measval_hd: dbtype is SQLITE\n");
+      break;
+    case MYSQL:
+      printf("measval_hd: dbtype is SQLITE\n");
+      break;
+    default:
+      printf("measval_hd: unknowm dbtype\n");
+  }
+
+  switch(stationtype) {
+    case UMETER:
+      printf("measval_hd: stationtype is UMETER\n");
+      break;
+    case ONEWIRE:
+      printf("measval_hd: stationtype is ONEWIRE\n");
+      break;
+    case WMR9X8:
+      printf("measval_hd: stationtype is WMR9X8\n");
+      break;
+    case WS2000:
+      printf("measval_hd: stationtype is WS2000\n");
+      break;
+    case PCWSR:
+      printf("measval_hd: stationtype is PCWSR\n");
+      break;
+    default:
+      printf("measval_hd: unknown stationtype\n");
+  }
+
+  printf("measval_hd: mtime: %f mval: %ld\n", mtime, mval);
+
+  /*
+    here code of measval_db
+  */
+  return(err);
+}
+
 
 int measval_db( char *sensorname, char *parametername, 
                    double mtime, long mval) 
@@ -110,7 +186,10 @@ int measval_db( char *sensorname, char *parametername,
          sensor_meas_no,
          mtime,
          mval);
-  printf("measval_db: cycleno[%d]: %d mcycle: %d\n", sensor_meas_no, cycleno[sensor_meas_no], mcycle);
+  printf("measval_db: cycleno[%d]: %d mcycle: %d\n",
+         sensor_meas_no, 
+         cycleno[sensor_meas_no],
+         mcycle);
   if ( cycleno[sensor_meas_no] < mcycle ) {
     printf("cycleno < mcycle: adding data\n");
     addmdat( &mlist_p[sensor_meas_no], mtime, mval);
@@ -120,11 +199,6 @@ int measval_db( char *sensorname, char *parametername,
     avgmdat( &mlist_p[sensor_meas_no], sensor_meas_no);
     rstmdat( &mlist_p[sensor_meas_no]);
     addmdat( &mlist_p[sensor_meas_no], mtime, mval);
-    /*
-       add code to write data to database
-       datadb( sensor_meas_no, ... )
-
-    */
     cycleno[sensor_meas_no] = 1;
   }
   prtmdat( mlist_p[sensor_meas_no]);
@@ -141,6 +215,12 @@ main (int argc, char **argv)
   long mval;
   struct timezone tz;
   struct timeval tv;
+  int stationtype;
+  int dbtype;
+
+  /* each station handler knows about these .. */
+  stationtype = ONEWIRE;
+  dbtype      = SQLITE;
 
   tcycle = 20;
   for ( i = 0; i < tcycle; i++ ) {
@@ -148,10 +228,12 @@ main (int argc, char **argv)
     mtime = tv.tv_sec+1.0e-6*tv.tv_usec; 
     mval  = random();
     printf("avgdata_tst: measurement cycle: %d : %f : %ld\n", i, mtime, mval);
-    measval_db( "TESTSENSOR", "POSPARAMETER", mtime, mval);
+    measval_hd("TESTSENSOR", "POSPARAMETER", stationtype, dbtype, mtime, mval);
+    //measval_db( "TESTSENSOR", "POSPARAMETER", mtime, mval);
     mval = -mval;
     printf("avgdata_tst: measurement cycle: %d : %f : %ld\n", i, mtime, mval);
-    measval_db( "TESTSENSOR", "NEGPARAMETER", mtime, mval);
+    measval_hd("TESTSENSOR", "NEGPARAMETER", stationtype, dbtype, mtime, mval);
+    //measval_db( "TESTSENSOR", "NEGPARAMETER", mtime, mval);
     sleep(1);
   }
   return(EXIT_SUCCESS);

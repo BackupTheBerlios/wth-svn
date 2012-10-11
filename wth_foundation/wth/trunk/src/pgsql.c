@@ -6,7 +6,7 @@
   $Id$
   $Revision$
 
-  Copyright (C) 20011-2012 Volker Jahns <volker@thalreit.de>
+  Copyright (C) 2011-2012 Volker Jahns <volker@thalreit.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,8 +26,11 @@
 #include "wth.h"
 
 /*
-  pg_datadb - insert measured values 
-           for use in WS2000 and PCWSR database
+  pg_datadb - insert measured values for use in 
+    - 1-Wire
+    - WS2000 
+    - PCWSR 
+  database
 
 */
 int
@@ -503,28 +506,3 @@ pg_statval_db( char *sensorname, char *flagname,
   return(0);
 }
 
-/*
-  isdefined_pgsql
-  check if postgresql database type is defined
-  return 0 if postgresql database type is defined
-  return 1 if postgresql database type is not defined
-
-*/
-int
-isdefined_pgsql( char * station) {
-  int err;
-
-  if ( strncmp(station, "ws2000station", 14) == 0 ) {
-    if ( strncmp(ws2000station.config.dbtype,"postgresql",10) == 0) {
-      err = 1;
-    } else { err = 0; }
-  } else if ( strncmp(station, "onewirestation", 14) == 0 ) {
-    if ( strncmp(onewirestation.config.dbtype,"postgresql",10) == 0) {
-      err = 1;
-    } else { err = 0; }
-  } else {
-    err = 1;
-  }
-
-  return(err);
-}

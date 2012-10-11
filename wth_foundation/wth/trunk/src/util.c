@@ -24,7 +24,7 @@
 */
  
 #include "wth.h"
-extern int daemon_proc; 
+//extern int daemon_proc; 
 
 
 /* initdata 
@@ -313,8 +313,18 @@ readconfig( ) {
 	  printf("ws2000.device: \"%s\"\n", value);
 	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "ws2000.dbtype" ) == 0 ) {
-	  strncpy( ws2000station.config.dbtype, value, TBUFF);
-	  printf("ws2000.dbtype: \"%s\"\n", value);
+
+          if ( strcasecmp( value, "SQLITE") == 0 )
+            ws2000station.config.dbtype = SQLITE;
+          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+            ws2000station.config.dbtype = POSTGRESQL;
+          else if ( strcasecmp( value, "MYSQL") == 0 )
+            ws2000station.config.dbtype = MYSQL;
+          else if ( strcasecmp( value, "ORACLE") == 0 )
+            ws2000station.config.dbtype = ORACLE;
+
+	  //strncpy( ws2000station.config.dbtype, value, TBUFF);
+	  //printf("ws2000.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
 	  strncpy( ws2000station.config.dbfile, value, TBUFF);
 	  printf("ws2000.dbfile: \"%s\"\n", value);
@@ -326,8 +336,18 @@ readconfig( ) {
 	  printf("pcwsr.device: \"%s\"\n", value);
 	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "pcwsr.dbtype" ) == 0 ) {
-	  strncpy( pcwsrstation.config.dbtype, value, TBUFF);
-	  printf("pcwsr.dbtype: \"%s\"\n", value);
+
+          if ( strcasecmp( value, "SQLITE") == 0 )
+            pcwsrstation.config.dbtype = SQLITE;
+          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+            pcwsrstation.config.dbtype = POSTGRESQL;
+          else if ( strcasecmp( value, "MYSQL") == 0 )
+            pcwsrstation.config.dbtype = MYSQL;
+          else if ( strcasecmp( value, "ORACLE") == 0 )
+            pcwsrstation.config.dbtype = ORACLE;
+
+	  //strncpy( pcwsrstation.config.dbtype, value, TBUFF);
+	  //printf("pcwsr.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "pcwsr.dbfile" ) == 0 ) {
 	  strncpy(pcwsrstation.config.dbfile, value, TBUFF);
 	  printf("pcwsr.dbfile: \"%s\"\n", value);
@@ -339,8 +359,17 @@ readconfig( ) {
 	  printf("onewire.device: \"%s\"\n", value);
 	  strncpy(onewirestation.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "onewire.dbtype" ) == 0 ) {
-	  strncpy( onewirestation.config.dbtype, value, TBUFF);
 	  printf("onewire.dbtype: \"%s\"\n", value);
+          if ( strcasecmp( value, "SQLITE") == 0 )
+            onewirestation.config.dbtype = SQLITE;
+          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+            onewirestation.config.dbtype = POSTGRESQL;
+          else if ( strcasecmp( value, "MYSQL") == 0 )
+            onewirestation.config.dbtype = MYSQL;
+          else if ( strcasecmp( value, "ORACLE") == 0 )
+            onewirestation.config.dbtype = ORACLE;
+
+	  //strncpy( onewirestation.config.dbtype, value, TBUFF);
         } else if ( strcasecmp( name, "onewire.dbconn" ) == 0 ) {
 	  printf("onewire.dbconn: \"%s\"\n", value);
 	  strncpy(onewirestation.config.dbconn, value, TBUFF);
@@ -355,8 +384,18 @@ readconfig( ) {
 	  printf("wmr9x8.device: \"%s\"\n", value);
 	  strncpy(wmr9x8station.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "wmr9x8.dbtype" ) == 0 ) {
-	  strncpy( wmr9x8station.config.dbtype, value, TBUFF);
-	  printf("wmr9x8.dbtype: \"%s\"\n", value);
+
+          if ( strcasecmp( value, "SQLITE") == 0 )
+            wmr9x8station.config.dbtype = SQLITE;
+          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+            wmr9x8station.config.dbtype = POSTGRESQL;
+          else if ( strcasecmp( value, "MYSQL") == 0 )
+            wmr9x8station.config.dbtype = MYSQL;
+          else if ( strcasecmp( value, "ORACLE") == 0 )
+            wmr9x8station.config.dbtype = ORACLE;
+
+	  //strncpy( wmr9x8station.config.dbtype, value, TBUFF);
+	  //printf("wmr9x8.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "wmr9x8.dbfile" ) == 0 ) {
 	  printf("wmr9x8.dbfile: \"%s\"\n", value);
 	  strncpy(wmr9x8station.config.dbfile, value, TBUFF);
@@ -368,8 +407,18 @@ readconfig( ) {
 	  printf("umeter.device: \"%s\"\n", value);
 	  strncpy(umeterstation.config.device, value, MAXMSGLEN);
         } else if ( strcasecmp( name, "umeter.dbtype" ) == 0 ) {
-	  strncpy( umeterstation.config.dbtype, value, TBUFF);
-	  printf("umeter.dbtype: \"%s\"\n", value);
+
+          if ( strcasecmp( value, "SQLITE") == 0 )
+            umeterstation.config.dbtype = SQLITE;
+          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+            umeterstation.config.dbtype = POSTGRESQL;
+          else if ( strcasecmp( value, "MYSQL") == 0 )
+            umeterstation.config.dbtype = MYSQL;
+          else if ( strcasecmp( value, "ORACLE") == 0 )
+            umeterstation.config.dbtype = ORACLE;
+
+	  //strncpy( umeterstation.config.dbtype, value, TBUFF);
+	  //printf("umeter.dbtype: \"%s\"\n", value);
         } else if ( strcasecmp( name, "umeter.dbfile" ) == 0 ) {
 	  printf("umeter.dbfile: \"%s\"\n", value);
 	  strncpy(umeterstation.config.dbfile, value, TBUFF);
@@ -420,9 +469,11 @@ echoconfig ( char *station) {
     snprintf(s, TBUFF, 
       "\tdatabase file\t\t%s\n",ws2000station.config.dbfile);
     strncat(t,s, strlen(s));
+    /*
     snprintf(s, TBUFF, 
       "\tdatabase type\t\t%s\n",ws2000station.config.dbtype);
     strncat(t,s, strlen(s));
+    */
     snprintf(s, TBUFF, 
       "\tmonitor\t\t\t%s\n",ws2000station.config.monitor);
     strncat(t,s, strlen(s));

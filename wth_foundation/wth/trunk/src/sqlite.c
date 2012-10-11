@@ -6,7 +6,7 @@
   $Id$
   $Revision$
 
-  Copyright (C) Volker Jahns <volker@thalreit.de>
+  Copyright (C) 2012 Volker Jahns <volker@thalreit.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,17 +23,18 @@
   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 
 */
- 
 #include "wth.h"
-#include <sys/resource.h>
 
 /*
-  datadb - insert measured data values 
-           for use in WS2000, PCWSR and 1-wire database
+  datadb - insert measured data values for use in 
+    - 1-Wire
+    - WS2000 
+    - PCWSR 
+  database
 
 */
 int
-datadb( long dataset_date, int sensor_meas_no, float meas_value,
+sqlite_datadb( long dataset_date, int sensor_meas_no, float meas_value,
   sqlite3 *wthdb )
 {
   int err;
@@ -140,6 +141,8 @@ new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000d
   1-wire device
   returns these data in structure ssdp
 */
+
+/*
 int
 sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqlite3 *wthdb)
 {
@@ -194,7 +197,7 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
   }
   return(0);
 }
-
+*/
 
 /*
   writedb
@@ -203,13 +206,13 @@ sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, sqli
 
  */
 int
-writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date, 
+sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date, 
          float meas_value[], sqlite3 *ws2000db ) {
   int i, err;
   
   err = 0;        
   for ( i = 0; i < nval; i++) {
-    err = datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);
+    err = sqlite_datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);
   }
 
   return(err);
@@ -262,6 +265,13 @@ sqlite_maxsensmeas( sqlite3 *onewiredb) {
   char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
+  if ( ( err = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
+    syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
+      onewirestation.config.dbfile);
+    return(err);
+  }
+
+
   snprintf(query, SBUFF, "SELECT COUNT(*) "
     "FROM sensorparameters");
   syslog(LOG_DEBUG, "maxsensmeas: sql: %s", query);
@@ -293,6 +303,8 @@ sqlite_maxsensmeas( sqlite3 *onewiredb) {
     syslog( LOG_ALERT, "Error: cant find relation sensor - device - parameter");
     return(1);
   }
+
+  sqlite3_close( onewiredb);
 
   return(max_sens_meas);
 }
@@ -512,27 +524,88 @@ statval_db( char *sensorname, char *flagname,
   return err;
 }
 
-/*
-  use_sqlite
-  check if sqlite database type is defined
-  return 0 if sqlite database type is defined
-  return 1 if sqlite database type is not defined
-
-*/
-int
-isdefined_sqlite( char * station ) {
+sensdevpar_t
+sqlite_get_sensorparams( char *sensorname, char*parametername,
+                         int stationtype)
+{
   int err;
+  int rowcnt = 0;
+  char query[SBUFF+1] = "\0";
+  char serialnum[TBUFF+1] = "\0";
+  sensdevpar_t sqsenspar;
+  sqlite3 *sqlitedb;
+  sqlite3_stmt *qcomp;
 
-  if ( strncmp(station, "ws2000station", 14) == 0 ) {
-    if ( strncmp(ws2000station.config.dbtype,"sqlite",6) == 0) {
-      err = 1;
-    } else { err = 0; }   
-  } else if ( strncmp(station, "onewirestation", 14) == 0 ) {
-    if ( strncmp(onewirestation.config.dbtype,"sqlite",6) == 0) {
-      err = 1;
-    } else { err = 0; }   
-  } else {
-    err = 1;
+   
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
+        "ONEWIRE\n");
+      sqlitedb = onewiredb;
+      strncpy( serialnum, sensorname, strlen( sensorname));
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain, "
+        "dt.devicetyp, dt.familycode, dt.serialnum "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn, devicetyp AS dt "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sp.device_no = dt.device_no "
+        "AND dt.serialnum = '%s' "
+        "AND pn.param_name = '%s' ",
+        serialnum, parametername);
+      //syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
+      break;
+    default:
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: unknowm stationtype\n");
   }
-  return(err);
+
+  err = sqlite3_prepare( sqlitedb, query, -1, &qcomp, 0);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+      "sqlite_get_sensorparams: error: select sensor parameter info: "
+      "err: %d : sqlite_errmsg: %s\n",
+      err, sqlite3_errmsg(sqlitedb));
+    sqsenspar.sensor_meas_no = -1;
+    return(sqsenspar);
+  }
+
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+
+    sqsenspar.sensor_meas_no = sqlite3_column_int(qcomp, 0);
+    strncpy(sqsenspar.sensorname, 
+      (char *)sqlite3_column_text(qcomp,1), TBUFF);
+    strncpy(sqsenspar.par_name, 
+      (char *)sqlite3_column_text(qcomp,2), TBUFF);
+    sqsenspar.offset = sqlite3_column_double(qcomp,3);
+    sqsenspar.gain   = sqlite3_column_double(qcomp,4);
+    strncpy(sqsenspar.devicetyp, 
+      (char *)sqlite3_column_text(qcomp,5), TBUFF);
+    strncpy(sqsenspar.familycode, 
+      (char *)sqlite3_column_text(qcomp,6), TBUFF);
+    strncpy(sqsenspar.serialnum, 
+      (char *)sqlite3_column_text(qcomp,7), TBUFF);
+    rowcnt++;
+  }
+  syslog(LOG_DEBUG, "sqlite_get_sensor_params: sensor_meas_no : %d\n", 
+                    sqsenspar.sensor_meas_no);
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "sqlite_get_sensorparams: error: select parametername: "
+            "err: %d : sqlite_errmsg: %s\n",
+            err, sqlite3_errmsg(sqlitedb));
+    return(sqsenspar);
+  }
+  if ( rowcnt == 0) {
+    syslog( LOG_DEBUG, "sqlite_get_sensorparams: "
+                       "no configuration data in database");
+    sqsenspar.sensor_meas_no = -1;
+    return(sqsenspar);
+  }
+
+  return(sqsenspar);
 }
+

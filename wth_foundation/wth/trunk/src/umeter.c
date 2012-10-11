@@ -391,6 +391,8 @@ packet_rd( unsigned char * packetdata, int ndat) {
   strncpy(umeterstr, (const char *)(packetdata+37), 5); 
   umeterstr[4] = 0;
   err = strncmp( umeterstr, "----", 4);
+  syslog(LOG_DEBUG, "packet_rd: check for '----': err : %d", err);
+
   /* Temperature Sensor installed */
   if ( err == 0 ) {
     syslog(LOG_DEBUG, "packet_rd: No Outdoor Humidity/Temperature Sensor found");

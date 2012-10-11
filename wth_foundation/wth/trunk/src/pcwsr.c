@@ -24,6 +24,8 @@
 */
 #include "wth.h"
 
+#define PCWSRLEN        8
+
 /*  initpcwsr
 
   opens serial port for communication with PC weathersensor receiver
@@ -347,7 +349,7 @@ pcwsr_hd( void *arg) {
 	snprintf(buf, sizeof(buf), 
 	  "%s | unknown sensor type "
           "( possible version %x at address 0x0%x): "
-	  "Please report incident to: Volker.Jahns@thalreit.de",
+	  "Please report incident to: volker@thalreit.de",
 	  clk, sver, saddr);
       }
 
@@ -359,7 +361,8 @@ pcwsr_hd( void *arg) {
       /* database and rrd handling */
       for ( i = 0; i < nval; i++) 
       {
-        datadb( dataset_date, sensor_meas_no[i], meas_value[i], pcwsrdb);
+        sqlite_datadb( dataset_date, sensor_meas_no[i], 
+        meas_value[i], pcwsrdb);
       }
     }
 

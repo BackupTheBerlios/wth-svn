@@ -1,13 +1,12 @@
 SQLITE Database description 
 
 
+Create SQLITE databases
+=======================
 The SQLITE database creation scripts are contained in this directory
 
-for WS2000 and Lacrosse weatherstations
-- ws2000_db.sql
-
-for the PC weathersensor receiver
-- pcwsr_db.sql
+for PeetBros Ultimeter weatherstations
+- umeter_db.sql
 
 for 1-Wire weatherstations
 - onewire_db.sql
@@ -15,8 +14,11 @@ for 1-Wire weatherstations
 for WMR 9x8 weatherstations
 - wmr9x8_db.sql
 
-for PeetBros Ultimeter weatherstations
-- umeter_db.sql
+for WS2000 and Lacrosse weatherstations
+- ws2000_db.sql
+
+for the PC weathersensor receiver
+- pcwsr_db.sql
 
 In order to create a database on the commandline type 
 e.g. for the Ultimeter station
@@ -37,7 +39,7 @@ ALTER TABLE TABLE_OLD RENAME TO TABLE_NEW
 
 
 Rename columnname in SQLITE database
-------------------------------------
+====================================
 no simple SQL possible w/ sqlite
 
 This workaround follows documentation at
