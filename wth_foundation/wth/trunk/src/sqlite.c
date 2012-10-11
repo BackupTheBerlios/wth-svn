@@ -212,7 +212,8 @@ sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_da
   
   err = 0;        
   for ( i = 0; i < nval; i++) {
-    err = sqlite_datadb( dataset_date, sensor_meas_no[i], meas_value[i], ws2000db);
+    err = sqlite_datadb( dataset_date, sensor_meas_no[i], 
+                         meas_value[i], ws2000db);
   }
 
   return(err);
@@ -557,8 +558,26 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
         serialnum, parametername);
       //syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
       break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
+        "WMR9X8\n");
+      sqlitedb = wmr9x8db;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
+      break;
     default:
-      syslog(LOG_ALERT, "sqlite_get_sensorparams: unknowm stationtype\n");
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: unknown stationtype\n");
+      sqsenspar.sensor_meas_no = -1;
+      return(sqsenspar);
   }
 
   err = sqlite3_prepare( sqlitedb, query, -1, &qcomp, 0);
@@ -581,14 +600,24 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
       (char *)sqlite3_column_text(qcomp,2), TBUFF);
     sqsenspar.offset = sqlite3_column_double(qcomp,3);
     sqsenspar.gain   = sqlite3_column_double(qcomp,4);
-    strncpy(sqsenspar.devicetyp, 
-      (char *)sqlite3_column_text(qcomp,5), TBUFF);
-    strncpy(sqsenspar.familycode, 
-      (char *)sqlite3_column_text(qcomp,6), TBUFF);
-    strncpy(sqsenspar.serialnum, 
-      (char *)sqlite3_column_text(qcomp,7), TBUFF);
+    if ( stationtype == ONEWIRE ) {				  
+      strncpy(sqsenspar.devicetyp, 
+        (char *)sqlite3_column_text(qcomp,5), TBUFF);
+      strncpy(sqsenspar.familycode, 
+        (char *)sqlite3_column_text(qcomp,6), TBUFF);
+      strncpy(sqsenspar.serialnum, 
+        (char *)sqlite3_column_text(qcomp,7), TBUFF);
+    } else {
+      strncpy(sqsenspar.devicetyp, 
+        "n.a.", TBUFF);
+      strncpy(sqsenspar.familycode, 
+        "n.a.", TBUFF);
+      strncpy(sqsenspar.serialnum, 
+        "n.a.", TBUFF);
+    }
     rowcnt++;
   }
+  
   syslog(LOG_DEBUG, "sqlite_get_sensor_params: sensor_meas_no : %d\n", 
                     sqsenspar.sensor_meas_no);
   err = sqlite3_finalize(qcomp);
@@ -606,6 +635,68 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
     return(sqsenspar);
   }
 
-  return(sqsenspar);
+  return(sqsenspar);}
+
+/*
+  sqlite_datadbn 
+
+  insert measured data values for use in 
+    - 1-Wire
+    - WS2000 
+    - PCWSR 
+  database
+
+*/
+int
+sqlite_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
+  int stationtype )
+{
+  int          err;
+  int          querylen = MAXQUERYLEN;
+  char         query[MAXQUERYLEN];
+  sqlite3      *sqlitedb;
+
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "
+        "ONEWIRE\n");
+      sqlitedb = onewiredb;
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
+        "WMR9X8\n");
+      sqlitedb = wmr9x8db;
+      break;
+    default:
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: unknown stationtype\n");
+      return(1);
+  }  
+
+  /* insert data values */
+  syslog(LOG_DEBUG, "sqlite_datadbn: dataset_date: %ld, "
+                    "sensor_meas_no: %d, meas_val: %f", 
+                    dataset_date, sensor_meas_no, meas_value);
+  snprintf(query, querylen, 
+    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
+    dataset_date, sensor_meas_no, meas_value); 
+  syslog(LOG_DEBUG, "sqlite_datadbn: query: %s", query);
+  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
+  if ( err) { 
+    syslog(LOG_DEBUG,
+      "datadb: error: insert sensor data: err: %d", err);
+  }
+
+  /* insert date when last data has been updated */
+  snprintf(query, querylen, 
+    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
+    dataset_date, sensor_meas_no); 
+  syslog(LOG_DEBUG, "sqlite_datadbn: query: %s", query);
+  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
+  if ( err) { 
+    syslog(LOG_DEBUG, 
+      "datadb: error: update sensor date: err: %d", err);
+  }
+
+  return(err);
 }
 

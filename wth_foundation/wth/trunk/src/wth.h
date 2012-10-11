@@ -230,7 +230,6 @@ typedef struct conf {
   int log_facility;
   char *hostname;
   char *configfile;
-  char *port;
   char *units;
   char *outfmt;
 } conf_t;
@@ -318,10 +317,12 @@ int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int sqlite_maxsensmeas( sqlite3 *onewiredb);
-//int isdefined_sqlite( char * station );
 sensdevpar_t
 sqlite_get_sensorparams( char *sensorname, char*parametername,
                          int stationtype);
+int sqlite_datadbn( long dataset_date, int sensor_param, float meas_value,
+  int stationtype);
+
 int measval_db( char *sensorname, char *parametername, 
       time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
@@ -342,28 +343,7 @@ int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
-//int isdefined_pgsql( char * station );
 
-
-/*
-int initwmr9x8 (int *pfd, struct termios *newtio, struct termios *oldtio);
-int resetwmr9x8( int fd);
-int closewmr9x8( int fd, struct termios *oldtio);
-int shuffdat( unsigned char *data, int ndat);
-int getschar (int fd, unsigned char *schar);
-int wmr9x8dac( unsigned char *data, int ndat);
-int wind_dac( unsigned char *data);
-int rain_dac( unsigned char *data);
-int thin_dac( unsigned char *data);
-int thout_dac( unsigned char *data);
-int tin_dac( unsigned char *data);
-int thb_dac( unsigned char *data);
-int thbnew_dac( unsigned char *data);
-int minute_dac( unsigned char *data);
-int clock_dac( unsigned char *data);
-int wmr9x8rd( int rfd);
-int checksum ( unsigned char *data, int ndat);
-*/
 
 void *umeter_hd( void *arg);
 int datalogger_rd( unsigned char * datalogdata, int ndat);

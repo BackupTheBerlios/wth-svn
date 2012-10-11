@@ -22,10 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 
 */
- 
-#include "wth.h"
-//extern int daemon_proc; 
-
+ #include "wth.h"
 
 /* initdata 
 
@@ -47,9 +44,11 @@ wthd_init( ) {
   wsconf.debug       = 1;
   wsconf.log_facility = LOG_LOCAL5;
   wsconf.hostname    = "localhost";
+  /*
   if ( wsconf.port == NULL ) {
     wsconf.port        = "2000";
   }
+  */
   wsconf.units       = "SI";
   wsconf.outfmt      = "old";
 
@@ -285,9 +284,11 @@ readconfig( ) {
         if ( strcasecmp( name, "timeout" ) == 0 ) {
           wsconf.timeout = atoi(value);
           printf("timeout:\t\"%s\"\n", value);
+	  /*
         } else if ( strcasecmp( name, "port" ) == 0 ) {
 	  wsconf.port = strdup(value);
           printf("port:\t\t\"%s\"\n", value);
+	  */
         } else if ( strcasecmp( name, "elevation" ) == 0 ) {
 	  wsconf.elevation = atoi(value);
           printf("elevation:\t\"%s\"\n", value);
@@ -454,9 +455,10 @@ echoconfig ( char *station) {
   strncat(t,s,strlen(s));
   snprintf(s, TBUFF, "\ttimeout serialline\t%d\n",wsconf.timeout);
   strncat(t,s, strlen(s));
+  /*
   snprintf(s, TBUFF, "\ttelnet port\t\t%s\n",wsconf.port);
   strncat(t,s, strlen(s));
- 
+  */
   if ( ( err = strncmp( station, "ws2000", 5)) == 0 ) {
     snprintf(s, TBUFF, 
       "ws2000 configuration\n");

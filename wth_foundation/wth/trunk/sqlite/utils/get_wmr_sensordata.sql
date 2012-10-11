@@ -1,3 +1,4 @@
+.header ON
 SELECT DISTINCT 
   sensornames.sensor_name,sensordata.sensor_meas_no,
   parameternames.param_name,

@@ -90,12 +90,14 @@ prtmdat( struct mset *mlist_p)
 void 
 avgmdat( struct mset ** mlist_ref, 
          int sens_meas_no,
+         int stationtype,
          int dbtype) 
 {
   struct mset *llist_p = *mlist_ref;
   int count = 0;
   double avgtime = 0;
   double avgval  = 0;
+  long unsigned int avgdate = 0;
 
   while ( llist_p != NULL) {
     count++;
@@ -103,15 +105,18 @@ avgmdat( struct mset ** mlist_ref,
     avgval = avgval + llist_p->mval;
     llist_p = llist_p->next;
   }
+
   if ( count != 0) {
     avgtime = avgtime / count;
     avgval = avgval / count;
+    avgdate = (long unsigned int) avgtime;
     syslog( LOG_DEBUG, 
-	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgval: %f, "
+	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgdate: %lu, "
+            "avgval: %f, "
             "number: %d", 
-	    sens_meas_no, avgtime, avgval, count); 
+	    sens_meas_no, avgtime, avgdate, avgval, count); 
     if ( dbtype == SQLITE) {
-      sqlite_datadb( avgtime, sens_meas_no, avgval, onewiredb);
+      sqlite_datadbn( avgtime, sens_meas_no, avgval, stationtype);
     } else if ( dbtype == POSTGRESQL) {
       pg_datadb( avgtime, sens_meas_no, avgval, pg_conn);
     }
@@ -165,9 +170,33 @@ int measvaln_db( char *sensorname, char *parametername,
   int sensor_meas_no;
   int mcycle;
 
+  /*
   if ( stationtype == ONEWIRE ) {
     mcycle = onewirestation.config.mcycle;
   }
+  */
+  switch(stationtype) {
+    case UMETER:
+      mcycle = umeterstation.config.mcycle;
+      break;
+    case ONEWIRE:
+      mcycle = onewirestation.config.mcycle;
+      break;
+    case WMR9X8:
+      mcycle = wmr9x8station.config.mcycle;
+      break;
+    case WS2000:
+      mcycle = ws2000station.config.mcycle;
+      break;
+    case PCWSR:
+      mcycle = pcwsrstation.config.mcycle;
+      break;
+    default:
+      syslog(LOG_DEBUG, "measval_hd: unknown stationtype\n");
+      return(1);
+  }
+
+
 
   sensorparams = get_sensorparams( sensorname, parametername,
                                    stationtype, dbtype);
@@ -195,7 +224,7 @@ int measvaln_db( char *sensorname, char *parametername,
     cycleno[sensor_meas_no]++;
   } else {
     syslog(LOG_DEBUG, "measvaln_db: cycleno >= mcycle: averaging data\n");
-    avgmdat( &mlist_p[sensor_meas_no], sensor_meas_no, dbtype);
+    avgmdat( &mlist_p[sensor_meas_no], sensor_meas_no, stationtype, dbtype);
     rstmdat( &mlist_p[sensor_meas_no]);
     addmdat( &mlist_p[sensor_meas_no], mtime, mval);
     cycleno[sensor_meas_no] = 1;
