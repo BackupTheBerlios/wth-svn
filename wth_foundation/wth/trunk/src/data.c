@@ -202,7 +202,7 @@ avgsdat( struct sset ** slist_ref,
 
   if ( count != 0) {
     avgtime = avgtime / count;
-    avgsval  = avgsval  / count;
+    avgsval = avgsval  / count;
     avgdate = (long unsigned int) avgtime;
     avgval  = (long) (avgsval + 0.5);
     syslog( LOG_DEBUG, 
@@ -211,9 +211,9 @@ avgsdat( struct sset ** slist_ref,
             "number: %d", 
 	    sens_flag_no, avgtime, avgdate, avgval, count); 
     if ( dbtype == SQLITE) {
-      sqlite_datadbn( avgtime, sens_flag_no, avgval, stationtype);
+      sqlite_statdbn( avgdate, sens_flag_no, avgval, stationtype);
     } else if ( dbtype == POSTGRESQL) {
-      pg_datadb( avgtime, sens_flag_no, avgval, pg_conn);
+      pg_datadb( avgdate, sens_flag_no, avgval, pg_conn);
     }
   }
 }

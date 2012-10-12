@@ -349,6 +349,8 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
                          int stationtype);
 int sqlite_datadbn( long dataset_date, int sensor_param, 
                     float meas_value, int stationtype);
+int sqlite_statdbn( long statusset_date, int sensorflag, 
+                    long unsigned int stat_value, int stationtype);
 
 int measval_db( char *sensorname, char *parametername, 
       time_t dataset_date, float mval, sqlite3 *database);
