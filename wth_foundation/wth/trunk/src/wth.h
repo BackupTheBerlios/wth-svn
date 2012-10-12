@@ -119,15 +119,17 @@ enum {
 static const int success = 0;
 static const int failure = 1;
 
+struct mset {
+  double mtime;
+  float mval;
+  struct mset *next;
+};
 
-typedef struct threadinfo {
-  int num_active;
-  pthread_cond_t thread_exit_cv;
-  pthread_mutex_t mutex;
-  int received_shutdown_req; /* 0=false, 1=true */
-} thread_info_t;
-
-thread_info_t pthread_info;
+struct sset {
+  double stime;
+  long unsigned int sval;
+  struct sset *next;
+};
 
 typedef struct sensdevpar {
   int sensor_meas_no;
@@ -139,6 +141,18 @@ typedef struct sensdevpar {
   float offset;
   float gain;
 } sensdevpar_t;
+
+typedef struct sensflag {
+  int sensor_flag_no;
+  char sensorname[TBUFF+1];
+  char flagname[TBUFF+1];
+  char devicetyp[TBUFF+1];
+  char familycode[TBUFF+1];
+  char serialnum[TBUFF+1];
+} sensflag_t;
+
+
+
 
 typedef struct ws2000stat {
   time_t interval;  /* internal measurement interval WS2000 PC interface */
@@ -242,11 +256,17 @@ typedef struct key {
   char *descr;
 } ws2000key_t;
 
-struct mset {
-  double mtime;
-  float mval;
-  struct mset *next;
-};
+
+typedef struct threadinfo {
+  int num_active;
+  pthread_cond_t thread_exit_cv;
+  pthread_mutex_t mutex;
+  int received_shutdown_req; /* 0=false, 1=true */
+} thread_info_t;
+
+thread_info_t pthread_info;
+
+
 
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
@@ -289,7 +309,6 @@ void *onewire_hd( void *arg);
 void *wmr9x8_hd( void *arg);
 
 
-
 int bitprint( int byte, char *s_reg);
 int longprint( int byte, char *s_reg);
 int maxsensmeas( int dbtype);
@@ -301,6 +320,10 @@ sensdevpar_t get_sensorparams(
 int measval_hd( char *sensorname, char *parametername,
                 int stationtype, int dbtype, 
                 double mtime, float mval);
+
+int statval_hd( char *sensorname, char *flagname,
+                int stationtype, int dbtype, 
+                double stime, long unsigned int sval);
 
 /* sqlite database functions */
 int sqlite_datadb( long dataset_date, int sensor_param, float meas_value,
@@ -317,11 +340,15 @@ int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
 int readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int sqlite_maxsensmeas( sqlite3 *onewiredb);
+
 sensdevpar_t
 sqlite_get_sensorparams( char *sensorname, char*parametername,
                          int stationtype);
-int sqlite_datadbn( long dataset_date, int sensor_param, float meas_value,
-  int stationtype);
+sensflag_t
+sqlite_get_sensorflags( char *sensorname, char *flagname,
+                         int stationtype);
+int sqlite_datadbn( long dataset_date, int sensor_param, 
+                    float meas_value, int stationtype);
 
 int measval_db( char *sensorname, char *parametername, 
       time_t dataset_date, float mval, sqlite3 *database);

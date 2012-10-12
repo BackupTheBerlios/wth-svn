@@ -3,7 +3,7 @@
    collection of utility functions
 
    $Id: util.c 213 2008-10-25 20:33:26Z vjahns $
-   $Revision: 213 $
+   $Revision$
 
    Copyright 2007,2008 Volker Jahns <volker@thalreit.de>
 

@@ -105,3 +105,28 @@ ALTER TABLE sensorparameters_new RENAME TO sensorparameters;
 
 6.
 ( DROP TABLE sensorparameters_org;)
+
+Datetime function
+=================
+
+Postgresql
+----------
+psql -d onewire
+onewire=> select to_timestamp(1349990272);
+      to_timestamp      
+------------------------
+ 2012-10-11 23:17:52+02
+
+onewire=> select to_timestamp(1349990272) at time zone 'UTC';
+      timezone       
+---------------------
+ 2012-10-11 21:17:52
+
+
+Sqlite
+------
+sqlite>  SELECT datetime(1349990272, 'unixepoch');
+2012-10-11 21:17:52
+sqlite>  SELECT datetime(1349990272, 'unixepoch','localtime');
+2012-10-11 23:17:52
+

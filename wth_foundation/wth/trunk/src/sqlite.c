@@ -525,6 +525,7 @@ statval_db( char *sensorname, char *flagname,
   return err;
 }
 
+
 sensdevpar_t
 sqlite_get_sensorparams( char *sensorname, char*parametername,
                          int stationtype)
@@ -635,7 +636,109 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
     return(sqsenspar);
   }
 
-  return(sqsenspar);}
+  return(sqsenspar);
+}
+
+sensflag_t
+sqlite_get_sensorflags( char *sensorname, char *flagname,
+                         int stationtype)
+{
+  int err;
+  int rowcnt = 0;
+  char query[SBUFF+1] = "\0";
+  sensflag_t sqsensflag;
+  sqlite3 *sqlitedb;
+  sqlite3_stmt *qcomp;
+
+   
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: no flags available"
+                        " for stationtype ONEWIRE\n");
+      sqsensflag.sensor_flag_no = -1;
+      return(sqsensflag);
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+                        "WMR9X8\n");
+      sqlitedb = wmr9x8db;
+      snprintf(query, SBUFF,
+        "SELECT sf.sensor_flag_no, sn.sensor_name, "
+        "fn.flag_name "
+        "FROM sensorflags AS sf, sensornames AS sn, "
+        "flagnames AS fn "
+        "WHERE sf.flag_no = fn.flag_no "
+        "AND sf.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND fn.flag_name  = '%s' ",
+        sensorname, flagname);
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+                        query);
+      break;
+    default:
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: "
+                        "unknown stationtype\n");
+      sqsensflag.sensor_flag_no = -1;
+      return(sqsensflag);
+  }
+
+  err = sqlite3_prepare( sqlitedb, query, -1, &qcomp, 0);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+      "sqlite_get_sensorflags: error: select sensor flag info: "
+      "err: %d : sqlite_errmsg: %s\n",
+      err, sqlite3_errmsg(sqlitedb));
+    sqsensflag.sensor_flag_no = -1;
+    return(sqsensflag);
+  }
+
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+
+    sqsensflag.sensor_flag_no = sqlite3_column_int(qcomp, 0);
+    strncpy(sqsensflag.sensorname, 
+      (char *)sqlite3_column_text(qcomp,1), TBUFF);
+    strncpy(sqsensflag.flagname, 
+      (char *)sqlite3_column_text(qcomp,2), TBUFF);
+
+    if ( stationtype == ONEWIRE ) {				  
+      strncpy(sqsensflag.devicetyp, 
+        (char *)sqlite3_column_text(qcomp,5), TBUFF);
+      strncpy(sqsensflag.familycode, 
+        (char *)sqlite3_column_text(qcomp,6), TBUFF);
+      strncpy(sqsensflag.serialnum, 
+        (char *)sqlite3_column_text(qcomp,7), TBUFF);
+    } else {
+      strncpy(sqsensflag.devicetyp, 
+        "n.a.", TBUFF);
+      strncpy(sqsensflag.familycode, 
+        "n.a.", TBUFF);
+      strncpy(sqsensflag.serialnum, 
+        "n.a.", TBUFF);
+    }
+    rowcnt++;
+  }
+  
+  syslog(LOG_DEBUG, "sqlite_get_sensorflags: sensor_flag_no : %d\n", 
+                    sqsensflag.sensor_flag_no);
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "sqlite_get_sensorflags: error: select flagname: "
+            "err: %d : sqlite_errmsg: %s\n",
+            err, sqlite3_errmsg(sqlitedb));
+    return(sqsensflag);
+  }
+
+  if ( rowcnt == 0) {
+    syslog( LOG_DEBUG, "sqlite_get_sensorflags: "
+                       "no configuration data in database");
+    sqsensflag.sensor_flag_no = -1;
+    return(sqsensflag);
+  }
+
+  return(sqsensflag);
+}
 
 /*
   sqlite_datadbn 

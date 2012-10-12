@@ -4,7 +4,7 @@
 
    communication with onewire sensors using POSIX thread
 
-   $Id$
+   $Id: onewire.c 347 2012-10-02 13:01:18Z vjahns $
    $Revision$
 
    Copyright (C) 2008-2012 Volker Jahns <volker@thalreit.de>

@@ -3,7 +3,7 @@
 
   wmr9x8 handler implemented as POSIX thread
 
-  $Id$
+  $Id: wmr9x8.c 349 2012-10-11 22:07:46Z vjahns $
   $Revision$
 
   Copyright (C) 2010 Volker Jahns <volker@thalreit.de>
@@ -74,31 +74,39 @@ wind_dac( unsigned char *data) {
   gust_overrange    = getbits( data[3], 4, 1);
   average_overrange = getbits( data[3], 5, 1);
   low_battery       = getbits( data[3], 6, 1);
-  syslog(LOG_INFO,"wind_dac: gust_overrange: %d\n", gust_overrange);
-  syslog(LOG_INFO,"wind_dac: average_overrange: %d\n", average_overrange);
-  syslog(LOG_INFO,"wind_dac: low_battery: %d\n", low_battery);
+  syslog(LOG_INFO,"wind_dac: gust_overrange: %d\n",
+                  gust_overrange);
+  syslog(LOG_INFO,"wind_dac: average_overrange: %d\n",
+                  average_overrange);
+  syslog(LOG_INFO,"wind_dac: low_battery: %d\n",
+                  low_battery);
 
   wind_direction =      lownibble(data[4]) + 
                    10 * highnibble(data[4]) + 
                   100 * lownibble(data[5]);
-  syslog(LOG_INFO,"wind_dac: wind_direction: %d\n", wind_direction);
+  syslog(LOG_INFO,"wind_dac: wind_direction: %d\n",
+                  wind_direction);
 
   gust_windspeed =  0.1 * highnibble(data[5]) +
                     1.0 * lownibble(data[6]) +
                    10.0 * highnibble(data[6]);
-  syslog(LOG_INFO,"wind_dac: gust_windspeed: %f\n", gust_windspeed);
+  syslog(LOG_INFO, "wind_dac: gust_windspeed: %f\n",
+                   gust_windspeed);
 
   average_windspeed =  0.1 * lownibble(data[7]) +
                        1.0 * highnibble(data[7]) +
                       10.0 * lownibble(data[8]);
-  syslog(LOG_INFO,"wind_dac: average_windspeed: %f\n", average_windspeed);
+  syslog(LOG_INFO, "wind_dac: average_windspeed: %f\n",
+                   average_windspeed);
 
   chill_nodata    = getbits( data[8], 5, 1);
   chill_overrange = getbits( data[8], 6, 1);
   sign            = getbits( data[8], 7, 1);
 
-  syslog(LOG_INFO,"wind_dac: chill_nodata: %d\n", chill_nodata);
-  syslog(LOG_INFO,"wind_dac: chill_overrange: %d\n", chill_overrange);
+  syslog(LOG_INFO,"wind_dac: chill_nodata: %d\n",
+                  chill_nodata);
+  syslog(LOG_INFO,"wind_dac: chill_overrange: %d\n",
+                  chill_overrange);
   syslog(LOG_INFO,"wind_dac: sign: %d\n", sign);
   windchill =  1.0  * lownibble(data[9]) +
                 10.0 * highnibble(data[9]);
@@ -107,9 +115,27 @@ wind_dac( unsigned char *data) {
 
   syslog(LOG_INFO,"wind_dac: windchill: %d\n", windchill); 
 
-  statval_db("windsensor", "gust_overrange", dataset_date, (unsigned long int)gust_overrange, wmr9x8db);
-  statval_db("windsensor", "average_overrange", dataset_date, (unsigned long int)average_overrange, wmr9x8db);
-  statval_db("windsensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+
+  statval_hd( "windsensor",
+              "gust_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)gust_overrange);
+
+  statval_hd( "windsensor",
+              "average_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)average_overrange);
+
+  statval_hd( "windsensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
 
   err = measval_hd( "windsensor", 
               "wind_direction", 
@@ -160,16 +186,19 @@ wind_dac( unsigned char *data) {
            "windsensor: windchill");
    }
 
-  /*
-  measval_db( "windsensor", "wind_direction", dataset_date, (float)wind_direction, wmr9x8db);
-  measval_db( "windsensor", "gust_windspeed", dataset_date, (float)gust_windspeed, wmr9x8db);
-  measval_db( "windsensor", "average_windspeed", dataset_date, (float)average_windspeed, wmr9x8db);
-  measval_db( "windsensor", "windchill", dataset_date, (float)windchill, wmr9x8db);
-  */
+  statval_hd( "windsensor",
+              "chill_nodata", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)chill_nodata);
 
-  statval_db("windsensor", "chill_nodata", dataset_date, (unsigned long int)chill_nodata, wmr9x8db);
-  statval_db("windsensor", "chill_overrange", dataset_date, (unsigned long int)chill_overrange, wmr9x8db);
-
+  statval_hd( "windsensor",
+              "chill_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)chill_overrange);
 
   return err;
 }
@@ -249,27 +278,57 @@ rain_dac( unsigned char *data) {
   startdate = mktime( total_startdate);
   strftime(tbuf, sizeof(tbuf), "%x %X", total_startdate);
 
-  syslog(LOG_INFO, "rain_dac: rate_overrange: %d\n", rate_overrange);
-  syslog(LOG_INFO, "rain_dac: total_overrange: %d\n", total_overrange);
-  syslog(LOG_INFO, "rain_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_INFO, "rain_dac: yesterday_overrange: %d\n", yesterday_overrange);
-
-  syslog(LOG_INFO, "rain_dac: current_rainrate: %f\n", current_rainrate);
-  syslog(LOG_INFO, "rain_dac: total_rainfall: %f\n", total_rainfall);
-  syslog(LOG_INFO, "rain_dac: yesterday_rainfall: %f\n", yesterday_rainfall);
+  syslog(LOG_INFO, "rain_dac: rate_overrange: %d\n",
+                   rate_overrange);
+  syslog(LOG_INFO, "rain_dac: total_overrange: %d\n",
+                   total_overrange);
+  syslog(LOG_INFO, "rain_dac: low_battery: %d\n",
+                   low_battery);
+  syslog(LOG_INFO, "rain_dac: yesterday_overrange: %d\n",
+                   yesterday_overrange);
+  syslog(LOG_INFO, "rain_dac: current_rainrate: %f\n", 
+                   current_rainrate);
+  syslog(LOG_INFO, "rain_dac: total_rainfall: %f\n", 
+                   total_rainfall);
+  syslog(LOG_INFO, "rain_dac: yesterday_rainfall: %f\n", 
+                   yesterday_rainfall);
 
   syslog(LOG_INFO, "rain_dac: t_minute: %d\n", t_minute);
   syslog(LOG_INFO, "rain_dac: t_hour: %d\n", t_hour);
   syslog(LOG_INFO, "rain_dac: t_day: %d\n", t_day);
   syslog(LOG_INFO, "rain_dac: t_month: %d\n", t_month);
   syslog(LOG_INFO, "rain_dac: t_year: %d\n", t_year);
-  syslog(LOG_INFO, "rain_dac: total_startdate: %lu\n", (long unsigned int)startdate);
+  syslog(LOG_INFO, "rain_dac: total_startdate: %lu\n",
+                   (long unsigned int)startdate);
   syslog(LOG_INFO, "rain_dac: total_startdate: %s\n", tbuf);
 
-  statval_db("rainsensor", "rate_overrange", dataset_date, (unsigned long int)rate_overrange, wmr9x8db);
-  statval_db("rainsensor", "total_overrange", dataset_date, (unsigned long int)total_overrange, wmr9x8db);
-  statval_db("rainsensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
-  statval_db("rainsensor", "yesterday_overrange", dataset_date, (unsigned long int)yesterday_overrange, wmr9x8db);
+  statval_hd( "rainsensor",
+              "rate_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)rate_overrange);
+
+  statval_hd( "rainsensor",
+              "total_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)total_overrange);
+
+  statval_hd( "rainsensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
+
+  statval_hd( "rainsensor",
+              "yesterday_overrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)yesterday_overrange);
 
 
   err = measval_hd( "rainsensor", 
@@ -309,16 +368,12 @@ rain_dac( unsigned char *data) {
    }
 
 
-  /*
-  measval_db( "rainsensor", "current_rainrate", dataset_date, (float)current_rainrate, wmr9x8db);
-  measval_db( "rainsensor", "total_rainfall", dataset_date, (float)total_rainfall, wmr9x8db);
-  measval_db( "rainsensor", "yesterday_rainfall", dataset_date, (float)yesterday_rainfall, wmr9x8db);
-  */
-
-
-  statval_db("rainsensor", "total_startdate", dataset_date, (unsigned long int)startdate, wmr9x8db);
-
-  //sqlite3_close( wmr9x8db);
+  statval_hd( "rainsensor",
+              "total_startdate", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)total_startdate);
 
   return err;
 }
@@ -342,7 +397,8 @@ thin_dac( unsigned char *data) {
   float dew_temperature;
   time_t dataset_date;
 
-  syslog( LOG_INFO,"thin_dac: data acquisition of indoor temperature/humidity data");
+  syslog( LOG_INFO,"thin_dac: data acquisition of "
+                   "indoor temperature/humidity data");
   time(&dataset_date);
   channel_no      = lownibble(data[3]);
   dew_underrange  = getbits(data[3], 4, 1);
@@ -368,12 +424,24 @@ thin_dac( unsigned char *data) {
   syslog(LOG_INFO, "thin_dac: low_battery: %d\n", low_battery);
   syslog(LOG_INFO, "thin_dac: temperature: %f\n", temperature);
   syslog(LOG_INFO, "thin_dac: humidity: %f\n", humidity);
-  syslog(LOG_INFO, "thin_dac: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_INFO, "thin_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO, "thin_dac: dew_temperature: %f\n", 
+                   dew_temperature);
+  syslog(LOG_INFO, "thin_dac: over_underrange: %d\n", 
+                   over_underrange);
 
-  statval_db("thin_sensor", "dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
-  statval_db("thin_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_hd( "thin_sensor",
+              "dew_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)dew_underrange);
 
+  statval_hd( "thin_sensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
 
   err = measval_hd( "thin_sensor", 
               "temperature", 
@@ -409,14 +477,12 @@ thin_dac( unsigned char *data) {
            "thin_sensor: dew_temperature");
    }
 
-  /*
-  measval_db( "thin_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
-  measval_db( "thin_sensor", "humidity", dataset_date, (float)humidity, wmr9x8db);
-  measval_db( "thin_sensor", "dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
-  */
-
-
-  statval_db("thin_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+  statval_hd( "thin_sensor",
+              "over_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)over_underrange);
 
   return err;
 }
@@ -437,7 +503,8 @@ thout_dac( unsigned char *data) {
   float dew_temperature;
   time_t dataset_date;
 
-  syslog( LOG_INFO,"thout_dac: data acquisition of outdoor temperature/humidity data");
+  syslog( LOG_INFO,"thout_dac: data acquisition of "
+                   "outdoor temperature/humidity data");
   time(&dataset_date);
   dew_underrange  = getbits(data[3], 4, 1);
   low_battery     = getbits(data[3], 6, 1);
@@ -458,15 +525,32 @@ thout_dac( unsigned char *data) {
   dew_temperature =  1.0 * lownibble(data[7]) +
                     10.0 * highnibble(data[7]);
 
-  syslog(LOG_INFO,"thout_dac: dew_underrange: %d\n", dew_underrange);
-  syslog(LOG_INFO,"thout_dac: low_battery: %d\n", low_battery);
-  syslog(LOG_INFO,"thout_dac: temperature: %f\n", temperature);
-  syslog(LOG_INFO,"thout_dac: humidity: %f\n", humidity);
-  syslog(LOG_INFO,"thout_dac: dew_temperature: %f\n", dew_temperature);
-  syslog(LOG_INFO,"thout_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO,"thout_dac: dew_underrange: %d\n",
+                  dew_underrange);
+  syslog(LOG_INFO,"thout_dac: low_battery: %d\n",
+                  low_battery);
+  syslog(LOG_INFO,"thout_dac: temperature: %f\n",
+                  temperature);
+  syslog(LOG_INFO,"thout_dac: humidity: %f\n",
+                  humidity);
+  syslog(LOG_INFO,"thout_dac: dew_temperature: %f\n",
+                  dew_temperature);
+  syslog(LOG_INFO,"thout_dac: over_underrange: %d\n",
+                  over_underrange);
 
-  statval_db("thout_sensor", "dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
-  statval_db("thout_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_hd( "thout_sensor",
+              "dew_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)dew_underrange);
+
+  statval_hd( "thout_sensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
 
   err = measval_hd( "thout_sensor", 
               "temperature", 
@@ -502,14 +586,12 @@ thout_dac( unsigned char *data) {
            "thout_sensor: dew_temperature");
    }
 
-  /*
-  measval_db( "thout_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
-  measval_db( "thout_sensor", "humidity", dataset_date, (float)humidity, wmr9x8db);
-  measval_db( "thout_sensor", "dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
-  */
-
-
-  statval_db("thout_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+  statval_hd( "thout_sensor",
+              "over_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)over_underrange);
 
   return err;
 }
@@ -529,7 +611,8 @@ tin_dac( unsigned char *data) {
   float temperature;
   time_t dataset_date;
 
-  syslog( LOG_INFO,"tin_dac: data acquisition of indoor temperature data");
+  syslog( LOG_INFO,"tin_dac: data acquisition of "
+                   "indoor temperature data");
   time(&dataset_date);
   channel_no      = lownibble(data[3]);
   low_battery     = getbits(data[3], 6, 1);
@@ -549,7 +632,12 @@ tin_dac( unsigned char *data) {
   syslog(LOG_INFO,"tin_dac: temperature: %f\n", temperature);
   syslog(LOG_INFO,"tin_dac: over_underrange: %d\n", over_underrange);
 
-  statval_db("tin_sensor", "low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_hd( "tin_sensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
 
   err = measval_hd( "tin_sensor", 
               "temperature", 
@@ -563,8 +651,12 @@ tin_dac( unsigned char *data) {
            "tin_sensor: temperature");
    }
 
-  //  measval_db("tin_sensor", "temperature", dataset_date, (float)temperature, wmr9x8db);
-  statval_db("tin_sensor", "over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
+  statval_hd( "tin_sensor",
+              "over_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)over_underrange);
 
   return err;
 }
@@ -590,7 +682,8 @@ thb_dac( unsigned char *data) {
   int sealevel_offset;
   time_t dataset_date;
 
-  syslog( LOG_INFO,"thb_dac: data acquisition of indoor temperature/humdity/barometer  data");
+  syslog( LOG_INFO,"thb_dac: data acquisition of "
+                   "indoor temperature/humdity/barometer  data");
   time(&dataset_date);
   dew_underrange = getbits( data[3], 4,1);
   low_battery    = getbits( data[3], 6,1);
@@ -620,14 +713,30 @@ thb_dac( unsigned char *data) {
   syslog(LOG_INFO, "thb_dac: dew_underrange: %d\n", dew_underrange);
   syslog(LOG_INFO, "thb_dac: low_battery: %d\n", low_battery);
   syslog(LOG_INFO, "thb_dac: temperature: %f\n", temperature);
-  syslog(LOG_INFO, "thb_dac: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO, "thb_dac: over_underrange: %d\n",
+                   over_underrange);
   syslog(LOG_INFO, "thb_dac: humidity: %f\n", humidity);
-  syslog(LOG_INFO, "thb_dac: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO, "thb_dac: dew_temperature: %f\n",
+                   dew_temperature);
   syslog(LOG_INFO, "thb_dac: weatherstatus: %x\n", weatherstatus);
-  syslog(LOG_INFO, "thb_dac: sealevel_offset: %d\n", sealevel_offset);
+  syslog(LOG_INFO, "thb_dac: sealevel_offset: %d\n",
+                   sealevel_offset);
 
-  statval_db("thb_sensor","dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
-  statval_db("thb_sensor","low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_hd( "thb_sensor",
+              "dew_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)dew_underrange);
+
+  statval_hd( "thb_sensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
+
+
 
   err = measval_hd( "thb_sensor", 
               "temperature", 
@@ -674,16 +783,26 @@ thb_dac( unsigned char *data) {
            "thb_sensor: pressure");
    }
 
-  /*
-  measval_db("thb_sensor","temperature", dataset_date, (float)temperature, wmr9x8db);
-  measval_db("thb_sensor","humidity", dataset_date, (float)humidity, wmr9x8db);
-  measval_db("thb_sensor","dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
-  measval_db("thb_sensor","pressure", dataset_date, (float)pressure, wmr9x8db);
-  */
+  statval_hd( "thb_sensor",
+              "over_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)over_underrange);
 
-  statval_db("thb_sensor","over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
-  statval_db("thb_sensor","weatherstatus", dataset_date, (unsigned long int)weatherstatus, wmr9x8db);
-  statval_db("thb_sensor","sealevel_offset", dataset_date, (unsigned long int)sealevel_offset, wmr9x8db);
+  statval_hd( "thb_sensor",
+              "weatherstatus", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)weatherstatus);
+
+  statval_hd( "thb_sensor",
+              "sealevel_offset", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)sealevel_offset);
 
   return err;
 }
@@ -708,7 +827,8 @@ thbnew_dac( unsigned char *data) {
   int sealevel_offset;
   time_t dataset_date;
 
-  syslog(LOG_INFO,"thbnew_dac: data acquisition of indoor temperature/humdity/barometer data");
+  syslog(LOG_INFO,"thbnew_dac: data acquisition of "
+                  "indoor temperature/humdity/barometer data");
   time(&dataset_date);
   dew_underrange = getbits( data[3], 4,1);
   low_battery    = getbits( data[3], 6,1);
@@ -738,18 +858,34 @@ thbnew_dac( unsigned char *data) {
                   100.0 * lownibble(data[12]) +
                  1000.0 * highnibble(data[12]);
 
-  syslog(LOG_INFO,"thbnew_sensor: dew_underrange: %d\n", dew_underrange);
+  syslog(LOG_INFO,"thbnew_sensor: dew_underrange: %d\n",
+                  dew_underrange);
   syslog(LOG_INFO,"thbnew_sensor: low_battery: %d\n", low_battery);
   syslog(LOG_INFO,"thbnew_sensor: temperature: %f\n", temperature);
-  syslog(LOG_INFO,"thbnew_sensor: over_underrange: %d\n", over_underrange);
+  syslog(LOG_INFO,"thbnew_sensor: over_underrange: %d\n",
+                  over_underrange);
   syslog(LOG_INFO,"thbnew_sensor: humidity: %f\n", humidity);
-  syslog(LOG_INFO,"thbnew_sensor: dew_temperature: %f\n", dew_temperature);
+  syslog(LOG_INFO,"thbnew_sensor: dew_temperature: %f\n",
+                  dew_temperature);
   syslog(LOG_INFO,"thbnew_sensor: pressure: %f\n", pressure);
-  syslog(LOG_INFO,"thbnew_sensor: weatherstatus: %d\n", weatherstatus);
-  syslog(LOG_INFO,"thbnew_sensor: sealevel_offset: %d\n", sealevel_offset);
+  syslog(LOG_INFO,"thbnew_sensor: weatherstatus: %d\n",
+                  weatherstatus);
+  syslog(LOG_INFO,"thbnew_sensor: sealevel_offset: %d\n",
+                  sealevel_offset);
 
-  statval_db("thbnew_sensor","dew_underrange", dataset_date, (unsigned long int)dew_underrange, wmr9x8db);
-  statval_db("thbnew_sensor","low_battery", dataset_date, (unsigned long int)low_battery, wmr9x8db);
+  statval_hd( "thbnew_sensor",
+              "dew_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)dew_underrange);
+
+  statval_hd( "thbnew_sensor",
+              "low_battery", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)low_battery);
 
   err = measval_hd( "thbnew_sensor", 
               "temperature", 
@@ -761,7 +897,8 @@ thbnew_dac( unsigned char *data) {
     syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: temperature");
-   }
+  }
+
   err = measval_hd( "thbnew_sensor", 
               "humidity", 
               WMR9X8,
@@ -772,7 +909,8 @@ thbnew_dac( unsigned char *data) {
     syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: humidity");
-   }
+  }
+
   err = measval_hd( "thbnew_sensor", 
               "dew_temperature", 
               WMR9X8,
@@ -783,7 +921,8 @@ thbnew_dac( unsigned char *data) {
     syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: dew_temperature");
-   }
+  }
+
   err = measval_hd( "thbnew_sensor", 
               "pressure", 
               WMR9X8,
@@ -794,18 +933,28 @@ thbnew_dac( unsigned char *data) {
     syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: pressure");
-   }
+  }
 
+  statval_hd( "thbnew_sensor",
+              "over_underrange", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)over_underrange);
 
-  /*
-  measval_db("thbnew_sensor","temperature", dataset_date, (float)temperature, wmr9x8db);
-  measval_db("thbnew_sensor","humidity", dataset_date, (float)humidity, wmr9x8db);
-  measval_db("thbnew_sensor","dew_temperature", dataset_date, (float)dew_temperature, wmr9x8db);
-  measval_db("thbnew_sensor","pressure", dataset_date, (float)pressure, wmr9x8db);
-  */
-  statval_db("thbnew_sensor","over_underrange", dataset_date, (unsigned long int)over_underrange, wmr9x8db);
-  statval_db("thbnew_sensor","weatherstatus", dataset_date, (unsigned long int)weatherstatus, wmr9x8db);
-  statval_db("thbnew_sensor","sealevel_offset", dataset_date, (unsigned long int)sealevel_offset, wmr9x8db);
+  statval_hd( "thbnew_sensor",
+              "weatherstatus", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)weatherstatus);
+
+  statval_hd( "thbnew_sensor",
+              "sealevel_offset", 
+              WMR9X8,
+              wmr9x8station.config.dbtype,
+              dataset_date, 
+              (unsigned long int)sealevel_offset);
 
   return err;
 }
@@ -863,8 +1012,10 @@ clock_dac( unsigned char *data) {
   year        = 1 * lownibble(data[7]) +
                10 * highnibble(data[7]);
 
-  syslog(LOG_INFO, "clock_dac: hour:minute %d:%d", hour, minute);
-  syslog(LOG_INFO, "clock_dac: day.month.year %d.%d.%d", day, month, year);
+  syslog(LOG_INFO, "clock_dac: hour:minute %d:%d",
+                   hour, minute);
+  syslog(LOG_INFO, "clock_dac: day.month.year %d.%d.%d",
+                   day, month, year);
 
   return err;
 }
@@ -886,13 +1037,16 @@ initwmr9x8 (int *pfd, struct termios *newtio,
 {
   int i, itio;
 
-  /* open the device to be non-blocking (read will return immediatly) */
+  /* 
+    open the device to be non-blocking (read will return immediatly)
+  */
 
-  *pfd = open(wmr9x8station.config.device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
+  *pfd = open(wmr9x8station.config.device, 
+              O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
   if ( *pfd <0) {
     werrno = errno;
     syslog(LOG_INFO, "initwmr9x8: error opening serial device : %s",
-	   strerror(werrno));
+	             strerror(werrno));
     return(-1);
   }
 
@@ -1227,7 +1381,8 @@ wmr9x8rd( int rfd) {
       data[ndat] = schr;
       ndat++;
     } else {
-      syslog(LOG_DEBUG, "wmr9x8rd: could not read 1 char err: %d\n", err);
+      syslog(LOG_DEBUG, "wmr9x8rd: could not read 1 char err: %d\n",
+                        err);
     }
 
     if ( schr == 0xff) {
@@ -1347,9 +1502,6 @@ wmr9x8rd( int rfd) {
 
   POSIX thread to handle WMR9x8 weatherstation
 
-  opens port
-  call to data reading subroutine
-
 */
 void *
 wmr9x8_hd( void *arg) {
@@ -1362,21 +1514,50 @@ wmr9x8_hd( void *arg) {
   if ( initwmr9x8(&rfd, &tp, &op) == -1 )
     return( ( void *) &failure);
 
-  /* open sqlite db file */
-  if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
-    syslog(LOG_ALERT, "statdb: Failed to open database %s. Error: %s\n", 
-      wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
-  return( ( void *) &failure);
+  /* open database */
+  switch(wmr9x8station.config.dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
+      if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+        syslog(LOG_ALERT, "wmr9x8_hd: Failed to open database %s. Error: %s\n", 
+          wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+        return( ( void *) &failure);
+      }
+      break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is POSTGRESQL\n");
+      break;
+    case MYSQL:
+      syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is MYSQL\n");
+      break;
+    default:
+      syslog(LOG_ALERT, "wmr9x8_hd: unknown dbtype\n");
+      return( ( void *) &failure);
   }
-  
+
   wmr9x8station.status.is_present = 1;
 
   /* read WMR 9x8 weatherstation */
   err = wmr9x8rd( rfd);
 
+  /* close serial port */
   closewmr9x8(rfd, &op);
 
-  sqlite3_close( wmr9x8db);
+  /* close database */
+  switch(wmr9x8station.config.dbtype) {
+    case SQLITE:
+      sqlite3_close( wmr9x8db);
+      break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
+      break;
+    case MYSQL:
+      syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
+      break;
+    default:
+      syslog(LOG_ALERT, "wmr9x8_hd: unknown dbtype\n");
+      return( ( void *) &failure);
+  }
 
   return( ( void *) &success);
 }

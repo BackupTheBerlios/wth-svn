@@ -49,6 +49,28 @@ addmdat( struct mset ** mlist_ref,
 }
 
 /*
+  addsdat
+
+  adding status data in linked list slist
+*/
+int 
+addsdat( struct sset ** slist_ref, 
+         double stime, 
+         long unsigned int sval) 
+{
+  struct sset *stat_set;
+  if ( ( stat_set = ( struct sset *)malloc ( sizeof ( struct sset))) == NULL ) {
+    return 1;
+  } else {
+    stat_set->stime = stime;
+    stat_set->sval  = sval;
+    stat_set->next  = *slist_ref;
+    *slist_ref = stat_set;
+    return 0;
+  }
+}
+
+/*
   rstmdat
 
   delete linked list mlist_p and set the head pointer to NULL
@@ -68,6 +90,25 @@ rstmdat( struct mset ** mlist_ref)
 }
 
 /*
+  rstsdat
+
+  delete linked list slist_p and set the head pointer to NULL
+*/
+void 
+rstsdat( struct sset ** slist_ref) 
+{
+  struct sset * current = *slist_ref;
+  struct sset * next;
+
+  while ( current != NULL ) {
+    next = current->next;
+    free(current);
+    current = next;
+  }  
+  *slist_ref = NULL;
+}
+
+/*
   prtmdat
 
   print data in linked list
@@ -79,6 +120,17 @@ prtmdat( struct mset *mlist_p)
     prtmdat(mlist_p->next);
     syslog(LOG_DEBUG, "prtmdat: meas_set->mtime: %f, meas_set->mval: %f\n", 
 	   mlist_p->mtime, mlist_p->mval);
+  }
+}
+
+void 
+prtsdat( struct sset *slist_p) 
+{
+  if ( slist_p != NULL) {
+    prtsdat(slist_p->next);
+    syslog(LOG_DEBUG, "prtsdat: status_set->stime: %f, "
+                      "status_set->sval: %lu\n", 
+	              slist_p->stime, slist_p->sval);
   }
 }
 
@@ -123,6 +175,49 @@ avgmdat( struct mset ** mlist_ref,
   }
 }
 
+/*
+  avgsdat
+
+  average status data in linked list and write to database
+*/
+void 
+avgsdat( struct sset ** slist_ref, 
+         int sens_flag_no,
+         int stationtype,
+         int dbtype) 
+{
+  struct sset *llist_p = *slist_ref;
+  int count = 0;
+  double avgtime = 0;
+  double avgsval = 0;
+  long unsigned int avgval  = 0;
+  long unsigned int avgdate = 0;
+
+  while ( llist_p != NULL) {
+    count++;
+    avgtime = avgtime + llist_p->stime;
+    avgsval = avgsval + llist_p->sval;
+    llist_p = llist_p->next;
+  }
+
+  if ( count != 0) {
+    avgtime = avgtime / count;
+    avgsval  = avgsval  / count;
+    avgdate = (long unsigned int) avgtime;
+    avgval  = (long) (avgsval + 0.5);
+    syslog( LOG_DEBUG, 
+	    "avgsdat: sens_flag_no: %d, avgtime: %f, avgdate: %lu, "
+            "avgval: %lu, "
+            "number: %d", 
+	    sens_flag_no, avgtime, avgdate, avgval, count); 
+    if ( dbtype == SQLITE) {
+      sqlite_datadbn( avgtime, sens_flag_no, avgval, stationtype);
+    } else if ( dbtype == POSTGRESQL) {
+      pg_datadb( avgtime, sens_flag_no, avgval, pg_conn);
+    }
+  }
+}
+
 
 int
 maxsensmeas( int dbtype) 
@@ -159,6 +254,28 @@ get_sensorparams( char * sensorname,  char * parametername,
 
   return(lsenspar);
 }
+
+sensflag_t
+get_sensorflags( char * sensorname, char * flagname,
+                  int  stationtype, int    dbtype) 
+{
+  sensflag_t lsensflag;
+
+  switch(dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "get_sensorflags: dbtype is SQLITE\n");
+      lsensflag = sqlite_get_sensorflags( sensorname, 
+                                         flagname, 
+                                         stationtype);
+      break;
+    default:
+      syslog(LOG_ALERT, "get_sensorflags: unknown dbtype\n");
+      lsensflag.sensor_flag_no = -1;
+  }
+
+  return(lsensflag);
+}
+
 
 int measvaln_db( char *sensorname, char *parametername,
                  int stationtype, int dbtype,  
@@ -252,13 +369,13 @@ int measval_hd(char * sensorname, char *parametername,
       syslog(LOG_DEBUG, "measval_hd: dbtype is SQLITE\n");
       break;
     case POSTGRESQL:
-      syslog(LOG_DEBUG, "measval_hd: dbtype is SQLITE\n");
+      syslog(LOG_DEBUG, "measval_hd: dbtype is POSTGRESQL\n");
       break;
     case MYSQL:
-      syslog(LOG_DEBUG, "measval_hd: dbtype is SQLITE\n");
+      syslog(LOG_DEBUG, "measval_hd: dbtype is MYSQL\n");
       break;
     default:
-      syslog(LOG_ALERT, "measval_hd: unknowm dbtype\n");
+      syslog(LOG_ALERT, "measval_hd: unknown dbtype\n");
   }
 
   switch(stationtype) {
@@ -286,6 +403,139 @@ int measval_hd(char * sensorname, char *parametername,
   err = measvaln_db( sensorname, parametername,
                      stationtype, dbtype,
                      mtime, mval);
+
+  return(err);
+}
+
+
+int statvaln_db( char *sensorname, char *flagname,
+                 int stationtype, int dbtype,  
+                 double stime, long unsigned int sval) 
+{
+  static struct sset *slist_p[MAXSENSMEAS];
+  static int cycleno[MAXSENSMEAS];
+  sensflag_t sensorflags;
+  int sensor_flag_no;
+  int scycle;
+
+  switch(stationtype) {
+    case UMETER:
+      scycle = umeterstation.config.mcycle;
+      break;
+    case ONEWIRE:
+      scycle = onewirestation.config.mcycle;
+      break;
+    case WMR9X8:
+      scycle = wmr9x8station.config.mcycle;
+      break;
+    case WS2000:
+      scycle = ws2000station.config.mcycle;
+      break;
+    case PCWSR:
+      scycle = pcwsrstation.config.mcycle;
+      break;
+    default:
+      syslog(LOG_DEBUG, "statval_hd: unknown stationtype\n");
+      return(1);
+  }
+
+  sensorflags = get_sensorflags( sensorname, flagname,
+                                stationtype, dbtype);
+  sensor_flag_no = sensorflags.sensor_flag_no; 
+  if ( sensor_flag_no == -1) {
+    syslog(LOG_ALERT, "statvaln_db: configuration problem: "
+                      "sensor_flag_no undefined");
+    return(1);
+  }
+  syslog(LOG_DEBUG,"statvaln_db: sensorflags.sensor_flag_no: %d\n", 
+                   sensorflags.sensor_flag_no);
+
+  syslog(LOG_DEBUG,"statvaln_db: sensor_flag_no: %d stime: %f "
+         "sval: %lu\n", 
+         sensor_flag_no,
+         stime,
+         sval);
+  syslog(LOG_DEBUG, "statvaln_db: cycleno[%d]: %d scycle: %d\n",
+         sensor_flag_no, 
+         cycleno[sensor_flag_no],
+         scycle);
+  prtsdat( slist_p[sensor_flag_no]);
+  if ( cycleno[sensor_flag_no] < scycle ) {
+    syslog(LOG_DEBUG, 
+      "statvaln_db: cycleno < scycle: adding data\n");
+    addsdat( &slist_p[sensor_flag_no], stime, sval);
+    cycleno[sensor_flag_no]++;
+  } else {
+    syslog(LOG_DEBUG, 
+      "statvaln_db: cycleno >= scycle: averaging data\n");
+    avgsdat( &slist_p[sensor_flag_no], 
+             sensor_flag_no, 
+             stationtype, 
+             dbtype);
+    rstsdat( &slist_p[sensor_flag_no]);
+    addsdat( &slist_p[sensor_flag_no], stime, sval);
+    cycleno[sensor_flag_no] = 1;
+  }
+  return(0);
+
+}
+
+/*
+  statval_hd -  handle status values of weatherstation
+
+ */
+int statval_hd(char * sensorname, char *flagname, 
+               int stationtype, int dbtype,
+               double stime, long unsigned int sval)
+{
+  int err = 0;
+
+  if ( stationtype == ONEWIRE ) {
+    syslog(LOG_DEBUG, "statval_hd: serialnum: %s\n",   sensorname);
+  } else {
+    syslog(LOG_DEBUG, "statval_hd: sensorname: %s\n",  sensorname);
+  }
+
+  syslog(LOG_DEBUG, "statval_hd: flagname: %s\n", flagname);
+  switch(dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "statval_hd: dbtype is SQLITE\n");
+      break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "statval_hd: dbtype is POSTGRESQL\n");
+      break;
+    case MYSQL:
+      syslog(LOG_DEBUG, "statval_hd: dbtype is MYSQL\n");
+      break;
+    default:
+      syslog(LOG_ALERT, "statval_hd: unknown dbtype\n");
+  }
+
+  switch(stationtype) {
+    case UMETER:
+      syslog(LOG_DEBUG, "statval_hd: stationtype is UMETER\n");
+      break;
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "statval_hd: stationtype is ONEWIRE\n");
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "statval_hd: stationtype is WMR9X8\n");
+      break;
+    case WS2000:
+      syslog(LOG_DEBUG, "statval_hd: stationtype is WS2000\n");
+      break;
+    case PCWSR:
+      syslog(LOG_DEBUG, "statval_hd: stationtype is PCWSR\n");
+      break;
+    default:
+      syslog(LOG_DEBUG, "statval_hd: unknown stationtype\n");
+  }
+
+  syslog(LOG_DEBUG, "statval_hd: stime: %f sval: %lu\n", stime, sval);
+
+  err = statvaln_db( sensorname, flagname,
+                     stationtype, dbtype,
+                     stime, sval);
 
   return(err);
 }

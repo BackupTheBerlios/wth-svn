@@ -7,13 +7,15 @@
 
 select 
   sd.dataset_no, sn.sensor_name, pn.param_name,
-  datetime( sd.dataset_date, 'unixepoch'), sd.meas_value 
+  datetime( sd.dataset_date, 'unixepoch') as UTC,
+  datetime( sd.dataset_date, 'unixepoch', 'localtime'),
+  sd.meas_value 
 from sensordata sd, sensornames sn, parameternames pn, sensorparameters sp
 where 
   sd.dataset_no in (
     select dataset_no 
     from sensordata 
-    where sensor_meas_no = 3 order by dataset_no desc limit 10
+    where sensor_meas_no = 25 order by dataset_no desc limit 25
   ) and
  sd.sensor_meas_no = sp.sensor_meas_no
  and
