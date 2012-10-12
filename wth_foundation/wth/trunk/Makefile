@@ -51,16 +51,20 @@ endif
 INCLUDE = $(include_flags)
 LDFLAGS = $(ld_flags)
 
+.PHONY: all
 all: $(WTHAPP)
 
+.PHONY: wthd
+wthd: $(WTHAPP)
+
+.PHONY: readconfig
 readconfig: $(READCFG)
 
-$(READCFG): $(OBJDIR)/readconfig.o
-	$(CC) -g $(LDFLAGS) $(OBJDIR)/readconfig.o -o $@
+$(OBJDIR)/readconfig: $(OBJDIR)/readconfig.o
 
-$(OBJDIR)/readconfig.o: readconfig.c wth.h
+$(OBJDIR)/readconfig.o: readconfig.c
 	@mkdir -p build_$(ARCH)
-	$(CC) -I./src -I./src/1wire/common  -I./src/1wire/lib/userial/shared -I/usr/include -I/usr/local/include -c src/readconfig.c -o $(OBJDIR)/readconfig.o
+	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/wthd: $(OBJS)
 	$(CC) -g $(LDFLAGS) $(OBJS) -o $@ 
@@ -68,6 +72,7 @@ $(OBJDIR)/wthd: $(OBJS)
 $(OBJDIR)/%.o: %.c wth.h
 	@mkdir -p build_$(ARCH)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
+
 
 install: $(WTHAPP)
 	$(INSTALL) $(WTHAPP) $(bindir)/$(binprefix)wthd
