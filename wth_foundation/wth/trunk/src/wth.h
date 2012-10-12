@@ -29,7 +29,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  
 */
-
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>

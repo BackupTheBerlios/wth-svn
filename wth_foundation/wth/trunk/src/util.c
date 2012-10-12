@@ -114,6 +114,37 @@ echodata(unsigned char *data, int mdat) {
     return(0);
 } 
 
+/* strip space from begin of string */
+char*
+strchug (char *string)
+{
+    char *start;
+
+    for (start = (char*) string; *start && isspace (*start); start++);
+
+    memmove (string, start, strlen (start) + 1);
+    return string;
+}
+
+/* strip space from end of string */
+char*
+strchomp (char *string)
+{
+    int len;
+
+    len = strlen (string);
+    while (len--) {
+        if (isspace (string[len])) {
+            string[len] = '\0';
+        }
+        else {
+            break;
+        }
+    }
+
+    return string;
+}
+
 /* 
    getbits
 
@@ -232,8 +263,9 @@ readconfig( ) {
   int cfgok;
   FILE *cfg;
   char line[BUFFSIZE];
-  char *name;
+  char *key;
   char *value;
+  char rval[TBUFF+1];
   char *cp, *cp2;
 
   cfgok = FALSE;
@@ -269,166 +301,160 @@ readconfig( ) {
         *cp = '\0';
 		
     /* Split line into words. */
-    for ( cp = line; *cp != '\0'; cp = cp2 )
-	  {
+    for ( cp = line; *cp != '\0'; cp = cp2 ) {
         /* Skip leading whitespace. */
         cp += strspn( cp, " \t\n\r" );
         /* Find next whitespace. */
         cp2 = cp + strcspn( cp, " \t\n\r" );
-        name = cp;
+        key = cp;
         value = cp2;
-        if ( value != (char*) 0 )
-		  *value++ = '\0';
+        strncpy(rval, cp2, strlen(cp2)+1); strchug(rval); strchomp(rval);
+        if ( value != (char*) 0 ) *value++ = '\0';
 		
         /* Interpret. */		
-        if ( strcasecmp( name, "timeout" ) == 0 ) {
-          wsconf.timeout = atoi(value);
-          printf("timeout:\t\"%s\"\n", value);
-	  /*
-        } else if ( strcasecmp( name, "port" ) == 0 ) {
-	  wsconf.port = strdup(value);
-          printf("port:\t\t\"%s\"\n", value);
-	  */
-        } else if ( strcasecmp( name, "elevation" ) == 0 ) {
-	  wsconf.elevation = atoi(value);
-          printf("elevation:\t\"%s\"\n", value);
-        } else if ( strcasecmp( name, "log_facility" ) == 0 ) {
-          if ( strcasecmp( value, "local0") == 0 )
+        if ( strcasecmp( key, "timeout" ) == 0 ) {
+          wsconf.timeout = atoi(rval);
+          printf("timeout:\t\"%s\"\n", rval);
+        } else if ( strcasecmp( key, "elevation" ) == 0 ) {
+	  wsconf.elevation = atoi(rval);
+          printf("elevation:\t\"%s\"\n", rval);
+        } else if ( strcasecmp( key, "log_facility" ) == 0 ) {
+          if ( strcasecmp( rval, "local0") == 0 )
             wsconf.log_facility = LOG_LOCAL0;
-          else if ( strcasecmp( value, "local1") == 0 )
+          else if ( strcasecmp( rval, "local1") == 0 )
             wsconf.log_facility = LOG_LOCAL1;
-          else if ( strcasecmp( value, "local2") == 0 )
+          else if ( strcasecmp( rval, "local2") == 0 )
             wsconf.log_facility = LOG_LOCAL2;
-          else if ( strcasecmp( value, "local3") == 0 )
+          else if ( strcasecmp( rval, "local3") == 0 )
             wsconf.log_facility = LOG_LOCAL3;
-          else if ( strcasecmp( value, "local4") == 0 )
+          else if ( strcasecmp( rval, "local4") == 0 )
             wsconf.log_facility = LOG_LOCAL4;
-          else if ( strcasecmp( value, "local5") == 0 )
+          else if ( strcasecmp( rval, "local5") == 0 )
             wsconf.log_facility = LOG_LOCAL5;
-          else if ( strcasecmp( value, "local6") == 0 )
+          else if ( strcasecmp( rval, "local6") == 0 )
             wsconf.log_facility = LOG_LOCAL6;
-          else if ( strcasecmp( value, "local7") == 0 )
+          else if ( strcasecmp( rval, "local7") == 0 )
             wsconf.log_facility = LOG_LOCAL7;
-          printf("log_facility:\t\"%s\"\n", value); 
-        } else if ( strcasecmp( name, "ws2000.device" ) == 0 ) {
-	  printf("ws2000.device: \"%s\"\n", value);
-	  strncpy(ws2000station.config.device, value, MAXMSGLEN);
-        } else if ( strcasecmp( name, "ws2000.dbtype" ) == 0 ) {
+          printf("log_facility:\t\"%s\"\n", rval); 
+        } else if ( strcasecmp( key, "ws2000.device" ) == 0 ) {
+	  printf("ws2000.device: \"%s\"\n", rval);
+	  strncpy(ws2000station.config.device, rval, MAXMSGLEN);
+        } else if ( strcasecmp( key, "ws2000.dbtype" ) == 0 ) {
 
-          if ( strcasecmp( value, "SQLITE") == 0 )
+          if ( strcasecmp( rval, "SQLITE") == 0 )
             ws2000station.config.dbtype = SQLITE;
-          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+          else if ( strcasecmp( rval, "POSTGRESQL") == 0 )
             ws2000station.config.dbtype = POSTGRESQL;
-          else if ( strcasecmp( value, "MYSQL") == 0 )
+          else if ( strcasecmp( rval, "MYSQL") == 0 )
             ws2000station.config.dbtype = MYSQL;
-          else if ( strcasecmp( value, "ORACLE") == 0 )
+          else if ( strcasecmp( rval, "ORACLE") == 0 )
             ws2000station.config.dbtype = ORACLE;
 
-	  //strncpy( ws2000station.config.dbtype, value, TBUFF);
-	  //printf("ws2000.dbtype: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "ws2000.dbfile" ) == 0 ) {
-	  strncpy( ws2000station.config.dbfile, value, TBUFF);
-	  printf("ws2000.dbfile: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "ws2000.monitor" ) == 0 ) {
-	  strncpy( ws2000station.config.monitor, value, TBUFF);
-	  printf("ws2000.monitor: \"%s\"\n", value);
+	  //strncpy( ws2000station.config.dbtype, rval, TBUFF);
+	  //printf("ws2000.dbtype: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "ws2000.dbfile" ) == 0 ) {
+	  strncpy( ws2000station.config.dbfile, rval, TBUFF);
+	  printf("ws2000.dbfile: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "ws2000.monitor" ) == 0 ) {
+	  strncpy( ws2000station.config.monitor, rval, TBUFF);
+	  printf("ws2000.monitor: \"%s\"\n", rval);
 
-        } else if ( strcasecmp( name, "pcwsr.device" ) == 0 ) {
-	  printf("pcwsr.device: \"%s\"\n", value);
-	  strncpy(pcwsrstation.config.device, value, MAXMSGLEN);
-        } else if ( strcasecmp( name, "pcwsr.dbtype" ) == 0 ) {
+        } else if ( strcasecmp( key, "pcwsr.device" ) == 0 ) {
+	  printf("pcwsr.device: \"%s\"\n", rval);
+	  strncpy(pcwsrstation.config.device, rval, MAXMSGLEN);
+        } else if ( strcasecmp( key, "pcwsr.dbtype" ) == 0 ) {
 
-          if ( strcasecmp( value, "SQLITE") == 0 )
+          if ( strcasecmp( rval, "SQLITE") == 0 )
             pcwsrstation.config.dbtype = SQLITE;
-          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+          else if ( strcasecmp( rval, "POSTGRESQL") == 0 )
             pcwsrstation.config.dbtype = POSTGRESQL;
-          else if ( strcasecmp( value, "MYSQL") == 0 )
+          else if ( strcasecmp( rval, "MYSQL") == 0 )
             pcwsrstation.config.dbtype = MYSQL;
-          else if ( strcasecmp( value, "ORACLE") == 0 )
+          else if ( strcasecmp( rval, "ORACLE") == 0 )
             pcwsrstation.config.dbtype = ORACLE;
 
-	  //strncpy( pcwsrstation.config.dbtype, value, TBUFF);
-	  //printf("pcwsr.dbtype: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "pcwsr.dbfile" ) == 0 ) {
-	  strncpy(pcwsrstation.config.dbfile, value, TBUFF);
-	  printf("pcwsr.dbfile: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "pcwsr.monitor" ) == 0 ) {
-	  strncpy(pcwsrstation.config.monitor, value, TBUFF);
-	  printf("pcwsr.monitor: \"%s\"\n", value);
+	  //strncpy( pcwsrstation.config.dbtype, rval, TBUFF);
+	  //printf("pcwsr.dbtype: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "pcwsr.dbfile" ) == 0 ) {
+	  strncpy(pcwsrstation.config.dbfile, rval, TBUFF);
+	  printf("pcwsr.dbfile: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "pcwsr.monitor" ) == 0 ) {
+	  strncpy(pcwsrstation.config.monitor, rval, TBUFF);
+	  printf("pcwsr.monitor: \"%s\"\n", rval);
 
-        } else if ( strcasecmp( name, "onewire.device" ) == 0 ) {
-	  printf("onewire.device: \"%s\"\n", value);
-	  strncpy(onewirestation.config.device, value, MAXMSGLEN);
-        } else if ( strcasecmp( name, "onewire.dbtype" ) == 0 ) {
-	  printf("onewire.dbtype: \"%s\"\n", value);
-          if ( strcasecmp( value, "SQLITE") == 0 )
+        } else if ( strcasecmp( key, "onewire.device" ) == 0 ) {
+	  printf("onewire.device: \"%s\"\n", rval);
+	  strncpy(onewirestation.config.device, rval, MAXMSGLEN);
+        } else if ( strcasecmp( key, "onewire.dbtype" ) == 0 ) {
+	  printf("onewire.dbtype: \"%s\"\n", rval);
+          if ( strcasecmp( rval, "SQLITE") == 0 )
             onewirestation.config.dbtype = SQLITE;
-          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+          else if ( strcasecmp( rval, "POSTGRESQL") == 0 )
             onewirestation.config.dbtype = POSTGRESQL;
-          else if ( strcasecmp( value, "MYSQL") == 0 )
+          else if ( strcasecmp( rval, "MYSQL") == 0 )
             onewirestation.config.dbtype = MYSQL;
-          else if ( strcasecmp( value, "ORACLE") == 0 )
+          else if ( strcasecmp( rval, "ORACLE") == 0 )
             onewirestation.config.dbtype = ORACLE;
 
-	  //strncpy( onewirestation.config.dbtype, value, TBUFF);
-        } else if ( strcasecmp( name, "onewire.dbconn" ) == 0 ) {
-	  printf("onewire.dbconn: \"%s\"\n", value);
-	  strncpy(onewirestation.config.dbconn, value, TBUFF);
-        } else if ( strcasecmp( name, "onewire.dbfile" ) == 0 ) {
-	  printf("onewire.dbfile: \"%s\"\n", value);
-	  strncpy(onewirestation.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "onewire.mcycle" ) == 0 ) {
-	  printf("onewire.mcycle: \"%s\"\n", value);
-	  onewirestation.config.mcycle = atoi(value);
+	  //strncpy( onewirestation.config.dbtype, rval, TBUFF);
+        } else if ( strcasecmp( key, "onewire.dbconn" ) == 0 ) {
+	  printf("onewire.dbconn: \"%s\"\n", rval);
+	  strncpy(onewirestation.config.dbconn, rval, TBUFF);
+        } else if ( strcasecmp( key, "onewire.dbfile" ) == 0 ) {
+	  printf("onewire.dbfile: \"%s\"\n", rval);
+	  strncpy(onewirestation.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "onewire.mcycle" ) == 0 ) {
+	  printf("onewire.mcycle: \"%s\"\n", rval);
+	  onewirestation.config.mcycle = atoi(rval);
 
-        } else if ( strcasecmp( name, "wmr9x8.device" ) == 0 ) {
-	  printf("wmr9x8.device: \"%s\"\n", value);
-	  strncpy(wmr9x8station.config.device, value, MAXMSGLEN);
-        } else if ( strcasecmp( name, "wmr9x8.dbtype" ) == 0 ) {
+        } else if ( strcasecmp( key, "wmr9x8.device" ) == 0 ) {
+	  printf("wmr9x8.device: \"%s\"\n", rval);
+	  strncpy(wmr9x8station.config.device, rval, MAXMSGLEN);
+        } else if ( strcasecmp( key, "wmr9x8.dbtype" ) == 0 ) {
 
-          if ( strcasecmp( value, "SQLITE") == 0 )
+          if ( strcasecmp( rval, "SQLITE") == 0 )
             wmr9x8station.config.dbtype = SQLITE;
-          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+          else if ( strcasecmp( rval, "POSTGRESQL") == 0 )
             wmr9x8station.config.dbtype = POSTGRESQL;
-          else if ( strcasecmp( value, "MYSQL") == 0 )
+          else if ( strcasecmp( rval, "MYSQL") == 0 )
             wmr9x8station.config.dbtype = MYSQL;
-          else if ( strcasecmp( value, "ORACLE") == 0 )
+          else if ( strcasecmp( rval, "ORACLE") == 0 )
             wmr9x8station.config.dbtype = ORACLE;
 
-	  //strncpy( wmr9x8station.config.dbtype, value, TBUFF);
-	  //printf("wmr9x8.dbtype: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "wmr9x8.dbfile" ) == 0 ) {
-	  printf("wmr9x8.dbfile: \"%s\"\n", value);
-	  strncpy(wmr9x8station.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "wmr9x8.mcycle" ) == 0 ) {
-	  printf("wmr9x8.mcycle: \"%s\"\n", value);
-	  wmr9x8station.config.mcycle = atoi(value);
+	  //strncpy( wmr9x8station.config.dbtype, rval, TBUFF);
+	  //printf("wmr9x8.dbtype: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "wmr9x8.dbfile" ) == 0 ) {
+	  printf("wmr9x8.dbfile: \"%s\"\n", rval);
+	  strncpy(wmr9x8station.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "wmr9x8.mcycle" ) == 0 ) {
+	  printf("wmr9x8.mcycle: \"%s\"\n", rval);
+	  wmr9x8station.config.mcycle = atoi(rval);
 
-        } else if ( strcasecmp( name, "umeter.device" ) == 0 ) {
-	  printf("umeter.device: \"%s\"\n", value);
-	  strncpy(umeterstation.config.device, value, MAXMSGLEN);
-        } else if ( strcasecmp( name, "umeter.dbtype" ) == 0 ) {
+        } else if ( strcasecmp( key, "umeter.device" ) == 0 ) {
+	  printf("umeter.device: \"%s\"\n", rval);
+	  strncpy(umeterstation.config.device, rval, MAXMSGLEN);
+        } else if ( strcasecmp( key, "umeter.dbtype" ) == 0 ) {
 
-          if ( strcasecmp( value, "SQLITE") == 0 )
+          if ( strcasecmp( rval, "SQLITE") == 0 )
             umeterstation.config.dbtype = SQLITE;
-          else if ( strcasecmp( value, "POSTGRESQL") == 0 )
+          else if ( strcasecmp( rval, "POSTGRESQL") == 0 )
             umeterstation.config.dbtype = POSTGRESQL;
-          else if ( strcasecmp( value, "MYSQL") == 0 )
+          else if ( strcasecmp( rval, "MYSQL") == 0 )
             umeterstation.config.dbtype = MYSQL;
-          else if ( strcasecmp( value, "ORACLE") == 0 )
+          else if ( strcasecmp( rval, "ORACLE") == 0 )
             umeterstation.config.dbtype = ORACLE;
 
-	  //strncpy( umeterstation.config.dbtype, value, TBUFF);
-	  //printf("umeter.dbtype: \"%s\"\n", value);
-        } else if ( strcasecmp( name, "umeter.dbfile" ) == 0 ) {
-	  printf("umeter.dbfile: \"%s\"\n", value);
-	  strncpy(umeterstation.config.dbfile, value, TBUFF);
-        } else if ( strcasecmp( name, "umeter.mcycle" ) == 0 ) {
-	  printf("umeter.mcycle: \"%s\"\n", value);
-	  umeterstation.config.mcycle = atoi(value);
+	  //strncpy( umeterstation.config.dbtype, rval, TBUFF);
+	  //printf("umeter.dbtype: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "umeter.dbfile" ) == 0 ) {
+	  printf("umeter.dbfile: \"%s\"\n", rval);
+	  strncpy(umeterstation.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "umeter.mcycle" ) == 0 ) {
+	  printf("umeter.mcycle: \"%s\"\n", rval);
+	  umeterstation.config.mcycle = atoi(rval);
 
         } else {
-	  printf("unknown option '%s' inf configuration file\n", name );
+	  printf("unknown option '%s' inf configuration file\n", key );
           return(-1);
         }
     }		
