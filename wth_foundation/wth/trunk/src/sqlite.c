@@ -504,6 +504,22 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
         sensorname, parametername);
       syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
       break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
+        "UMETER\n");
+      sqlitedb = umeterdb;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
+      break;
     default:
       syslog(LOG_ALERT, "sqlite_get_sensorparams: unknown stationtype\n");
       sqsenspar.sensor_meas_no = -1;
@@ -591,6 +607,23 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
       syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
                         "WMR9X8\n");
       sqlitedb = wmr9x8db;
+      snprintf(query, SBUFF,
+        "SELECT sf.sensor_flag_no, sn.sensor_name, "
+        "fn.flag_name "
+        "FROM sensorflags AS sf, sensornames AS sn, "
+        "flagnames AS fn "
+        "WHERE sf.flag_no = fn.flag_no "
+        "AND sf.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND fn.flag_name  = '%s' ",
+        sensorname, flagname);
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+                        query);
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+                        "UMETER\n");
+      sqlitedb = umeterdb;
       snprintf(query, SBUFF,
         "SELECT sf.sensor_flag_no, sn.sensor_name, "
         "fn.flag_name "
@@ -693,6 +726,11 @@ sqlite_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
       syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "
         "ONEWIRE\n");
       sqlitedb = onewiredb;
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "
+        "UMETER\n");
+      sqlitedb = umeterdb;
       break;
     case WMR9X8:
       syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "

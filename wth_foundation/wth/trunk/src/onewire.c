@@ -670,7 +670,7 @@ onewire_hd( void *arg)
                       ONEWIRE, 
                       onewirestation.config.dbtype, 
                       mtime, 
-                      vad);
+                      vdd);
  
           if ( err != 0 )  {
 	    syslog(LOG_ALERT, "onewire_hd: vdd: failure measval_hd "

@@ -76,12 +76,12 @@ CREATE TABLE parameternames
 INSERT INTO parameternames VALUES ('1','windspeed','Wind Speed','m/s', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('2','winddirection','Wind Direction','°', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('3','outdoor_temp','Outdoor Temperature','°C', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('4','rain_total', 'Rain Longterm Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('4','rain_longterm_total', 'Rain Longterm Total','mm', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('5','pressure', 'Barometer','hPa', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('6','indoor_temp','Indoor Temperature','°C', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('7','outdoor_hum','Outdoor Humidity','%', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('8','indoor_hum','Indoor Humidity','%', 1.000, 0.000);
-INSERT INTO parameternames VALUES ('9','rain_today', 'Rain Today Total','mm', 1.000, 0.000);
+INSERT INTO parameternames VALUES ('9','rain_today_total', 'Rain Today Total','mm', 1.000, 0.000);
 INSERT INTO parameternames VALUES ('10','windspeed_1min_avg','Wind Speed 1 Minute Average','m/s', 1.000, 0.000);
 -- packet mode parameters
 INSERT INTO parameternames VALUES ('11','windspeed_5min_peak','Wind Speed 5 Minute Peak','m/s', 1.000, 0.000);
