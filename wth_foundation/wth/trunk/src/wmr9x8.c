@@ -373,7 +373,7 @@ rain_dac( unsigned char *data) {
               WMR9X8,
               wmr9x8station.config.dbtype,
               dataset_date, 
-              (unsigned long int)total_startdate);
+              (unsigned long int)startdate);
 
   return err;
 }

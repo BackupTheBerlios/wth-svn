@@ -130,3 +130,11 @@ sqlite>  SELECT datetime(1349990272, 'unixepoch');
 sqlite>  SELECT datetime(1349990272, 'unixepoch','localtime');
 2012-10-11 23:17:52
 
+
+converting EPOCH to human readable
+perl -e 'print "".localtime 915145200'
+awk 'BEGIN{print strftime("%c",915145200)}'
+
+converting human readable to EPOCH
+date +%s -d '2012-10-15 10:49:37'
+
