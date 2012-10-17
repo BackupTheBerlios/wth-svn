@@ -148,29 +148,29 @@ avgmdat( struct mset ** mlist_ref,
   struct mset *llist_p = *mlist_ref;
   int count = 0;
   double avgtime = 0;
-  double avgval  = 0;
+  double avgmval  = 0;
   long unsigned int avgdate = 0;
 
   while ( llist_p != NULL) {
     count++;
     avgtime = avgtime + llist_p->mtime;
-    avgval = avgval + llist_p->mval;
+    avgmval = avgmval + llist_p->mval;
     llist_p = llist_p->next;
   }
 
   if ( count != 0) {
     avgtime = avgtime / count;
-    avgval = avgval / count;
-    avgdate = (long unsigned int) avgtime;
+    avgmval = avgmval / count;
+    avgdate = (long unsigned int) (avgtime+0.5);
     syslog( LOG_DEBUG, 
 	    "avgmdat: sens_meas_no: %d, avgtime: %f, avgdate: %lu, "
-            "avgval: %f, "
+            "avgmval: %f, "
             "number: %d", 
-	    sens_meas_no, avgtime, avgdate, avgval, count); 
+	    sens_meas_no, avgtime, avgdate, avgmval, count); 
     if ( dbtype == SQLITE) {
-      sqlite_datadbn( avgtime, sens_meas_no, avgval, stationtype);
+      sqlite_datadbn( avgtime, sens_meas_no, avgmval, stationtype);
     } else if ( dbtype == POSTGRESQL) {
-      pg_datadb( avgtime, sens_meas_no, avgval, pg_conn);
+      pg_datadb( avgtime, sens_meas_no, avgmval, pg_conn);
     }
   }
 }
@@ -203,7 +203,7 @@ avgsdat( struct sset ** slist_ref,
   if ( count != 0) {
     avgtime = avgtime / count;
     avgsval = avgsval  / count;
-    avgdate = (long unsigned int) avgtime;
+    avgdate = (long unsigned int) ( avgtime+0.5);
     avgval  = (long) (avgsval + 0.5);
     syslog( LOG_DEBUG, 
 	    "avgsdat: sens_flag_no: %d, avgtime: %f, avgdate: %lu, "
@@ -287,11 +287,6 @@ int measvaln_db( char *sensorname, char *parametername,
   int sensor_meas_no;
   int mcycle;
 
-  /*
-  if ( stationtype == ONEWIRE ) {
-    mcycle = onewirestation.config.mcycle;
-  }
-  */
   switch(stationtype) {
     case UMETER:
       mcycle = umeterstation.config.mcycle;

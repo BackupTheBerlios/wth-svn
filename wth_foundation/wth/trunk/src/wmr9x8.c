@@ -1518,9 +1518,9 @@ wmr9x8_hd( void *arg) {
   switch(wmr9x8station.config.dbtype) {
     case SQLITE:
       syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
-      if ( ( err = sqlite3_open( wmr9x8station.config.dbfile, &wmr9x8db))) {
+      if ( ( err = sqlite3_open( wmr9x8station.config.sqlite_dbfile, &wmr9x8db))) {
         syslog(LOG_ALERT, "wmr9x8_hd: Failed to open database %s. Error: %s\n", 
-          wmr9x8station.config.dbfile, sqlite3_errmsg(wmr9x8db));
+          wmr9x8station.config.sqlite_dbfile, sqlite3_errmsg(wmr9x8db));
         return( ( void *) &failure);
       }
       break;

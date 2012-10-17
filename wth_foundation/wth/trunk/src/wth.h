@@ -202,7 +202,7 @@ typedef struct umeterstat {
 typedef struct wsconf {
   int mcycle;
   int dbtype;
-  char dbfile[TBUFF+1];
+  char sqlite_dbfile[TBUFF+1];
   char dbconn[TBUFF+1];
   char device[TBUFF+1];
   char dbpath[SBUFF+1];
@@ -292,8 +292,10 @@ int echodata( unsigned char *data, int mdat);
 unsigned char getbits( unsigned char x, int p, int n);
 unsigned char lownibble(unsigned char x);
 unsigned char highnibble(unsigned char x);
+/*
 char *mkmsg( const char *, ...);
 char *mkmsg2( const char *, ...);
+*/
 int usage (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
@@ -307,6 +309,7 @@ void *pcwsr_hd( void *arg);
 void *ws2000_hd( void *arg);
 void *onewire_hd( void *arg);
 void *wmr9x8_hd( void *arg);
+void *umeter_hd( void *arg);
 
 
 int bitprint( int byte, char *s_reg);
@@ -373,12 +376,12 @@ int pg_readpar( time_t *meastim, float *measval,
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
 
-
-void *umeter_hd( void *arg);
+/*
 int datalogger_rd( unsigned char * datalogdata, int ndat);
 int packet_rd( unsigned char * packetdata, int ndat);
 int complete_rd( unsigned char * completedata, int ndat);
 int umeter_rd();
 int initumeter ( int *pfd, struct termios *newtio,struct termios *oldtio);
 int closeumeter( int fd, struct termios *oldtio);
+*/
 

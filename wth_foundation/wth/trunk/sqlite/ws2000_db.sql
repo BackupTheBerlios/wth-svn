@@ -101,7 +101,7 @@
       sensor_meas_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       sensor_no INTEGER NOT NULL,
       param_no INTEGER NOT NULL,
-      FOREIGN KEY (parameter_no) REFERENCES parameternames (param_no),
+      FOREIGN KEY (param_no) REFERENCES parameternames (param_no),
       FOREIGN KEY (sensor_no) REFERENCES sensornames (sensor_no)
     );
 

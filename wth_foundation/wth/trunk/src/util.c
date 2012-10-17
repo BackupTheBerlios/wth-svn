@@ -53,26 +53,26 @@ wthd_init( ) {
   wsconf.outfmt      = "old";
 
   /* WS2000 */  
-  strncpy(ws2000station.config.dbfile, "ws2000.db", TBUFF);
+  strncpy(ws2000station.config.sqlite_dbfile, "ws2000.db", TBUFF);
   strncpy(ws2000station.config.device, "n.a.", TBUFF);
   ws2000station.status.interval      = 300;  
 
 
   /* PCWSR */
-  strncpy(pcwsrstation.config.dbfile, "pcwsr.db", TBUFF);
+  strncpy(pcwsrstation.config.sqlite_dbfile, "pcwsr.db", TBUFF);
   strncpy( pcwsrstation.config.device, "n.a.", TBUFF);
 
   /* 1-WIRE */
-  strncpy(onewirestation.config.dbfile, "onewire.db", TBUFF);
+  strncpy(onewirestation.config.sqlite_dbfile, "onewire.db", TBUFF);
   strncpy(onewirestation.config.device, "n.a.", TBUFF);
   onewirestation.config.mcycle = 10;
 
   /* WMR9x8 */
-  strncpy(wmr9x8station.config.dbfile, "wmr9x8.db", TBUFF);
+  strncpy(wmr9x8station.config.sqlite_dbfile, "wmr9x8.db", TBUFF);
   strncpy(wmr9x8station.config.device, "n.a.", TBUFF);
 
   /* ULTIMETER */
-  strncpy(umeterstation.config.dbfile, "umeter.db", TBUFF);
+  strncpy(umeterstation.config.sqlite_dbfile, "umeter.db", TBUFF);
   strncpy(umeterstation.config.device, "n.a.", TBUFF);
 
   err = readconfig();
@@ -227,6 +227,7 @@ longprint ( int byte, char *s_reg ) {
   return(0);
 }
 
+/*
 char *
 mkmsg2( const char *fmt, ...) {
   int size;
@@ -240,7 +241,7 @@ mkmsg2( const char *fmt, ...) {
 
   return(buff);
 }
-
+*/
 
 /* usaged : print handling instructions of wthd */
 int
@@ -349,12 +350,9 @@ readconfig( ) {
             ws2000station.config.dbtype = MYSQL;
           else if ( strcasecmp( rval, "ORACLE") == 0 )
             ws2000station.config.dbtype = ORACLE;
-
-	  //strncpy( ws2000station.config.dbtype, rval, TBUFF);
-	  //printf("ws2000.dbtype: \"%s\"\n", rval);
-        } else if ( strcasecmp( key, "ws2000.dbfile" ) == 0 ) {
-	  strncpy( ws2000station.config.dbfile, rval, TBUFF);
-	  printf("ws2000.dbfile: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "ws2000.sqlite_dbfile" ) == 0 ) {
+	  strncpy( ws2000station.config.sqlite_dbfile, rval, TBUFF);
+	  printf("ws2000.sqlite_dbfile: \"%s\"\n", rval);
         } else if ( strcasecmp( key, "ws2000.monitor" ) == 0 ) {
 	  strncpy( ws2000station.config.monitor, rval, TBUFF);
 	  printf("ws2000.monitor: \"%s\"\n", rval);
@@ -372,12 +370,9 @@ readconfig( ) {
             pcwsrstation.config.dbtype = MYSQL;
           else if ( strcasecmp( rval, "ORACLE") == 0 )
             pcwsrstation.config.dbtype = ORACLE;
-
-	  //strncpy( pcwsrstation.config.dbtype, rval, TBUFF);
-	  //printf("pcwsr.dbtype: \"%s\"\n", rval);
-        } else if ( strcasecmp( key, "pcwsr.dbfile" ) == 0 ) {
-	  strncpy(pcwsrstation.config.dbfile, rval, TBUFF);
-	  printf("pcwsr.dbfile: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "pcwsr.sqlite_dbfile" ) == 0 ) {
+	  strncpy(pcwsrstation.config.sqlite_dbfile, rval, TBUFF);
+	  printf("pcwsr.sqlite_dbfile: \"%s\"\n", rval);
         } else if ( strcasecmp( key, "pcwsr.monitor" ) == 0 ) {
 	  strncpy(pcwsrstation.config.monitor, rval, TBUFF);
 	  printf("pcwsr.monitor: \"%s\"\n", rval);
@@ -395,14 +390,12 @@ readconfig( ) {
             onewirestation.config.dbtype = MYSQL;
           else if ( strcasecmp( rval, "ORACLE") == 0 )
             onewirestation.config.dbtype = ORACLE;
-
-	  //strncpy( onewirestation.config.dbtype, rval, TBUFF);
-        } else if ( strcasecmp( key, "onewire.dbconn" ) == 0 ) {
+        } else if ( strcasecmp( key, "onewire.postgresql_dbconn" ) == 0 ) {
 	  printf("onewire.dbconn: \"%s\"\n", rval);
 	  strncpy(onewirestation.config.dbconn, rval, TBUFF);
-        } else if ( strcasecmp( key, "onewire.dbfile" ) == 0 ) {
-	  printf("onewire.dbfile: \"%s\"\n", rval);
-	  strncpy(onewirestation.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "onewire.sqlite_dbfile" ) == 0 ) {
+	  printf("onewire.sqlite_dbfile: \"%s\"\n", rval);
+	  strncpy(onewirestation.config.sqlite_dbfile, rval, TBUFF);
         } else if ( strcasecmp( key, "onewire.mcycle" ) == 0 ) {
 	  printf("onewire.mcycle: \"%s\"\n", rval);
 	  onewirestation.config.mcycle = atoi(rval);
@@ -423,9 +416,9 @@ readconfig( ) {
 
 	  //strncpy( wmr9x8station.config.dbtype, rval, TBUFF);
 	  //printf("wmr9x8.dbtype: \"%s\"\n", rval);
-        } else if ( strcasecmp( key, "wmr9x8.dbfile" ) == 0 ) {
-	  printf("wmr9x8.dbfile: \"%s\"\n", rval);
-	  strncpy(wmr9x8station.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "wmr9x8.sqlite_dbfile" ) == 0 ) {
+	  printf("wmr9x8.sqlite_dbfile: \"%s\"\n", rval);
+	  strncpy(wmr9x8station.config.sqlite_dbfile, rval, TBUFF);
         } else if ( strcasecmp( key, "wmr9x8.mcycle" ) == 0 ) {
 	  printf("wmr9x8.mcycle: \"%s\"\n", rval);
 	  wmr9x8station.config.mcycle = atoi(rval);
@@ -446,9 +439,9 @@ readconfig( ) {
 
 	  //strncpy( umeterstation.config.dbtype, rval, TBUFF);
 	  //printf("umeter.dbtype: \"%s\"\n", rval);
-        } else if ( strcasecmp( key, "umeter.dbfile" ) == 0 ) {
-	  printf("umeter.dbfile: \"%s\"\n", rval);
-	  strncpy(umeterstation.config.dbfile, rval, TBUFF);
+        } else if ( strcasecmp( key, "umeter.sqlite_dbfile" ) == 0 ) {
+	  printf("umeter.sqlite_dbfile: \"%s\"\n", rval);
+	  strncpy(umeterstation.config.sqlite_dbfile, rval, TBUFF);
         } else if ( strcasecmp( key, "umeter.mcycle" ) == 0 ) {
 	  printf("umeter.mcycle: \"%s\"\n", rval);
 	  umeterstation.config.mcycle = atoi(rval);
@@ -495,7 +488,7 @@ echoconfig ( char *station) {
     if ( strncmp( ws2000station.config.device, "n.a.", 4) == 0) 
       return(t);
     snprintf(s, TBUFF, 
-      "\tdatabase file\t\t%s\n",ws2000station.config.dbfile);
+      "\tdatabase file\t\t%s\n",ws2000station.config.sqlite_dbfile);
     strncat(t,s, strlen(s));
     /*
     snprintf(s, TBUFF, 
@@ -515,7 +508,7 @@ echoconfig ( char *station) {
     if ( strncmp( pcwsrstation.config.device, "n.a.", 4) == 0) 
       return(t);
     snprintf(s, TBUFF,
-      "\tdatabase\t\t%s\n",pcwsrstation.config.dbfile);
+      "\tdatabase\t\t%s\n",pcwsrstation.config.sqlite_dbfile);
     strncat(t,s, strlen(s));
   } else if ( ( err = strncmp( station, "onewire", 5)) == 0 ) {
     snprintf(s, TBUFF, 
@@ -527,7 +520,7 @@ echoconfig ( char *station) {
     if ( strncmp( onewirestation.config.device, "n.a.", 4) == 0) 
       return(t);
     snprintf(s, TBUFF,
-      "\tdatabase\t\t%s\n",onewirestation.config.dbfile);
+      "\tdatabase\t\t%s\n",onewirestation.config.sqlite_dbfile);
     strncat(t,s, strlen(s));
     snprintf(s, TBUFF, 
       "\tmeasurement cycles\t%d\n",onewirestation.config.mcycle);

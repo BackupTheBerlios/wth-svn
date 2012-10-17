@@ -134,9 +134,9 @@ pcwsr_hd( void *arg) {
     /* serial initialization */ 
     fd = initpcwsr(&newtio, &oldtio, pcwsrstation.config.device); 
 
-    if ( ( err = sqlite3_open( pcwsrstation.config.dbfile, &pcwsrdb))) {
+    if ( ( err = sqlite3_open( pcwsrstation.config.sqlite_dbfile, &pcwsrdb))) {
       snprintf(msg, TBUFF, "Failed to open database %s. Error: %s\n",
-	       pcwsrstation.config.dbfile, sqlite3_errmsg( pcwsrdb));
+	       pcwsrstation.config.sqlite_dbfile, sqlite3_errmsg( pcwsrdb));
       closepcwsr( fd, &oldtio); 
       return( ( void *) &failure);
     }

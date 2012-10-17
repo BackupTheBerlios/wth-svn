@@ -25,26 +25,6 @@
 #include "wth.h"
 
 /*
-  umeter_hd
-
-  POSIX thread to handle ULTIMETER weatherstation
-
-  opens port
-  call to data reading subroutine
-
-*/
-void *
-umeter_hd( void *arg) {
-  int err;
-  syslog( LOG_DEBUG, "umeter_hd: start of execution");
-
-  /* read ULTIMETER weatherstation */
-  err = umeter_rd();
-
-  return( ( void *) &success);
-}
-
-/*
   datalogger_rd
 
   reading data records with ULTIMETER in data logger mode
@@ -80,7 +60,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
 
   /* open sqlite db file */
   /*
-  if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) 
+  if ( sqlite3_open( (const char *)umeterstation.config.sqlite_dbfile, &umeterdb) 
          != SQLITE_OK ) {
     return(1);
   }
@@ -618,10 +598,12 @@ complete_rd( unsigned char * completedata, int ndat) {
   syslog(LOG_DEBUG,"complete_rd: data: '%s'\n", completedata);
 
   /* open sqlite db file */
-  if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) 
+  /*
+  if ( sqlite3_open( (const char *)umeterstation.config.sqlite_dbfile, &umeterdb) 
          != SQLITE_OK ) {
     return(1);
   }
+  */
 
   /* 1. Wind Speed */
   strncpy(umeterstr, (const char * )(completedata+4), 5); 
@@ -1551,7 +1533,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   datafield = strtol(umeterstr, NULL, base);
   syslog(LOG_DEBUG, "115. 1 Minute Windspeed Average: %f\n", datafield);
 
-  sqlite3_close( umeterdb);
+  //sqlite3_close( umeterdb);
 
   return(0);
 }
@@ -1613,7 +1595,7 @@ umeter_rd( ) {
   umeterstation.status.is_present = 1;
 
   /* open sqlite db file */
-  if ( sqlite3_open( (const char *)umeterstation.config.dbfile, &umeterdb) 
+  if ( sqlite3_open( (const char *)umeterstation.config.sqlite_dbfile, &umeterdb) 
          != SQLITE_OK ) {
     return(1);
   }
@@ -1651,5 +1633,26 @@ umeter_rd( ) {
   sqlite3_close( umeterdb);
 
   return(err); 
+}
+
+
+/*
+  umeter_hd
+
+  POSIX thread to handle ULTIMETER weatherstation
+
+  opens port
+  call to data reading subroutine
+
+*/
+void *
+umeter_hd( void *arg) {
+  int err;
+  syslog( LOG_DEBUG, "umeter_hd: start of execution");
+
+  /* read ULTIMETER weatherstation */
+  err = umeter_rd();
+
+  return( ( void *) &success);
 }
 

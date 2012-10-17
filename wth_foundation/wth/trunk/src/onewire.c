@@ -573,9 +573,9 @@ onewire_hd( void *arg)
   currsens = 0;
 
   if ( onewirestation.config.dbtype == SQLITE) {
-    if ( ( err = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
+    if ( ( err = sqlite3_open( onewirestation.config.sqlite_dbfile, &onewiredb))) {
       syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
-        onewirestation.config.dbfile);
+        onewirestation.config.sqlite_dbfile);
       return( ( void *) &failure);
     }
   } else if ( onewirestation.config.dbtype == POSTGRESQL) {

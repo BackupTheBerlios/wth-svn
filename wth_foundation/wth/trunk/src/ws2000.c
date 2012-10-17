@@ -675,7 +675,7 @@ getcd ( unsigned char *data, int *mdat) {
 	  return(-1);
 
     /* echo raw dataframe */
-    // err = echodata( data, *mdat);
+    err = echodata( data, *mdat);
     
     /* check data frame and do 
     	 data correction for masqueraded bytes */
@@ -734,9 +734,9 @@ wstat(unsigned char *data, int mdat ) {
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
 
   if ( ws2000station.config.dbtype == SQLITE) {
-    if ( ( err = sqlite3_open( ws2000station.config.dbfile, &ws2000db))) {
+    if ( ( err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db))) {
       syslog(LOG_ALERT, "wstat: Failed to open database %s.",
-        ws2000station.config.dbfile);
+        ws2000station.config.sqlite_dbfile);
       return(NULL);
     }
     stat_ws2000db( sdata, statusset_date, ws2000db);
@@ -916,13 +916,13 @@ datex ( unsigned char *data, int ndat) {
 
   /* open db file */
   if ( ws2000station.config.dbtype == SQLITE) {
-    err = sqlite3_open( ws2000station.config.dbfile, &ws2000db);
+    err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db);
     syslog(LOG_DEBUG,
       "datex: sqlite3_open %s return value: %d",
-      ws2000station.config.dbfile, err);
+      ws2000station.config.sqlite_dbfile, err);
     if ( err) {
       syslog( LOG_ALERT, "datex: failed to open database %s.",
-      ws2000station.config.dbfile);
+      ws2000station.config.sqlite_dbfile);
       return (-1);
     } else {
       syslog(LOG_DEBUG, "datex: sqlite3_open: OK\n");

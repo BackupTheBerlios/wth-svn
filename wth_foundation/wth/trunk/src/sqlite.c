@@ -3,7 +3,7 @@
 
   read and write wth data to sqlite database
 
-  $Id$
+  $Id:$
   $Revision$
 
   Copyright (C) 2012 Volker Jahns <volker@thalreit.de>
@@ -195,9 +195,9 @@ sqlite_maxsensmeas( sqlite3 *onewiredb) {
   char query[SBUFF+1];
   sqlite3_stmt *qcomp;
 
-  if ( ( err = sqlite3_open( onewirestation.config.dbfile, &onewiredb))) {
+  if ( ( err = sqlite3_open( onewirestation.config.sqlite_dbfile, &onewiredb))) {
     syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
-      onewirestation.config.dbfile);
+      onewirestation.config.sqlite_dbfile);
     return(err);
   }
 
@@ -805,7 +805,7 @@ sqlite_statdbn( long statusset_date, int sensor_flag_no,
       return(1);
   }  
 
-  /* insert data values */
+  /* insert status values */
   syslog(LOG_DEBUG, "sqlite_statdbn: dataset_date: %ld, "
                     "sensor_flag_no: %d, stat_val: %lu", 
                     statusset_date, sensor_flag_no, stat_value);
@@ -819,26 +819,11 @@ sqlite_statdbn( long statusset_date, int sensor_flag_no,
       "sqlite_statdbn: error: insert sensor data: err: %d", err);
   }
 
- /* insert status values */
-  /*
-  snprintf(query, SBUFF, 
-    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
-    (long unsigned int)statusset_date, sensor_flag_no, (long unsigned int)sval); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
-  if ( err) { 
-    syslog(LOG_DEBUG,
-      "statval_db: error: insert status data: err: %d", err);
-  }
-  */
-
   err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_DEBUG, 
       "datadb: error: update sensor date: err: %d", err);
   }
-
-
-
 
   return(err);
 }
