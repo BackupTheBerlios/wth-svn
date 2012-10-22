@@ -545,7 +545,7 @@ onewire_hd( void *arg)
 {
   int  err, rslt, verbose, currsens, numsens;
   int portnum, svdd, cvdd, cvad;
-  int max_sens_meas;
+//  int max_sens_meas;
   float vsens, vad, vdd, temp10;
   float press2438, humid2438;
   float temp;
@@ -595,6 +595,7 @@ onewire_hd( void *arg)
   syslog(LOG_DEBUG, "onewire_hd: mcycle: %d", onewirestation.config.mcycle);
   verbose = 0;
 
+/*
   max_sens_meas = maxsensmeas(onewirestation.config.dbtype);
 
   if ( max_sens_meas <= 0 ) {
@@ -604,6 +605,7 @@ onewire_hd( void *arg)
   } else {
     syslog(LOG_DEBUG, "onewire_hd: max_sens_meas: %d", max_sens_meas);
   }
+*/
 
   for (;;) {
     /* measurement loop */

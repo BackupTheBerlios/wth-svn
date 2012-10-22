@@ -72,7 +72,7 @@ sqlite_datadb( long dataset_date, int sensor_meas_no, float meas_value,
 
 */
 int
-stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db) 
+sqlite_stat_ws2000db( int sensor_status[], time_t statusset_date) 
 {
   int i, err;
   int querylen = MAXQUERYLEN;
@@ -86,7 +86,9 @@ stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db)
     err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
     if ( err) { 
       syslog(LOG_ALERT,
-        "statdb: error: insert sensor status: err: %d", err);
+        "sqlite_stat_ws2000db: error: insert sensor status: err: %d", err);
+      syslog(LOG_ALERT,
+        "sqlite_stat_ws2000db: query: %d", query);
     }
 
   }
@@ -107,7 +109,7 @@ stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db)
 
 */
 int
-new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000db) 
+sqlite_new_ws2000db( int sensor_no, int new_flag)
 {
   int err = 0;
   int querylen = MAXQUERYLEN;
@@ -116,11 +118,11 @@ new_ws2000db( long statusset_date, int sensor_no, int new_flag, sqlite3 *ws2000d
   snprintf(query, querylen, 
 	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
 	   new_flag, sensor_no, sensor_no); 
-  syslog(LOG_DEBUG, "new_ws2000db: query: %s", query);
+  syslog(LOG_DEBUG, "sqlite_new_ws2000db: query: %s", query);
   err = sqlite3_exec( ws2000db, query, NULL, NULL, NULL);
   if ( err) { 
     syslog(LOG_ALERT,
-	   "new_ws2000db: error: insert sensor status: err: %d", err);
+	   "sqlite_new_ws2000db: error: insert sensor status: err: %d", err);
   }
 
   return(err);
@@ -150,14 +152,14 @@ sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[],
 
 
 /*
-  is_ws2000sens
+  sqlite_is_ws2000sens
   
   check if status value of sensor is not equal to zero 
   only works for WS2000 weatherstation 
   
 */
 int
-is_ws2000sens( int sensor_no, sqlite3 *ws2000db)
+sqlite_is_ws2000sens( int sensor_no)
 {
   int err;
   time_t stattim;
@@ -186,272 +188,6 @@ is_ws2000sens( int sensor_no, sqlite3 *ws2000db)
   } 
 
   return(statval); 
-}
-
-int
-sqlite_maxsensmeas( sqlite3 *onewiredb) {
-  int max_sens_meas;
-  int err, rowcnt;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-
-  if ( ( err = sqlite3_open( onewirestation.config.sqlite_dbfile, &onewiredb))) {
-    syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
-      onewirestation.config.sqlite_dbfile);
-    return(err);
-  }
-
-
-  snprintf(query, SBUFF, "SELECT COUNT(*) "
-    "FROM sensorparameters");
-  syslog(LOG_DEBUG, "maxsensmeas: sql: %s", query);
-
-  err = sqlite3_prepare( onewiredb, query, -1, &qcomp, 0);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "Error: select maxsensmeas: err: %d : sqlite_errmsg: %s\n",
-            err, sqlite3_errmsg(onewiredb));
-    return(1);
-  }
-
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "maxsensmeas  : max_sens_meas: %d",
-           sqlite3_column_int(qcomp, 0));
-    max_sens_meas = sqlite3_column_int(qcomp, 0);
-    rowcnt++;
-  }
-
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "Error: select parametername: err: %d : sqlite_errmsg: %s\n",
-            err, sqlite3_errmsg(onewiredb));
-    return(1);
-  }
-
-  if ( rowcnt == 0) {
-    syslog( LOG_ALERT, "Error: cant find relation sensor - device - parameter");
-    return(1);
-  }
-
-  sqlite3_close( onewiredb);
-
-  return(max_sens_meas);
-}
-
-/*
-
-  measval_db
-
-  ULTIMETER and WMR928 NX measurement data to sqlite database
-
- */
-int
-measval_db( char *sensorname, char *parametername, 
-                   time_t dataset_date, float mval, sqlite3 *wthdb) {
-  int err;
-  char *errmsg;
-  int rowcnt, sensor_no, parameter_no, sensor_meas_no;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-
-  syslog(LOG_DEBUG, "measval_db: sensorname: %s parametername: %s", 
-                                sensorname, parametername);
-
-  /* select sensor_no */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'",
-    sensorname);
-
-  syslog(LOG_DEBUG, "measval_sb: query :\'%s\'", query);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "measval_db: error: select sensor_no: err: %d : sqlite_errmsg: %s\n", 
-            err, sqlite3_errmsg(wthdb));
-    return(err);
-  }
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "measval_db : sensorname: \'%s\' sensor_no: %d", 
-              sensorname, sqlite3_column_int(qcomp, 0));
-    sensor_no   = sqlite3_column_int(qcomp,0); 
-    rowcnt++;
-  }
-  if ( rowcnt == 0 )
-    syslog(LOG_ALERT," no sensorname %s\n in database", sensorname);
-
-  err = sqlite3_finalize(qcomp);
-
-  /* select parameter_no of parametername */
-  snprintf(query, SBUFF, 
-    "SELECT param_no FROM parameternames WHERE param_name = '%s'",
-    parametername);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "measval_db: error: select parameter_no of \'%s\': err: %d : sqlite_errmsg: %s\n", 
-            parametername, err, sqlite3_errmsg(wthdb));
-    return(err);
-  }
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "measval_db : parametername: \'%s\' parameter_no: %d", 
-              parametername, sqlite3_column_int(qcomp, 0));
-    parameter_no   = sqlite3_column_int(qcomp,0); 
-    rowcnt++;
-  }
-  if ( rowcnt == 0 )
-    syslog(LOG_ALERT," no parametername %s\n in database", parametername);
-
-  err = sqlite3_finalize(qcomp);
-
-  /* select sens_meas_no of windsensor and wind_direction */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND param_no = %d",
-    sensor_no, parameter_no);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "measval_db: error: select sensor_meas_no of \'%s\' and \'%s\': err: %d : sqlite_errmsg: %s\n", 
-            sensorname, parametername, err, sqlite3_errmsg(wthdb));
-    return(err);
-  }
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "measval_db : sensor_meas_no: %d", sqlite3_column_int(qcomp, 0));
-    sensor_meas_no   = sqlite3_column_int(qcomp,0); 
-    rowcnt++;
-  }
-  if ( rowcnt == 0 )
-    syslog(LOG_ALERT," no sensor_meas_no in database");
-
-  err = sqlite3_finalize(qcomp);
-
- /* insert data values */
-  snprintf(query, SBUFF, 
-    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
-    (long unsigned int)dataset_date, sensor_meas_no, (double)mval); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, &errmsg);
-  if ( err) { 
-    syslog(LOG_DEBUG,
-      "measval_db: error: insert sensor data: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(wthdb));
-  }
-  if ( errmsg != NULL) {
-    sqlite3_free( errmsg);
-    errmsg = NULL;
-  }
-
-  /* insert date when last data has been updated */
-  snprintf(query, SBUFF, 
-    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
-    (long unsigned int)dataset_date, sensor_meas_no); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, &errmsg);
-  if ( err) { 
-    syslog(LOG_DEBUG, 
-      "measval_db: error: update sensor date: err: %d : sqlite_errmsg: %s\n", 
-      err, sqlite3_errmsg(wthdb));
-  }
-  if ( errmsg != NULL) {
-    sqlite3_free( errmsg);
-    errmsg = NULL;
-  }
-
-  /* clean up and close */
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "measval_db: error database handling: err: %d : sqlite_errmsg: %s\n", 
-            err, sqlite3_errmsg(wthdb));
-    return(err);
-  }
-
-  return err;
-}
-
-int
-statval_db( char *sensorname, char *flagname,
-                 time_t statusset_date, long unsigned int sval, sqlite3 *wthdb) {
-  int err;
-  int sensor_no, flag_no, sensor_flag_no;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
-
-  /* select sensor_no */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'",
-    sensorname);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "statval_db: rror: select sensor_no: err: %d", err);
-    return(err);
-  }
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "statval_db : sensorname: %s sensor_no: %d", 
-                                 sensorname, sqlite3_column_int(qcomp, 0));
-    sensor_no   = sqlite3_column_int(qcomp,0); 
-  }
-  err = sqlite3_finalize(qcomp);
-
-  /* select flag_no of flagnames */
-  snprintf(query, SBUFF, 
-    "SELECT flag_no FROM flagnames WHERE flag_name = '%s'",
-    flagname);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "statval_db: error: select flag_no of %s: err: %d", flagname, err);
-    return(err);
-  }
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "statval_db : flagname: %s flag_no: %d", 
-                                 flagname, sqlite3_column_int(qcomp, 0));
-    flag_no   = sqlite3_column_int(qcomp,0); 
-  }
-  err = sqlite3_finalize(qcomp);
-
-  /* select sens_flag_no of sensorname and flagname */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_flag_no FROM sensorflags WHERE sensor_no = %d AND flag_no = %d",
-    sensor_no, flag_no);
-
-  err = sqlite3_prepare( wthdb, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "statval_db: error: select sensor_flag_no of %s and %s: err: %d", 
-            sensorname, flagname, err );
-    return(err);
-  }
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    syslog(LOG_DEBUG, "statval_db : sensor_flag_no: %d", sqlite3_column_int(qcomp, 0));
-    sensor_flag_no   = sqlite3_column_int(qcomp,0); 
-  }
-  err = sqlite3_finalize(qcomp);
-
- /* insert status values */
-  snprintf(query, SBUFF, 
-    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
-    (long unsigned int)statusset_date, sensor_flag_no, (long unsigned int)sval); 
-  err = sqlite3_exec( wthdb, query, NULL, NULL, NULL);
-  if ( err) { 
-    syslog(LOG_DEBUG,
-      "statval_db: error: insert status data: err: %d", err);
-  }
-
-  /* clean up and close */
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "statval_db: error database handling: err: %d", err);
-    return(err);
-  }
-
-  return err;
 }
 
 
@@ -608,7 +344,7 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
                         "WMR9X8\n");
       sqlitedb = wmr9x8db;
       snprintf(query, SBUFF,
-        "SELECT sf.sensor_flag_no, sn.sensor_name, "
+        "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
         "fn.flag_name "
         "FROM sensorflags AS sf, sensornames AS sn, "
         "flagnames AS fn "
@@ -625,7 +361,7 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
                         "UMETER\n");
       sqlitedb = umeterdb;
       snprintf(query, SBUFF,
-        "SELECT sf.sensor_flag_no, sn.sensor_name, "
+        "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
         "fn.flag_name "
         "FROM sensorflags AS sf, sensornames AS sn, "
         "flagnames AS fn "
@@ -658,26 +394,20 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
   while( SQLITE_ROW == sqlite3_step(qcomp)) {
 
     sqsensflag.sensor_flag_no = sqlite3_column_int(qcomp, 0);
+    sqsensflag.sensor_no = sqlite3_column_int(qcomp, 1);
+    sqsensflag.flag_no = sqlite3_column_int(qcomp, 2);
     strncpy(sqsensflag.sensorname, 
-      (char *)sqlite3_column_text(qcomp,1), TBUFF);
+      (char *)sqlite3_column_text(qcomp,3), TBUFF);
     strncpy(sqsensflag.flagname, 
-      (char *)sqlite3_column_text(qcomp,2), TBUFF);
+      (char *)sqlite3_column_text(qcomp,4), TBUFF);
 
-    if ( stationtype == ONEWIRE ) {				  
-      strncpy(sqsensflag.devicetyp, 
-        (char *)sqlite3_column_text(qcomp,5), TBUFF);
-      strncpy(sqsensflag.familycode, 
-        (char *)sqlite3_column_text(qcomp,6), TBUFF);
-      strncpy(sqsensflag.serialnum, 
-        (char *)sqlite3_column_text(qcomp,7), TBUFF);
-    } else {
-      strncpy(sqsensflag.devicetyp, 
-        "n.a.", TBUFF);
-      strncpy(sqsensflag.familycode, 
-        "n.a.", TBUFF);
-      strncpy(sqsensflag.serialnum, 
-        "n.a.", TBUFF);
-    }
+    strncpy(sqsensflag.devicetyp, 
+      "n.a.", TBUFF);
+    strncpy(sqsensflag.familycode, 
+      "n.a.", TBUFF);
+    strncpy(sqsensflag.serialnum, 
+      "n.a.", TBUFF);
+   
     rowcnt++;
   }
   
@@ -794,6 +524,11 @@ sqlite_statdbn( long statusset_date, int sensor_flag_no,
       syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
         "ONEWIRE\n");
       sqlitedb = onewiredb;
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+        "UMETER\n");
+      sqlitedb = umeterdb;
       break;
     case WMR9X8:
       syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "

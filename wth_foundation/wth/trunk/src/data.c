@@ -24,6 +24,8 @@
 */
 
 #include "wth.h"
+#include "wthsqlite.h"
+#include "wthpgsql.h"
 
 
 /*
@@ -218,7 +220,7 @@ avgsdat( struct sset ** slist_ref,
   }
 }
 
-
+/*
 int
 maxsensmeas( int dbtype) 
 {
@@ -231,6 +233,7 @@ maxsensmeas( int dbtype)
   }
   return(p_maxsensmeas);
 }
+*/
 
 
 
@@ -329,7 +332,7 @@ int measvaln_db( char *sensorname, char *parametername,
          sensor_meas_no, 
          cycleno[sensor_meas_no],
          mcycle);
-  prtmdat( mlist_p[sensor_meas_no]);
+  //prtmdat( mlist_p[sensor_meas_no]);
   if ( cycleno[sensor_meas_no] < mcycle ) {
     syslog(LOG_DEBUG, "measvaln_db: cycleno < mcycle: adding data\n");
     addmdat( &mlist_p[sensor_meas_no], mtime, mval);
@@ -528,10 +531,79 @@ int statval_hd(char * sensorname, char *flagname,
 
   syslog(LOG_DEBUG, "statval_hd: stime: %f sval: %lu\n", stime, sval);
 
+
   err = statvaln_db( sensorname, flagname,
                      stationtype, dbtype,
                      stime, sval);
+  return(err);
+}
 
+/*
+  legacy WS2000
+
+  data handling ( measurement and status values)
+
+*/
+/*
+  stat_ws2000db - insert status values of WS2000 sensors
+
+*/
+int
+stat_ws2000db( int sensor_status[], time_t statusset_date, int dbtype)
+{
+  int err = 0;
+
+  switch(dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "stat_ws2000db: dbtype is SQLITE\n");
+      err = sqlite_stat_ws2000db( sensor_status, statusset_date);
+      break;
+    default:
+      syslog(LOG_ALERT, "stat_ws2000db: unknown dbtype\n");
+      err = 1;
+  }
+  return(err);
+}
+
+/*
+  new_ws2000db - update new flag of WS2000 sensors
+
+*/
+int
+new_ws2000db( int sensor_no, int new_flag, int dbtype)
+{
+  int err = 0;
+
+  switch(dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "new_ws2000db: dbtype is SQLITE\n");
+      err = sqlite_new_ws2000db( sensor_no, new_flag);
+      break;
+    default:
+      syslog(LOG_ALERT, "new_ws2000db: unknown dbtype\n");
+      err = 1;
+  }
+  return(err);
+}
+
+/*
+  is_ws2000sens - return status of WS2000 sensor
+
+*/
+int
+is_ws2000sens( int sensor_no, int dbtype)
+{
+  int err = 0;
+
+  switch(dbtype) {
+    case SQLITE:
+      syslog(LOG_DEBUG, "is_ws2000sens: dbtype is SQLITE\n");
+      err = sqlite_is_ws2000sens( sensor_no);
+      break;
+    default:
+      syslog(LOG_ALERT, "is_ws2000sens: unknown dbtype\n");
+      err = 1;
+  }
   return(err);
 }
 

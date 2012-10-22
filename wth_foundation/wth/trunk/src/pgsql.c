@@ -157,6 +157,7 @@ pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, PGconn *pg_co
   1-wire device
   returns these data in structure ssdp
 */
+/*
 int
 pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *pg_conn)
 {
@@ -204,6 +205,7 @@ pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *
   }
   return(0);
 }
+*/
 
 
 /*
@@ -224,7 +226,6 @@ pg_writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date,
 
   return(err);
 }
-
 
 /*
   pg_is_ws2000sens
@@ -265,7 +266,7 @@ pg_is_ws2000sens( int sensor_no, PGconn *pg_conn)
   return(statval); 
 }
 
-
+/*
 int
 pg_maxsensmeas( PGconn *pg_conn) {
   PGresult *res;
@@ -295,6 +296,7 @@ pg_maxsensmeas( PGconn *pg_conn) {
   }
   return(max_sens_meas);
 }
+*/
 
 /*
 

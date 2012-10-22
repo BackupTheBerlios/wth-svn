@@ -143,7 +143,9 @@ typedef struct sensdevpar {
 } sensdevpar_t;
 
 typedef struct sensflag {
-  int sensor_flag_no;
+  int  sensor_flag_no;
+  int  sensor_no;
+  int  flag_no;
   char sensorname[TBUFF+1];
   char flagname[TBUFF+1];
   char devicetyp[TBUFF+1];
@@ -328,7 +330,12 @@ int statval_hd( char *sensorname, char *flagname,
                 int stationtype, int dbtype, 
                 double stime, long unsigned int sval);
 
+int stat_ws2000db( int sensor_status[], time_t statusset_date, int dbtype);
+int new_ws2000db( int sensor_no, int new_flag, int dbtype);
+int is_ws2000sens( int sensor_no, int dbtype);
+
 /* sqlite database functions */
+/*
 int sqlite_datadb( long dataset_date, int sensor_param, float meas_value,
   sqlite3 *pcwsrdb);
 int stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
@@ -359,8 +366,10 @@ int measval_db( char *sensorname, char *parametername,
       time_t dataset_date, float mval, sqlite3 *database);
 int statval_db( char *sensorname, char *statusname, 
       time_t dataset_date, long unsigned int sval, sqlite3 *database);
+*/
 
 /* postgresql database functions */
+/*
 int pg_datadb( long dataset_date, int sensor_param, float meas_value,
       PGconn *pg_conn);
 int pg_stat_ws2000db( int sensor_status[], time_t statusset_date, 
@@ -375,6 +384,7 @@ int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
 int pg_readpar( time_t *meastim, float *measval, 
       int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
 int pg_maxsensmeas( PGconn *pg_conn);
+*/
 
 /*
 int datalogger_rd( unsigned char * datalogdata, int ndat);

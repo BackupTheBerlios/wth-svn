@@ -32,6 +32,27 @@
 
 char *lockfile = WS2000LOCK;
 
+/* sensor parameter assignment */
+enum {
+  SENSOR1      = 1,
+  SENSOR2      = 2,
+  SENSOR3      = 3,
+  SENSOR4      = 4,
+  SENSOR5      = 5,
+  SENSOR6      = 6,
+  SENSOR7      = 7,
+  SENSOR8      = 8,
+  RAINSENSOR   = 9,
+  WINDSENSOR   = 10,
+  INDOORSENSOR = 11,
+  SENSOR9      = 12,
+  SENSOR10     = 13,
+  SENSOR11     = 14,
+  SENSOR12     = 15,
+  SENSOR13     = 16,
+  SENSOR14     = 17,
+  SENSOR15     = 18
+};
 /*
    closeserial
 
@@ -733,28 +754,12 @@ wstat(unsigned char *data, int mdat ) {
   /* insert statusdata */
   for ( i = 1; i <= 18; i++) { sdata[i] = data[i-1]; }
 
-  if ( ws2000station.config.dbtype == SQLITE) {
-    if ( ( err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db))) {
-      syslog(LOG_ALERT, "wstat: Failed to open database %s.",
-        ws2000station.config.sqlite_dbfile);
-      return(NULL);
-    }
-    stat_ws2000db( sdata, statusset_date, ws2000db);
-    sqlite3_close( ws2000db);
-  } else if ( ws2000station.config.dbtype == POSTGRESQL) {
-    pg_conn = PQconnectdb( ws2000station.config.dbconn);
-    if (PQstatus(pg_conn) != CONNECTION_OK)
-    {
-        syslog(LOG_ALERT, "wstat: connection to database failed: %s",
-                PQerrorMessage(pg_conn));
-        PQfinish(pg_conn);
-    }
-    pg_stat_ws2000db( sdata, statusset_date, pg_conn);
-    PQfinish(pg_conn);
-  } else {
-    syslog(LOG_ALERT, "wstat: no database type defined");
-  }
-	
+  err = stat_ws2000db( sdata, statusset_date, ws2000station.config.dbtype);
+
+  if ( err) {
+    syslog(LOG_ALERT,
+      "wstat: error: writing sensor status to database");
+  }	
   /* interval time */
   ws2000station.status.interval = data [18];
   /* DCF status and synchronicity */
@@ -914,28 +919,11 @@ datex ( unsigned char *data, int ndat) {
   syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
   syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
 
-  /* open db file */
-  if ( ws2000station.config.dbtype == SQLITE) {
-    err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db);
-    syslog(LOG_DEBUG,
-      "datex: sqlite3_open %s return value: %d",
-      ws2000station.config.sqlite_dbfile, err);
-    if ( err) {
-      syslog( LOG_ALERT, "datex: failed to open database %s.",
-      ws2000station.config.sqlite_dbfile);
-      return (-1);
-    } else {
-      syslog(LOG_DEBUG, "datex: sqlite3_open: OK\n");
-    }
-  }
-
   nval = 0;
   new  = 0;
   /* get data of the first 8 temperature/humidity sensors */
   for ( i = 1; i <= 8; i++) {
-    if ( ws2000station.config.dbtype == SQLITE) {
-      err = is_ws2000sens( i, ws2000db);
-    }
+    err = is_ws2000sens( i, ws2000station.config.dbtype);
     if ( err != 0 )  {
       nval = 2;
       sensor_no = i;
@@ -1003,10 +991,8 @@ datex ( unsigned char *data, int ndat) {
         "sensor_meas_no: %d new flag: %d\n",
         i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
 
-      if ( ws2000station.config.dbtype == SQLITE) {
-        err = new_ws2000db( dataset_date, i, new, ws2000db);
-      } else { err = 1; }
-      if ( err != 0 ) {
+      err = new_ws2000db( i, new, ws2000station.config.dbtype);
+      if ( err) {
         syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
       }
       if ( ws2000station.config.dbtype == SQLITE) {
@@ -1022,11 +1008,7 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* Sensor #9: Rainsensor */
-  if ( ws2000station.config.dbtype == SQLITE) {
-    err = is_ws2000sens( 9, ws2000db);
-  } else {
-    err = 1;
-  }
+  err = is_ws2000sens( 9, ws2000station.config.dbtype);
   if ( err != 0 )  {
     nval = 1;
     sensor_no = 9;
@@ -1036,11 +1018,9 @@ datex ( unsigned char *data, int ndat) {
     meas_value[0]   = Hi + Lo;
     sensor_meas_no[0] = 17;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    if ( ws2000station.config.dbtype == SQLITE) {
-      err =new_ws2000db( dataset_date, 9, new, ws2000db);
-    } else { err = 1; }
-    if ( err != 0 ) {
-      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
+    err =new_ws2000db( 9, new, ws2000station.config.dbtype);
+    if ( err ) {
+      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write new_flag to database");
     }
     if ( ws2000station.config.dbtype == SQLITE) {
       err = sqlite_writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
@@ -1058,11 +1038,7 @@ datex ( unsigned char *data, int ndat) {
   }
 
   /* sensor #10: Windsensor */
-  if ( ws2000station.config.dbtype == SQLITE) {
-    err =  is_ws2000sens( 10, ws2000db);
-  } else {
-    err = 1;
-  }
+  err =  is_ws2000sens( 10, ws2000station.config.dbtype);
   if ( err != 0 )  {
     nval = 3;
     sensor_no = 10;
@@ -1078,10 +1054,8 @@ datex ( unsigned char *data, int ndat) {
 
     /* wind new flag */
     new = getbits ( data[27], 7, 1);
-    if ( ws2000station.config.dbtype == SQLITE) {
-      err = new_ws2000db( dataset_date, 10, new, ws2000db);
-    } else { err = 1; }
-    if ( err != 0 ) {
+    err = new_ws2000db( 10, new, ws2000station.config.dbtype);
+    if ( err ) {
       syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
     }
     syslog(LOG_DEBUG,
@@ -1119,9 +1093,7 @@ datex ( unsigned char *data, int ndat) {
   } 
 
   /* sensor #11: Indoorsensor */
-  if ( ws2000station.config.dbtype == SQLITE) {
-    err = is_ws2000sens( 11, ws2000db);
-  }
+  err = is_ws2000sens( 11, ws2000station.config.dbtype);
   if ( err != 0 )  {
     nval = 3;
     sensor_no = 11;
@@ -1161,10 +1133,8 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
     /* write database */
-    if ( ws2000station.config.dbtype == SQLITE) {
-      err = new_ws2000db( dataset_date, 11, new, ws2000db); 
-    } else { err = 1; }
-    if ( err != 0 ) {
+    err = new_ws2000db( 11, new, ws2000station.config.dbtype); 
+    if ( err) {
       syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
     }
     if ( ws2000station.config.dbtype ==SQLITE) {
@@ -1178,12 +1148,6 @@ datex ( unsigned char *data, int ndat) {
     syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
   }
 
-  /* cleanup and close */
-  if ( ws2000station.config.dbtype == SQLITE) {
-    err = sqlite3_close( ws2000db);
-  } else {
-    err = 1;
-  }
   return(err);
 };
 
@@ -1535,11 +1499,25 @@ wcmd ( ) {
 */
 void *
 ws2000_hd( void *arg) {
-  int lfd;
+  int lfd, err;
   int waitmax  = 0;
 
+  syslog(LOG_INFO,"ws2000_hd start exceuting\n");
+
+
+  if ( ws2000station.config.dbtype == SQLITE) {
+    if ( ( err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db))) {
+      syslog(LOG_ALERT, "ws2000_hd: Failed to open database %s.",
+        ws2000station.config.sqlite_dbfile);
+      return( ( void *) &failure);
+    }
+  } else {
+    syslog(LOG_ALERT, "ws2000_hd: no database type defined");
+    return( ( void *) &failure);
+  }
+
+
   for ( ;; ) {
-    syslog(LOG_INFO,"ws2000_hd awakening\n");
     while ( waitmax < MAXWAIT ) {
       syslog(LOG_DEBUG,"ws2000_hd: waitmax: %d\n", waitmax);
       lfd = open( lockfile, O_RDWR | O_CREAT | O_EXCL, 0444);
@@ -1562,7 +1540,11 @@ ws2000_hd( void *arg) {
     }
     sleep(DATAWAIT);
   }
-  return(0);
+  /* database cleanup and close */
+  if ( ws2000station.config.dbtype == SQLITE) {
+    sqlite3_close( ws2000db);
+  } 
+  return( ( void *) &success);
 }
 
 
