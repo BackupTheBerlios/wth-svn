@@ -942,12 +942,12 @@ datexn ( unsigned char *data, int ndat) {
 	
 
   /* block number */
-  syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
-  syslog(LOG_DEBUG, "datex : block NO (byte 2) : %d\n", data[1]);
+  syslog(LOG_DEBUG, "datexn: block NO (byte 1) : %d\n", data[0]);
+  syslog(LOG_DEBUG, "datexn: block NO (byte 2) : %d\n", data[1]);
 
   /* age of dataset is stored as minutes up to current time */
-  syslog(LOG_DEBUG, "datex : age (byte 1) : %d\n", data[2]);
-  syslog(LOG_DEBUG, "datex : age (byte 2) : %d\n", data[3]);
+  syslog(LOG_DEBUG, "datexn: age (byte 1) : %d\n", data[2]);
+  syslog(LOG_DEBUG, "datexn: age (byte 2) : %d\n", data[3]);
   age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
 
 
@@ -960,10 +960,10 @@ datexn ( unsigned char *data, int ndat) {
   }
   else { 
     syslog(LOG_INFO,
-	   "datex : DCF not synchronized, using localtime for dataset\n");
+	   "datexn: DCF not synchronized, using localtime for dataset\n");
     err = time(&dataset_date);
     syslog(LOG_DEBUG, 
-	   "datex : present time: %lu (seconds since EPOCH)\n", 
+	   "datexn: present time: %lu (seconds since EPOCH)\n", 
            (long int)dataset_date);
   }
   
@@ -974,12 +974,12 @@ datexn ( unsigned char *data, int ndat) {
   clk  = ctime(&dataset_date);
   snprintf(tstrg,MAXMSGLEN, "%lu", (long)dataset_date);
 
-  syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
+  syslog(LOG_DEBUG, "datexn: ws2000station.status.ndats : %d\n",
 	 ws2000station.status.ndats);
-  syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
+  syslog(LOG_DEBUG, "datexn: measured at : %lu (seconds since EPOCH)\n",
 	 (long int)dataset_date);
-  syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
-  syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
+  syslog(LOG_DEBUG, "datexn: measured at : %s\n", clk);
+  syslog(LOG_DEBUG, "datexn: units : %s\n", wsconf.units);
 
 
   /* SENSOR1  Temperature/Humidity */
@@ -1291,14 +1291,14 @@ datexn ( unsigned char *data, int ndat) {
   /* Sensor #9: RAINSENSOR */
   err = is_ws2000sens( 9, ws2000station.config.dbtype);
   if ( err != 0 )  {
-    syslog(LOG_DEBUG, "datex: sensor #9 RAINSENSOR found\n");
+    syslog(LOG_DEBUG, "datexn: sensor #9 RAINSENSOR found\n");
     Hi = getbits(data[25], 6, 7) << 8 ;
     Lo = getbits(data[24], 7, 8);
     rainfall   = Hi + Lo;
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
     err =new_ws2000db( RAINSENSOR, new, ws2000station.config.dbtype);
     if ( err ) {
-      syslog(LOG_ALERT,"datex: sensor #9 RAINSENSOR cannot write new_flag to database");
+      syslog(LOG_ALERT,"datexn: sensor #9 RAINSENSOR cannot write new_flag to database");
     }
     err = measval_hd( "rainsensor",
                       "rainfall",
@@ -1314,13 +1314,13 @@ datexn ( unsigned char *data, int ndat) {
            "meas_value: %f new: %d\n", 
 	   (long int)dataset_date, meas_value[0], new);
   } else {
-    syslog(LOG_DEBUG,"datex: sensor #9 RAINSENSOR not found\n");
+    syslog(LOG_DEBUG,"datexn: sensor #9 RAINSENSOR not found\n");
   }
 
   /* Sensor #10: WINDSENSOR */
   err =  is_ws2000sens( WINDSENSOR, ws2000station.config.dbtype);
   if ( err != 0 )  {
-   syslog(LOG_DEBUG, "datex: sensor #10 WINDSENSOR found\n");
+   syslog(LOG_DEBUG, "datexn: sensor #10 WINDSENSOR found\n");
 
 
     /* windspeed  raw data is km/h */
@@ -1350,7 +1350,7 @@ datexn ( unsigned char *data, int ndat) {
     new = getbits ( data[27], 7, 1);
     err = new_ws2000db( WINDSENSOR, new, ws2000station.config.dbtype);
     if ( err ) {
-      syslog(LOG_ALERT,"datex: sensor #10 WINDSENSOR cannot write new flag\n");
+      syslog(LOG_ALERT,"datexn: sensor #10 WINDSENSOR cannot write new flag\n");
     }
 
 
@@ -1391,7 +1391,7 @@ datexn ( unsigned char *data, int ndat) {
     }
 
     syslog(LOG_DEBUG,
-      "datex: sensor #10 WINDSENSOR:\tdataset_date: %lu winddeviation: %f\n", 
+      "datexn: sensor #10 WINDSENSOR:\tdataset_date: %lu winddeviation: %f\n", 
       (long int)dataset_date, winddeviation);
   } else {
     syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
@@ -1401,7 +1401,7 @@ datexn ( unsigned char *data, int ndat) {
   /* Sensor #11: INDOORSENSOR */
   err = is_ws2000sens( INDOORSENSOR, ws2000station.config.dbtype);
   if ( err != 0 )  {
-    syslog(LOG_DEBUG, "datex: sensor #11 INDOORSENSOR found\n");
+    syslog(LOG_DEBUG, "datexn: sensor #11 INDOORSENSOR found\n");
 
 
     /* barometric pressure */
@@ -1421,7 +1421,7 @@ datexn ( unsigned char *data, int ndat) {
     }
 
     syslog(LOG_DEBUG,
-      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu pressure: %f\n", 
+      "datexn: sensor #11 INDOORSENSOR:\tdataset_date: %lu pressure: %f\n", 
       (long int)dataset_date, pressure);
 
 
@@ -1442,7 +1442,7 @@ datexn ( unsigned char *data, int ndat) {
     }
 
     syslog(LOG_DEBUG,
-      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu temperature: %f\n", 
+      "datexn: sensor #11 INDOORSENSOR:\tdataset_date: %lu temperature: %f\n", 
       (long int)dataset_date, temperature);
 
     /* indoor humidity */
@@ -1461,25 +1461,25 @@ datexn ( unsigned char *data, int ndat) {
     }
 
     syslog(LOG_DEBUG,
-      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu humidity: %f ",
+      "datexn: sensor #11 INDOORSENSOR:\tdataset_date: %lu humidity: %f ",
       (long int)dataset_date, humidity);
     syslog(LOG_DEBUG,
-      "datex: sensor #11 INDOORSENSOR: humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
+      "datexn: sensor #11 INDOORSENSOR: humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
 
 
     /* indoor sensor new flag */
     new = getbits( data[33], 3, 1);
 
     syslog(LOG_DEBUG,
-      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu new: %d\n",
+      "datexn: sensor #11 INDOORSENSOR:\tdataset_date: %lu new: %d\n",
       (long int)dataset_date, new);
 
     err = new_ws2000db( INDOORSENSOR, new, ws2000station.config.dbtype); 
     if ( err) {
-      syslog(LOG_ALERT,"datex: sensor #11 INDOORSENSOR cannot write database");
+      syslog(LOG_ALERT,"datexn: sensor #11 INDOORSENSOR cannot write database");
     }
   } else {
-    syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
+    syslog(LOG_DEBUG,"datexn: sensor #11 indoorsensor not found\n");
   }
 
   return(err);
