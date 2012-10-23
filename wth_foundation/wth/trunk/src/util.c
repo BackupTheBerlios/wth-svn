@@ -56,6 +56,7 @@ wthd_init( ) {
   strncpy(ws2000station.config.sqlite_dbfile, "ws2000.db", TBUFF);
   strncpy(ws2000station.config.device, "n.a.", TBUFF);
   ws2000station.status.interval      = 300;  
+  ws2000station.config.mcycle = 1;
 
 
   /* PCWSR */
@@ -70,10 +71,12 @@ wthd_init( ) {
   /* WMR9x8 */
   strncpy(wmr9x8station.config.sqlite_dbfile, "wmr9x8.db", TBUFF);
   strncpy(wmr9x8station.config.device, "n.a.", TBUFF);
+  wmr9x8station.config.mcycle = 1;
 
   /* ULTIMETER */
   strncpy(umeterstation.config.sqlite_dbfile, "umeter.db", TBUFF);
   strncpy(umeterstation.config.device, "n.a.", TBUFF);
+  umeterstation.config.mcycle = 1;
 
   err = readconfig();
   //printf("%s", echoconfig( "onewirestation"));
@@ -356,6 +359,9 @@ readconfig( ) {
         } else if ( strcasecmp( key, "ws2000.monitor" ) == 0 ) {
 	  strncpy( ws2000station.config.monitor, rval, TBUFF);
 	  printf("ws2000.monitor: \"%s\"\n", rval);
+        } else if ( strcasecmp( key, "ws2000.mcycle" ) == 0 ) {
+	  printf("ws2000.mcycle: \"%s\"\n", rval);
+	  ws2000station.config.mcycle = atoi(rval);
 
         } else if ( strcasecmp( key, "pcwsr.device" ) == 0 ) {
 	  printf("pcwsr.device: \"%s\"\n", rval);

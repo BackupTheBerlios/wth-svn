@@ -457,7 +457,7 @@ int statvaln_db( char *sensorname, char *flagname,
          sensor_flag_no, 
          cycleno[sensor_flag_no],
          scycle);
-  prtsdat( slist_p[sensor_flag_no]);
+  //prtsdat( slist_p[sensor_flag_no]);
   if ( cycleno[sensor_flag_no] < scycle ) {
     syslog(LOG_DEBUG, 
       "statvaln_db: cycleno < scycle: adding data\n");

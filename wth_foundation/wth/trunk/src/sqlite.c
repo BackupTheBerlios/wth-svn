@@ -88,7 +88,7 @@ sqlite_stat_ws2000db( int sensor_status[], time_t statusset_date)
       syslog(LOG_ALERT,
         "sqlite_stat_ws2000db: error: insert sensor status: err: %d", err);
       syslog(LOG_ALERT,
-        "sqlite_stat_ws2000db: query: %d", query);
+        "sqlite_stat_ws2000db: query: \"%s\"",query);
     }
 
   }
@@ -244,6 +244,22 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
       syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
         "UMETER\n");
       sqlitedb = umeterdb;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
+      break;
+    case WS2000:
+      syslog(LOG_DEBUG, "sqlite_get_sensorparams: stationtype is "
+        "WS2000\n");
+      sqlitedb = ws2000db;
       snprintf(query, SBUFF,
         "SELECT sp.sensor_meas_no, sn.sensor_name, "
         "pn.param_name, pn.param_offset, pn.param_gain "
@@ -466,6 +482,11 @@ sqlite_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
       syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "
         "WMR9X8\n");
       sqlitedb = wmr9x8db;
+      break;
+    case WS2000:
+      syslog(LOG_DEBUG, "sqlite_datadbn: stationtype is "
+        "WS2000\n");
+      sqlitedb = ws2000db;
       break;
     default:
       syslog(LOG_ALERT, "sqlite_datadbn: unknown stationtype\n");

@@ -252,12 +252,17 @@ typedef struct conf {
 
 typedef void Sigfunc ( int);
 
-typedef struct key {
+typedef struct ws2000key {
   char *word;
   int id;
   char *descr;
 } ws2000key_t;
 
+typedef struct ws2000mval {
+  float temperature;
+  float humidity;
+  int new;
+} ws2000mval_t;
 
 typedef struct threadinfo {
   int num_active;

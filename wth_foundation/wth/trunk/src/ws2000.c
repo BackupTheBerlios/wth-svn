@@ -860,6 +860,367 @@ wstat(unsigned char *data, int mdat ) {
   return (t);
 }
 
+ws2000mval_t
+get_ws2000val( unsigned char *data, int sensor_no) {
+  int j;
+  int mbit, nbit;
+  int Hi, Lo;
+  ws2000mval_t ws2000val;
+
+  j = (sensor_no-1) % 2;
+  /* even sensor_no */
+  if ( ((sensor_no-1) % 2) == 0 ) {
+    mbit=3; nbit=7;
+    j = (5*(sensor_no-1) - j)/2 + 4;
+
+    /* temperature */
+    ws2000val.temperature =
+      10 * getbits(data[j+1], mbit-1, 3) + getbits(data[j], nbit, 4) +
+      0.1* getbits(data[j], mbit, 4);
+    if ( getbits(data[j+1], mbit, 1) == 1 ) {
+      ws2000val.temperature = -ws2000val.temperature;
+    }
+    /* humidity 
+       the value is calculated from an 8bit Byte which is formed
+       by two Nibbles    
+    */
+    Lo = getbits(data[j+1], nbit, 4);
+    Hi = getbits(data[j+2], mbit-1, 3) << 4;
+    ws2000val.humidity = Hi + Lo;
+
+    /* bit 3 of Hi nibble is new flag */
+    ws2000val.new = getbits(data[j+2], mbit, 1);
+
+    syslog(LOG_DEBUG, "get_ws2000val: sensor #%d humidity: Hi: %x(h) Lo: %x(h)\n",
+           sensor_no, Hi, Lo);
+  } /* odd i */ else if ( ((sensor_no-1) % 2) == 1) {
+    mbit=7; nbit=3;
+    j = (5*(sensor_no-1) - j)/2 + 4;
+
+    /* temperature */
+    ws2000val.temperature =
+      10  * getbits(data[j+1], mbit-1, 3) + getbits(data[j+1], nbit, 4) +
+      0.1 * getbits(data[j], mbit, 4);
+    if (  getbits(data[j+1], mbit, 1) == 1) {
+      ws2000val.temperature = -ws2000val.temperature;
+    }
+    /* humidity 
+       the value is calculated from an 8bit Byte which is formed
+       by two Nibbles    
+    */
+    Lo = getbits(data[j+2], nbit, 4);
+    Hi = getbits(data[j+2], mbit-1, 3) << 4;
+    ws2000val.humidity = Hi + Lo;
+    syslog(LOG_DEBUG, "get_ws2000val: sensor #%d humidity: Hi: %x(h) Lo: %x(h)\n",
+           sensor_no, Hi, Lo);
+    /* Bit 3 of Hi Nibble is new flag */
+    ws2000val.new =
+      getbits(data[j+2], mbit, 1);
+  }
+  return(ws2000val);
+}
+
+/* datexn
+
+   data extraction - cleaned version
+   stores the message datagram of the weather station to structure sens
+
+*/
+int 
+datexn ( unsigned char *data, int ndat) {
+  int err; 
+  int Hi, Lo, new;
+  time_t dataset_date;
+  long age;
+  char *clk;
+  char tstrg[TBUFF+1];
+  float meas_value[3];
+  ws2000mval_t ws2000mval;
+  float rainfall;
+  float windspeed, winddirection, winddeviation;
+  float temperature, humidity, pressure;
+	
+
+  /* block number */
+  syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
+  syslog(LOG_DEBUG, "datex : block NO (byte 2) : %d\n", data[1]);
+
+  /* age of dataset is stored as minutes up to current time */
+  syslog(LOG_DEBUG, "datex : age (byte 1) : %d\n", data[2]);
+  syslog(LOG_DEBUG, "datex : age (byte 2) : %d\n", data[3]);
+  age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
+
+
+  /* time of dataset
+     if DCF synchronized use time delivered by weatherstation
+     if not, use localtime
+  */
+  if ( ws2000station.status.DCFtime != -1 ) {
+    dataset_date = ws2000station.status.DCFtime;
+  }
+  else { 
+    syslog(LOG_INFO,
+	   "datex : DCF not synchronized, using localtime for dataset\n");
+    err = time(&dataset_date);
+    syslog(LOG_DEBUG, 
+	   "datex : present time: %lu (seconds since EPOCH)\n", 
+           (long int)dataset_date);
+  }
+  
+  /* dataset time is echoed in EPOCH seconds, dataset age in minutes
+     up to present time
+  */
+  dataset_date = ( dataset_date/60 - age) * 60;
+  clk  = ctime(&dataset_date);
+  snprintf(tstrg,MAXMSGLEN, "%lu", (long)dataset_date);
+
+  syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
+	 ws2000station.status.ndats);
+  syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
+	 (long int)dataset_date);
+  syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
+  syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
+
+/*
+  nval = 0;
+  new  = 0;
+*/
+
+  /* SENSOR1  Temperature/Humidity */
+  err = is_ws2000sens( SENSOR1, ws2000station.config.dbtype);
+  if ( err != 0 ) {
+    ws2000mval = get_ws2000val( data, SENSOR1);
+    syslog(LOG_DEBUG,
+      "datexn: sensor #%d dataset_date: %lu "
+      "temperature: %f humidity: %f new: %d\n",
+      SENSOR1, 
+      (long int)dataset_date, 
+      ws2000mval.temperature,
+      ws2000mval.humidity,
+      ws2000mval.new);
+    err = new_ws2000db( SENSOR1, ws2000mval.new, ws2000station.config.dbtype);
+    if ( err) {
+      syslog(LOG_ALERT,"datexn: SENSOR1 new flag configuration problem");
+    }
+    err = measval_hd( "sensor1",
+                      "temperature",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      ws2000mval.temperature);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: SENSOR1 temperature : check configuration");
+    }
+    err = measval_hd( "sensor1",
+                      "humidity",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      ws2000mval.humidity);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: SENSOR1 humidity : check configuration");
+    }
+  } else {
+    syslog(LOG_DEBUG,"datexn: SENSOR1 temperature/humidity not found");
+  }
+
+  /* Sensor #9: Rainsensor */
+  err = is_ws2000sens( 9, ws2000station.config.dbtype);
+  if ( err != 0 )  {
+    syslog(LOG_DEBUG, "datex: sensor #9 RAINSENSOR found\n");
+    Hi = getbits(data[25], 6, 7) << 8 ;
+    Lo = getbits(data[24], 7, 8);
+    rainfall   = Hi + Lo;
+    new =  getbits(data[25], 7, 1); /* rainsensor new flag */
+    err =new_ws2000db( RAINSENSOR, new, ws2000station.config.dbtype);
+    if ( err ) {
+      syslog(LOG_ALERT,"datex: sensor #9 RAINSENSOR cannot write new_flag to database");
+    }
+    err = measval_hd( "rainsensor",
+                      "rainfall",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      rainfall);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: RAINSENSOR rainfall: check configuration");
+    }
+    syslog(LOG_DEBUG,
+	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
+           "meas_value: %f new: %d\n", 
+	   (long int)dataset_date, meas_value[0], new);
+  } else {
+    syslog(LOG_DEBUG,"datex: sensor #9 RAINSENSOR not found\n");
+  }
+
+  /* sensor #10: Windsensor */
+  err =  is_ws2000sens( WINDSENSOR, ws2000station.config.dbtype);
+  if ( err != 0 )  {
+   syslog(LOG_DEBUG, "datex: sensor #10 WINDSENSOR found\n");
+
+
+    /* windspeed  raw data is km/h */
+    windspeed = 
+      100 * getbits(data[27], 6, 3) +
+      10  * getbits(data[27], 3, 4) +
+      getbits(data[26], 6, 3) +
+      0.1 * getbits(data[26], 3, 4);
+    windspeed = windspeed / 3.6; /* km/h to m/s */
+
+    err = measval_hd( "windsensor",
+                      "windspeed",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      windspeed);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: RAINSENSOR rainfall: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+     "datex: sensor #10 WINDSENSOR :\tdataset_date: %lu windspeed: %f new: %d\n", 
+     (long int)dataset_date, windspeed, new);
+
+
+    /* wind new flag */
+    new = getbits ( data[27], 7, 1);
+    err = new_ws2000db( WINDSENSOR, new, ws2000station.config.dbtype);
+    if ( err ) {
+      syslog(LOG_ALERT,"datex: sensor #10 WINDSENSOR cannot write new flag\n");
+    }
+
+
+    /* wind direction */
+    winddirection =
+      100 * getbits( data[29], 1, 2 ) +
+      10 * getbits(data[28], 7, 4 ) +
+      getbits(data[28], 3, 4 );
+
+    err = measval_hd( "windsensor",
+                      "winddirection",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      winddirection);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: WINDSENSOR winddirection: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #10 WINDSENSOR:\tdataset_date: %lu winddirection: %f\n", 
+      (long int)dataset_date, winddirection);
+
+
+    /* mean deviation of wind direction */
+    winddeviation =
+      getbits( data[29], 4, 2 );
+
+    err = measval_hd( "windsensor",
+                      "winddeviation",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      winddeviation);
+
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: WINDSENSOR winddeviation: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #10 WINDSENSOR:\tdataset_date: %lu winddeviation: %f\n", 
+      (long int)dataset_date, winddeviation);
+  } else {
+    syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
+  } 
+
+
+  /* sensor #11: Indoorsensor */
+  err = is_ws2000sens( INDOORSENSOR, ws2000station.config.dbtype);
+  if ( err != 0 )  {
+    syslog(LOG_DEBUG, "datex: sensor #11 INDOORSENSOR found\n");
+
+
+    /* barometric pressure */
+    pressure = 
+      100 *  getbits(data[30], 7, 4) +
+      10  *  getbits(data[30], 3, 4) +
+      getbits(data[29], 7, 4) + 200;
+
+    err = measval_hd( "indoorsensor",
+                      "pressure",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      pressure);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: INDOORSENSOR pressure: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu pressure: %f\n", 
+      (long int)dataset_date, pressure);
+
+
+    /* indoor temperature */
+    temperature = 
+      10  * getbits(data[32], 3, 4) + 
+      getbits(data[31], 7, 4) +
+      0.1 * getbits(data[31], 7, 4);
+
+    err = measval_hd( "indoorsensor",
+                      "temperature",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      temperature);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: INDOORSENSOR temperature: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu temperature: %f\n", 
+      (long int)dataset_date, temperature);
+
+    /* indoor humidity */
+    Lo = getbits(data[32], 7, 4);
+    Hi = getbits(data[33], 2, 3) << 4;
+    humidity = Hi + Lo;
+
+    err = measval_hd( "indoorsensor",
+                      "humidity",
+                      WS2000,
+                      ws2000station.config.dbtype,
+                      dataset_date, 
+                      humidity);
+    if ( err != 0 ) {
+      syslog(LOG_ALERT,"datexn: INDOORSENSOR humidity: check configuration");
+    }
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu humidity: %f ",
+      (long int)dataset_date, humidity);
+    syslog(LOG_DEBUG,
+      "datex: sensor #11 INDOORSENSOR: humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
+
+
+    /* indoor sensor new flag */
+    new = getbits( data[33], 3, 1);
+
+    syslog(LOG_DEBUG,
+      "datex: sensor #11 INDOORSENSOR:\tdataset_date: %lu new: %d\n",
+      (long int)dataset_date, new);
+
+    err = new_ws2000db( INDOORSENSOR, new, ws2000station.config.dbtype); 
+    if ( err) {
+      syslog(LOG_ALERT,"datex: sensor #11 INDOORSENSOR cannot write database");
+    }
+  } else {
+    syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
+  }
+
+  return(err);
+};
+
 
 /* datex 
 
@@ -1282,8 +1643,8 @@ wcmd ( ) {
     /* fill data structure sens */
     else {
       /* get one dataset */
-      err = datex(data, ndat);
-      syslog(LOG_DEBUG, "wcmd : returncode datex : %d\n", err);
+      err = datexn(data, ndat);
+      syslog(LOG_DEBUG, "wcmd : returncode datexn: %d\n", err);
       ws2000station.status.ndats = ws2000station.status.ndats + 1;
     }
     syslog(LOG_INFO, "wcmd: data available");
@@ -1444,7 +1805,7 @@ wcmd ( ) {
       }
       /* do extraction */
       else {
-	if ( ( err = datex(data, ndat)) == -1) {
+	if ( ( err = datexn(data, ndat)) == -1) {
 	  syslog(LOG_CRIT, "wcmd: error extracting data frame");
 	  return(err);
 	}
