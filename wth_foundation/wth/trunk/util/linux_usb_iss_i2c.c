@@ -1,18 +1,20 @@
 /*
-  USB-ISS test application for Linux.
+  USB-ISS test application for use of HH10D humdity sensor in Linux.
 
   Sets USB-ISS into I2C mode 
   Reading Version
   Reading SerialNumber
+  Reading Coefficients
+  - Sensitivity
+  - Offset
 
   Compiled using  gcc, tested on 
   - Ubuntu 10.4 LTS
+  - Ubuntu 12.04.1 LTS
   - OpenSUSE 11.4 x86_64
 
   Compile command
   gcc -Wall -o linux_usb_iss_i2c linux_usb_iss_i2c.c 
-
-  James Henderson, 2012.                            
 
   technical documentation 
   http://www.robot-electronics.co.uk/htm/usb_iss_tech.htm
@@ -27,146 +29,235 @@
 #include <fcntl.h>
 #include <sys/types.h>
 
-void display_version(void);		// Read and display USB-ISS module information
-void display_serialnum(void);		// Read and display USB-ISS module serial number
-void set_i2c_mode(void);		// Set the USB-ISS into I2C mode, 100KHz clock
-void do_range(void);			// Make the SRF08 perform a ranging
-void get_range(void);			// Read the light and range data back and display to screen
-
+void display_version(void);   // Read and display USB-ISS module information
+void display_serialnum(void); // Read and display USB-ISS module serial number
+void set_i2c_mode(void);      // Set the USB-ISS into I2C mode, 100KHz clock
+void hh10d_i2c_rd(void);      // Read HH10D I2C EEPROM
+void hh10d_freq_rd(void);     // Read HH10D frequency
+void do_range(void);          // Make the SRF08 perform a ranging
+void get_range(void);         /* Read the light and range data back and 
+                                 display to screen */
 int fd;
-unsigned char sbuf[20];			// serial buffer for r/w
-unsigned char error = 0x00;		// Byte used to indicate errors
+unsigned char sbuf[20];      // serial buffer for r/w
+unsigned char error = 0x00;  // Byte used to indicate errors
 
 int main(int argc, char *argv[])
 {
-	printf("******************************\n");
-	printf("USB ISS linux test application\n");
-	printf("By James Henderson, 2012\n");	
-	printf("******************************\n");
 
-	if(argc != 1)
-		printf("** Incorrect input! **\n\n");
-	else
-	{
-		struct termios defaults;							// to store innitial default port settings
-		struct termios config;								// These will be our new settings
-		const char *device = "/dev/ttyACM0";
-		fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
-		if(fd == -1) {
-  			printf( "failed to open port\n" );
-		} else {
-			if (tcgetattr(fd, &defaults) < 0) perror("tcgetattr");  		// Grab snapshot of current settings  for port
-			cfmakeraw(&config);							// make options for raw data
-			if (tcsetattr(fd, TCSANOW, &config) < 0) perror("tcsetattr config");   	// Set options for port
+  if(argc != 1)
+    printf("** Incorrect input! **\n\n");
+  else {
+    struct termios defaults; // to store innitial default port settings
+    struct termios config;   // These will be our new settings
+    const char *device = "/dev/ttyACM0";
+    fd = open(device, O_RDWR | O_NOCTTY | O_NDELAY);
+    if(fd == -1) {
+      printf( "failed to open port\n" );
+    } else {
+      if (tcgetattr(fd, &defaults) < 0) 
+        perror("tcgetattr"); // Grab snapshot of current settings  for port
+      cfmakeraw(&config);  // make options for raw data
+      if (tcsetattr(fd, TCSANOW, &config) < 0)
+        perror("tcsetattr config"); // Set options for port
 		
-	 		display_version();
-                        display_serialnum();
-			set_i2c_mode();
+      display_version();
+      display_serialnum();
+      set_i2c_mode();
+      if(!error) hh10d_i2c_rd();
 /*
-			if(!error) do_range();
-			if(!error) get_range();
+      if(!error) do_range();
+      if(!error) get_range();
 */
 			
-			if (tcsetattr(fd, TCSANOW, &defaults) < 0) perror("tcsetattr default");	// Restore port default before closing
-		}
-		close(fd);
-	}
-	return 0;
+      if (tcsetattr(fd, TCSANOW, &defaults) < 0) 
+        perror("tcsetattr default");	// Restore port default before closing
+    }
+    close(fd);
+  }
+  return 0;
 }	
 
 void display_version(void)
 {
-	sbuf[0] = 0x5A; 						// USB_ISS byte
-	sbuf[1] = 0x01;							// Software return byte
+  sbuf[0] = 0x5A; // USB_ISS byte
+  sbuf[1] = 0x01; // Software return byte
 
-	if (write(fd, sbuf, 2) < 0) perror("display_version write");	// Write data to USB-ISS
-	if (tcdrain(fd) < 0) perror("display_version tcdrain");
-	if (read(fd, sbuf, 3) < 0) perror("display_version read");	// Read data back from USB-ISS, module ID and software version
+  if (write(fd, sbuf, 2) < 0) 
+    perror("display_version write");  // Write data to USB-ISS
+  if (tcdrain(fd) < 0)
+     perror("display_version tcdrain");
+  if (read(fd, sbuf, 3) < 0)
+     perror("display_version read");  // Read data back from USB-ISS, module ID and software version
 
-	printf("USB-ISS Module ID: %u \n", sbuf[0]);
-	printf("USB-ISS Software v: %u \n\n", sbuf[1]);
+  printf("USB-ISS Module ID: %u \n", sbuf[0]);
+  printf("USB-ISS Software v: %u \n\n", sbuf[1]);
 }
 
 void display_serialnum(void)
 {
-	sbuf[0] = 0x5A; 						// USB_ISS byte
-	sbuf[1] = 0x03;							// Serial Number Return Byte
+  sbuf[0] = 0x5A; // USB_ISS byte
+  sbuf[1] = 0x03; // Serial Number Return Byte
 
-	if (write(fd, sbuf, 2) < 0) perror("display_serialnum write");	// Write data to USB-ISS
-	if (tcdrain(fd) < 0) perror("display_serialnum tcdrain");
-	if (read(fd, sbuf, 8) < 0) perror("display_serialnum read");	// Read data back from USB-ISS, 7 Bytes Serial Number
+  if (write(fd, sbuf, 2) < 0)
+    perror("display_serialnum write");	// Write data to USB-ISS
+  if (tcdrain(fd) < 0)
+    perror("display_serialnum tcdrain");
+  if (read(fd, sbuf, 8) < 0)
+     perror("display_serialnum read");	// Read data back from USB-ISS, 7 Bytes Serial Number
 
-        /*
-	printf("USB-ISS Serial Number Byte #1: %c \n", sbuf[0]);
-	printf("USB-ISS Serial Number Byte #2: %c \n", sbuf[1]);
-	printf("USB-ISS Serial Number Byte #3: %c \n", sbuf[2]);
-	printf("USB-ISS Serial Number Byte #4: %c \n", sbuf[3]);
-	printf("USB-ISS Serial Number Byte #5: %c \n", sbuf[4]);
-	printf("USB-ISS Serial Number Byte #6: %c \n", sbuf[5]);
-	printf("USB-ISS Serial Number Byte #7: %c \n", sbuf[6]);
-	printf("USB-ISS Serial Number Byte #8: %c \n\n", sbuf[7]);
-        */
-        sbuf[8] = '\0';
-        printf("USB-ISS Serial Number: %s\n", sbuf);
+/*
+  printf("USB-ISS Serial Number Byte #1: %c \n", sbuf[0]);
+  printf("USB-ISS Serial Number Byte #2: %c \n", sbuf[1]);
+  printf("USB-ISS Serial Number Byte #3: %c \n", sbuf[2]);
+  printf("USB-ISS Serial Number Byte #4: %c \n", sbuf[3]);
+  printf("USB-ISS Serial Number Byte #5: %c \n", sbuf[4]);
+  printf("USB-ISS Serial Number Byte #6: %c \n", sbuf[5]);
+  printf("USB-ISS Serial Number Byte #7: %c \n", sbuf[6]);
+  printf("USB-ISS Serial Number Byte #8: %c \n\n", sbuf[7]);
+*/
+  sbuf[8] = '\0';
+  printf("USB-ISS Serial Number: %s\n", sbuf);
 }
 
 void set_i2c_mode(void)
 {
-	sbuf[0] = 0x5A;							// USB_ISS command
-	sbuf[1] = 0x02;							// Set mode
-	sbuf[2] = 0x40;							// Set mode to 100KHz I2C
-	sbuf[3] = 0x00;							// Spare pins set to output low
+  sbuf[0] = 0x5A;	// USB_ISS command
+  sbuf[1] = 0x02;	// Set mode
 
-	if (write(fd, sbuf, 4) < 0) perror("set_i2c_mode write");	// Write data to USB-ISS
-	if (tcdrain(fd) < 0) perror("set_i2c_mode tcdrain");
-	if (read(fd, sbuf, 2) < 0) perror("set_i2c_mode read");		// Read back error byte
-	if(sbuf[0] != 0xFF)						// If first returned byte is not 0xFF then an error has occured
-	{
-		printf("**set_i2c_mode: Error setting I2C mode!**\n\n");
-		error = 0xFF;						// Set error byte
-	}
+  sbuf[2] = 0x20;	// Set mode to 20kHz I2C
+  //sbuf[2] = 0x30;	// Set mode to 50kHz I2C
+  //sbuf[2] = 0x40;	// Set mode to 100kHz I2C
+  //sbuf[2] = 0x50;	// Set mode to 400kHz I2C
+
+  sbuf[3] = 0x00;	// Spare pins set to output low
+
+  if (write(fd, sbuf, 4) < 0) 
+    perror("set_i2c_mode write"); // Write data to USB-ISS
+  if (tcdrain(fd) < 0) 
+    perror("set_i2c_mode tcdrain");
+  if (read(fd, sbuf, 2) < 0) 
+    perror("set_i2c_mode read"); // Read back error byte
+  // If first returned byte is not 0xFF then an error has occured
+  if(sbuf[0] != 0xFF) {
+    printf("**set_i2c_mode: Error setting I2C mode!**\n\n");
+    error = 0xFF; // Set error byte
+  }
 }
 
 void do_range(void)
 {
-	sbuf[0] = 0x55;							// Primary USB-ISS command
-	sbuf[1] = 0xE0;							// Address of SRF08
-	sbuf[2] = 0x00;							// Command register of SRF08
-	sbuf[3] = 0x01;							// Number of data bytes to write
-	sbuf[4] = 0x51;							// Data byte (peform range, result in cm)
+  sbuf[0] = 0x55;	// Primary USB-ISS command
+  sbuf[1] = 0xE0;	// Address of SRF08
+  sbuf[2] = 0x00;	// Command register of SRF08
+  sbuf[3] = 0x01;	// Number of data bytes to write
+  sbuf[4] = 0x51;	// Data byte (peform range, result in cm)
 
-	if (write(fd, sbuf, 5) < 0) perror("do_range write");		// Write data to USB-ISS
-	if (tcdrain(fd) < 0) perror("do_range tcdrain");
-	if (read(fd, sbuf, 1) < 0) perror("do_range read");		// Read back error byte
+  if (write(fd, sbuf, 5) < 0) perror("do_range write"); // Write data to USB-ISS
+  if (tcdrain(fd) < 0) perror("do_range tcdrain");
+  if (read(fd, sbuf, 1) < 0) perror("do_range read");   // Read back error byte
 
-	if(sbuf[0] == 0x00)						// If 0x00 returned and error has occured
-	{ 
-		printf("**do_range: Error writing to I2C device!**\n\n");
-		error = 0xFF;						// set error byte
-		return;
-	}
+  if(sbuf[0] == 0x00) // If 0x00 returned and error has occured
+  { 
+    printf("**do_range: Error writing to I2C device!**\n\n");
+    error = 0xFF; // set error byte
+    return;
+  }
 
-	printf("Performing ranging\n");
-	usleep(750000);							// Wait for ranging to finish
+  printf("Performing ranging\n");
+  usleep(750000); // Wait for ranging to finish
 }
 
 void get_range(void)
 {
-int range, light;
+  int range, light;
 
-	sbuf[0] = 0x55;							// Primary USB-ISS command
-	sbuf[1] = 0xE1;							// Address of SRF08 with R/W bit high
-	sbuf[2] = 0x01;							// Internal register of SRF08 to read from
-	sbuf[3] = 0x03;							// Number of bytes we wish to read
+  sbuf[0] = 0x55; // Primary USB-ISS command
+  sbuf[1] = 0xE1; // Address of SRF08 with R/W bit high
+  sbuf[2] = 0x01; // Internal register of SRF08 to read from
+  sbuf[3] = 0x03; // Number of bytes we wish to read
 
-	if (write(fd, sbuf, 4) < 0) perror("do_range write");		// Write data to USB-ISS
-	if (tcdrain(fd) < 0) perror("do_range tcdrain");
-	if (read(fd, sbuf, 3) < 0) perror("do_range read");		// Read back error byte
+  if (write(fd, sbuf, 4) < 0)
+    perror("do_range write"); // Write data to USB-ISS
+  if (tcdrain(fd) < 0)
+    perror("do_range tcdrain");
+  if (read(fd, sbuf, 3) < 0)
+    perror("do_range read"); // Read back error byte
 
-	light = sbuf[0];
-	printf("\nLight reading: 0x%X\n",light);
-	range = (sbuf[1] << 8) + sbuf[2];				// Calculate range
-	printf("Range = %ucm\n\n",range);
+  light = sbuf[0];
+  printf("\nLight reading: 0x%X\n",light);
+  range = (sbuf[1] << 8) + sbuf[2]; // Calculate range
+  printf("Range = %ucm\n\n",range);
+}
+
+void hh10d_i2c_rd(void)
+{
+  int sensmsb = 0x0;
+  int senslsb = 0x0;
+  int offmsb  = 0x0;
+  int offlsb  = 0x0; 
+
+/*
+  sbuf[0] = 0x55; // primary USB-ISS command
+  sbuf[1] = 0xA4; // address of HH10D 0xA3 + 1 with R/W bit high
+  sbuf[2] = 0x0A; // 1st internal register of SRF08 to read from: 0x0A sens MSB
+  sbuf[3] = 0x04; // number of bytes we wish to read
+*/
+
+/*
+  sbuf[0] = 0x53; // primary USB-ISS command
+  sbuf[1] = 0xA2; // device address of HH10D: 0xA2 with R/W bit low
+  sbuf[2] = 0x0A; // 1st internal register of HH10D to read from: 0x0A sens MSB
+
+  if (write(fd, sbuf, 4) < 0)
+    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
+  if (tcdrain(fd) < 0)
+    perror("hh10d_i2c_rd tcdrain");
+*/
+
+/*
+  if (read(fd, sbuf, 1) < 0)
+    perror("hh10d_i2c_rd read");  // Read back error byte
+*/
+
+  /*
+
+  if ( sbuf[0] == 0x0 ) {
+    printf("error: returned byte: 0x%X\n", sbuf[0]);
+    return;
+  } else { 
+    printf("returned byte: 0x%X\n", sbuf[0]);
+  }
+  */
+
+/*
+  sbuf[0] = 0x55; // primary USB-ISS command
+  sbuf[1] = 0xA3; // address of HH10D 0xA3 + 1 with R/W bit high
+  sbuf[2] = 0x0A; // 1st internal register of SRF08 to read from: 0x0A sens MSB
+  sbuf[3] = 0x04; // number of bytes we wish to read
+*/
+
+  sbuf[0] = 0x56; // primary USB-ISS command
+  sbuf[1] = 0xA3; // address of HH10D 0xA3 + 1 with R/W bit high
+  sbuf[2] = 0x0D; // 1st internal register of SRF08 to read from: 0x0A sens MSB
+  sbuf[3] = 0x0A; // 1st internal register of SRF08 to read from: 0x0A sens MSB
+  sbuf[4] = 0x04; // number of bytes we wish to read
+
+  if (write(fd, sbuf, 5) < 0)
+    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
+  if (tcdrain(fd) < 0)
+    perror("hh10d_i2c_rd tcdrain");
+  if (read(fd, sbuf, 4) < 0)
+    perror("hh10d_i2c_rd read");  // Read back error byte
+
+  sensmsb = sbuf[0];
+  printf("sensmsb at 0x0A: 0x%X\n", sensmsb);
+  senslsb = sbuf[1];
+  printf("senslsb at 0x0B: 0x%X\n", senslsb);
+  offmsb  = sbuf[2];
+  printf("offmsb at 0x0B: 0x%X\n", offmsb);
+  offlsb = sbuf[3];
+  printf("offlsb at 0x0B: 0x%X\n", offlsb);
+
 }
 
 
