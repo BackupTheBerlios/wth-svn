@@ -535,29 +535,6 @@ echoconfig ( char *station) {
   return(t);
 }
 
-Sigfunc *
-signal(int signo, Sigfunc *func)
-{
-	struct sigaction act, oact;
-
-	act.sa_handler = func;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-	if (signo == SIGALRM) {
-#ifdef	SA_INTERRUPT
-		act.sa_flags |= SA_INTERRUPT;	/* SunOS 4.x */
-#endif
-	} else {
-#ifdef	SA_RESTART
-		act.sa_flags |= SA_RESTART;		/* SVR4, 44BSD */
-#endif
-	}
-	if (sigaction(signo, &act, &oact) < 0) {
-	  return(SIG_ERR);
-	}
-	return(oact.sa_handler);
-}
-/* end signal */
 
 
 /*
@@ -585,7 +562,7 @@ void
 		       &pthread_info.mutex);
   }
   pthread_mutex_unlock( &pthread_info.mutex);
-  syslog(LOG_ALERT, "signal_hd: received signal: shutting down");
+  syslog(LOG_ALERT, "signal_hd: error: received signal: shutting down");
   exit(0);
   return(NULL);
 }

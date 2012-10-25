@@ -144,7 +144,7 @@ wind_dac( unsigned char *data) {
               dataset_date,
               (float)wind_direction);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "wind_dac: failure measval_hd "
+    syslog(LOG_ALERT, "wind_dac: error: measval_hd "
            "check configuration: %s", 
            "windsensor: wind_direction");
    }
@@ -157,7 +157,7 @@ wind_dac( unsigned char *data) {
               dataset_date,
               (float)gust_windspeed);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "wind_dac: failure measval_hd "
+    syslog(LOG_ALERT, "wind_dac: error: measval_hd "
            "check configuration: %s", 
            "windsensor: gust_windspeed");
    }
@@ -169,7 +169,7 @@ wind_dac( unsigned char *data) {
               dataset_date,
               (float)average_windspeed);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "wind_dac: failure measval_hd "
+    syslog(LOG_ALERT, "wind_dac: error: measval_hd "
            "check configuration: %s", 
            "windsensor: average_windspeed");
    }
@@ -181,7 +181,7 @@ wind_dac( unsigned char *data) {
               dataset_date,
               (float)windchill);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "wind_dac: failure measval_hd "
+    syslog(LOG_ALERT, "wind_dac: error: measval_hd "
            "check configuration: %s", 
            "windsensor: windchill");
    }
@@ -338,7 +338,7 @@ rain_dac( unsigned char *data) {
               dataset_date,
               (float)current_rainrate);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "rain_dac: failure measval_hd "
+    syslog(LOG_ALERT, "rain_dac: error: measval_hd "
            "check configuration: %s", 
            "rainsensor: current_rainrate");
    }
@@ -350,7 +350,7 @@ rain_dac( unsigned char *data) {
               dataset_date,
               (float)total_rainfall);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "rain_dac: failure measval_hd "
+    syslog(LOG_ALERT, "rain_dac: error: measval_hd "
            "check configuration: %s", 
            "rainsensor: total_rainfall");
    }
@@ -362,7 +362,7 @@ rain_dac( unsigned char *data) {
               dataset_date,
               (float)yesterday_rainfall);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "rain_dac: failure measval_hd "
+    syslog(LOG_ALERT, "rain_dac: error: measval_hd "
            "check configuration: %s", 
            "rainsensor: yesterday_rainfall");
    }
@@ -450,7 +450,7 @@ thin_dac( unsigned char *data) {
               dataset_date,
               (float)temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thin_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thin_dac: error: measval_hd "
            "check configuration: %s", 
            "thin_sensor: temperature");
    }
@@ -461,7 +461,7 @@ thin_dac( unsigned char *data) {
               dataset_date,
               (float)humidity);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thin_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thin_dac: error: measval_hd "
            "check configuration: %s", 
            "thin_sensor: humidity");
    }
@@ -472,7 +472,7 @@ thin_dac( unsigned char *data) {
               dataset_date,
               (float)dew_temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thin_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thin_dac: error: measval_hd "
            "check configuration: %s", 
            "thin_sensor: dew_temperature");
    }
@@ -559,7 +559,7 @@ thout_dac( unsigned char *data) {
               dataset_date,
               (float)temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thout_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thout_dac: error: measval_hd "
            "check configuration: %s", 
            "thout_sensor: temperature");
    }
@@ -570,7 +570,7 @@ thout_dac( unsigned char *data) {
               dataset_date,
               (float)humidity);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thout_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thout_dac: error: measval_hd "
            "check configuration: %s", 
            "thout_sensor: humidity");
    }
@@ -581,7 +581,7 @@ thout_dac( unsigned char *data) {
               dataset_date,
               (float)dew_temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thout_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thout_dac: error: measval_hd "
            "check configuration: %s", 
            "thout_sensor: dew_temperature");
    }
@@ -646,7 +646,7 @@ tin_dac( unsigned char *data) {
               dataset_date,
               (float)temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "tin_dac: failure measval_hd "
+    syslog(LOG_ALERT, "tin_dac: error: measval_hd "
            "check configuration: %s", 
            "tin_sensor: temperature");
    }
@@ -745,7 +745,7 @@ thb_dac( unsigned char *data) {
               dataset_date,
               (float)temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thb_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thb_dac: error: measval_hd "
            "check configuration: %s", 
            "thb_sensor: temperature");
    }
@@ -756,7 +756,7 @@ thb_dac( unsigned char *data) {
               dataset_date,
               (float)humidity);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thb_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thb_dac: error: measval_hd "
            "check configuration: %s", 
            "thb_sensor: humidity");
    }
@@ -767,7 +767,7 @@ thb_dac( unsigned char *data) {
               dataset_date,
               (float)dew_temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thb_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thb_dac: error: measval_hd "
            "check configuration: %s", 
            "thb_sensor: dew_temperature");
    }
@@ -778,7 +778,7 @@ thb_dac( unsigned char *data) {
               dataset_date,
               (float)pressure);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thb_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thb_dac: error: measval_hd "
            "check configuration: %s", 
            "thb_sensor: pressure");
    }
@@ -894,7 +894,7 @@ thbnew_dac( unsigned char *data) {
               dataset_date,
               (float)temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thbnew_dac: error: measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: temperature");
   }
@@ -906,7 +906,7 @@ thbnew_dac( unsigned char *data) {
               dataset_date,
               (float)humidity);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thbnew_dac: error: measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: humidity");
   }
@@ -918,7 +918,7 @@ thbnew_dac( unsigned char *data) {
               dataset_date,
               (float)dew_temperature);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thbnew_dac: error: measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: dew_temperature");
   }
@@ -930,7 +930,7 @@ thbnew_dac( unsigned char *data) {
               dataset_date,
               (float)pressure);
   if ( err != 0 )  {
-    syslog(LOG_ALERT, "thbnew_dac: failure measval_hd "
+    syslog(LOG_ALERT, "thbnew_dac: error: measval_hd "
            "check configuration: %s", 
            "thbnew_sensor: pressure");
   }
@@ -1241,19 +1241,19 @@ getschar (int fd, unsigned char *schar)
 
   if ( err < 0 ) {
     if ( errno == EBADF ) 
-      syslog(LOG_ALERT,"getschar: select error: EBADF");
+      syslog(LOG_ALERT,"getschar: error: select: EBADF");
     else if ( errno == EINTR ) 
-      syslog(LOG_ALERT,"getschar: select error: EINTR");
+      syslog(LOG_ALERT,"getschar: error: select: EINTR");
     else if ( errno == EINVAL ) 
-      syslog(LOG_ALERT,"getschar: select error: EINVAL");
+      syslog(LOG_ALERT,"getschar: error: select: EINVAL");
     else
-      syslog(LOG_ALERT,"getschar: select error");
+      syslog(LOG_ALERT,"getschar: error: select");
   }
 
   if ( err && FD_ISSET (fd, &readfs)) {
 
     if ((err = read (fd, &rbyte, 1)) < 0)  { 
-      syslog (LOG_ALERT,"getschar: reading device failed \n");
+      syslog (LOG_ALERT,"getschar: error: reading device failed \n");
       return (err);
     }
     else if (err == 1) {
@@ -1290,11 +1290,11 @@ checksum ( unsigned char *data, int ndat) {
     checksum = checksum + data[i];
  
   if ( checksum != data [ndat-1] ) {
-    syslog(LOG_ALERT,"checksum error: in record: %x calculated: %x", 
+    syslog(LOG_ALERT,"checksum: error: in record: %x calculated: %x", 
       checksum, data[ndat-1]); 
     err = 1;
   } 
-  syslog(LOG_DEBUG, "checksum calculated: %x", checksum);
+  syslog(LOG_DEBUG, "checksum: calculated: %x", checksum);
   syslog(LOG_DEBUG, "checksum: last data byte: %x", data[ndat-1]);
   return(err);
 }
@@ -1374,7 +1374,7 @@ wmr9x8rd( int rfd) {
     
     err = resetwmr9x8( rfd);
     if ( err == 1) {
-      syslog(LOG_ALERT, "wmr9x8rd: reset serial port failure");
+      syslog(LOG_ALERT, "wmr9x8rd: error: reset serial port failure");
     }
     err = getschar( rfd, &schr);
     if ( err == 1) {
@@ -1482,7 +1482,7 @@ wmr9x8rd( int rfd) {
 	}
 	ndat = THBNEWLEN;
       } else {
-	syslog(LOG_ALERT, "wmr9x8rd: UNKNOWN devicetyp");
+	syslog(LOG_ALERT, "wmr9x8rd: error: UNKNOWN devicetyp");
 
       }
       syslog(LOG_DEBUG, "wmr9x8rd: data record\n");
@@ -1519,7 +1519,7 @@ wmr9x8_hd( void *arg) {
     case SQLITE:
       syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
       if ( ( err = sqlite3_open( wmr9x8station.config.sqlite_dbfile, &wmr9x8db))) {
-        syslog(LOG_ALERT, "wmr9x8_hd: Failed to open database %s. Error: %s\n", 
+        syslog(LOG_ALERT, "wmr9x8_hd: error: Failed to open database %s. Error: %s\n", 
           wmr9x8station.config.sqlite_dbfile, sqlite3_errmsg(wmr9x8db));
         return( ( void *) &failure);
       }
@@ -1531,7 +1531,7 @@ wmr9x8_hd( void *arg) {
       syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is MYSQL\n");
       break;
     default:
-      syslog(LOG_ALERT, "wmr9x8_hd: unknown dbtype\n");
+      syslog(LOG_ALERT, "wmr9x8_hd: error: unknown dbtype\n");
       return( ( void *) &failure);
   }
 
@@ -1555,7 +1555,7 @@ wmr9x8_hd( void *arg) {
       syslog(LOG_DEBUG, "wmr9x8_hd: dbtype is SQLITE\n");
       break;
     default:
-      syslog(LOG_ALERT, "wmr9x8_hd: unknown dbtype\n");
+      syslog(LOG_ALERT, "wmr9x8_hd: error: unknown dbtype\n");
       return( ( void *) &failure);
   }
 

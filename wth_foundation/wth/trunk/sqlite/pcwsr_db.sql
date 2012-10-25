@@ -64,15 +64,15 @@ sensorparameters
 --
 -- insert table values which do not change
 -- table parameternames
-INSERT INTO parameternames VALUES ('1','Temperature','°C');
-INSERT INTO parameternames VALUES ('2','Relative Humidity','%');
-INSERT INTO parameternames VALUES ('3','Precipitation','mm/m²');
-INSERT INTO parameternames VALUES ('4','Windspeed','m/s');
-INSERT INTO parameternames VALUES ('5','Winddir. Variation','°');
+INSERT INTO parameternames VALUES ('1','temperature','°C');
+INSERT INTO parameternames VALUES ('2','humidity','%');
+INSERT INTO parameternames VALUES ('3','rainfall','mm/m²');
+INSERT INTO parameternames VALUES ('4','windspeed','m/s');
+INSERT INTO parameternames VALUES ('5','winddeviation','°');
 INSERT INTO parameternames VALUES ('6','Winddirection','°') ;
-INSERT INTO parameternames VALUES ('7','Pressure','hPa') ;
-INSERT INTO parameternames VALUES ('8','Brightness','klx');
-INSERT INTO parameternames VALUES ('9','RadiationPower','arb.unit') ;
+INSERT INTO parameternames VALUES ('7','pressure','hPa') ;
+INSERT INTO parameternames VALUES ('8','brightness','klx');
+INSERT INTO parameternames VALUES ('9','radiationpower','arb.unit') ;
 
 -- table sensornames
 INSERT INTO sensornames VALUES ('0','Outdoor','0x00','V1.1') ;

@@ -23,6 +23,7 @@
 
 */
 #include "wth.h"
+#include "wthsqlite.h"
 
 #define PCWSRLEN        8
 
@@ -144,8 +145,8 @@ pcwsr_hd( void *arg) {
     /* main loop to read data and write db */
     for ( ;; ) {
       buf[0] = '\0';
-      len=0;
-      nval = 0;
+      len    = 0;
+      nval   = 0;
       memset(data, 0, PCWSRLEN);
       // Data packet format: STX type W1 W2 W3 W4 W5 ETX   (8 bytes total).
       // Need to be careful, as STX and ETX might occur inside the data.
@@ -358,7 +359,7 @@ pcwsr_hd( void *arg) {
       printf( "pcwsrstation.status.is_present: %d\n",
         pcwsrstation.status.is_present); 
 
-      /* database and rrd handling */
+      /* database handling */
       for ( i = 0; i < nval; i++) 
       {
         sqlite_datadb( dataset_date, sensor_meas_no[i], 

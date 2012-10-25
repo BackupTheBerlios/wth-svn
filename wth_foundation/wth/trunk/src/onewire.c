@@ -162,7 +162,7 @@ ds2438mem_rd( int portnum,
      lastcrc8 = docrc8(portnum,pagemem[i]);
    }
    if(lastcrc8 != 0x00) {
-     syslog(LOG_ALERT, "ds2438mem_rd: CRC error ");
+     syslog(LOG_ALERT, "ds2438mem_rd: error: CRC error ");
      bitprint( lastcrc8, "lastcrc8");
      return 1;
    }
@@ -500,7 +500,7 @@ float ReadVsens(int portnum, int vsens, uchar *SNum, char *device)
   struct timeval  tv; 
 
   if ( SetupVsens( portnum, SNum, device) == FALSE) {
-    syslog(LOG_ALERT,"Setup DS2438 to read Vsens failed!\n");
+    syslog(LOG_ALERT,"ReadVsens: error: setup DS2438 to read Vsens failed!\n");
     return 0.0;
   }
 
@@ -566,7 +566,7 @@ onewire_hd( void *arg)
   if((portnum = owAcquireEx(port)) < 0) {
     onewirestation.status.is_present = -1;
     OWERROR_DUMP(stdout);
-    syslog(LOG_ALERT,"onewire_hd: owAcquireEx error");
+    syslog(LOG_ALERT,"onewire_hd: error: owAcquireEx");
     return( ( void *) &failure);
   }
   onewirestation.status.is_present = 1;
@@ -574,7 +574,7 @@ onewire_hd( void *arg)
 
   if ( onewirestation.config.dbtype == SQLITE) {
     if ( ( err = sqlite3_open( onewirestation.config.sqlite_dbfile, &onewiredb))) {
-      syslog(LOG_ALERT, "onewire_hd: Failed to open database %s.",
+      syslog(LOG_ALERT, "onewire_hd: error: failed to open database %s.",
         onewirestation.config.sqlite_dbfile);
       return( ( void *) &failure);
     }
@@ -582,13 +582,13 @@ onewire_hd( void *arg)
     pg_conn = PQconnectdb( onewirestation.config.dbconn);
     if (PQstatus(pg_conn) != CONNECTION_OK)
     {
-        syslog(LOG_ALERT, "onewire_hd: connection to database failed: %s",
+        syslog(LOG_ALERT, "onewire_hd: error: connection to database failed: %s",
                 PQerrorMessage(pg_conn));
         PQfinish(pg_conn);
         return( ( void *) &failure);
     }
   } else {
-    syslog(LOG_ALERT, "onewire_hd: no database type defined");
+    syslog(LOG_ALERT, "onewire_hd: error: no database type defined");
     return( ( void *) &failure);
   }
 
@@ -639,7 +639,7 @@ onewire_hd( void *arg)
                       vsens);
  
           if ( err != 0 )  {
-	    syslog(LOG_ALERT, "onewire_hd: vsens: failure measval_hd "
+	    syslog(LOG_ALERT, "onewire_hd: error: vsens: failure measval_hd "
               "check configuration: %s", 
               echo_serialnum(serialnum));
           }
@@ -657,7 +657,7 @@ onewire_hd( void *arg)
                       vad);
  
           if ( err != 0 )  {
-	    syslog(LOG_ALERT, "onewire_hd: vad: failure measval_hd "
+	    syslog(LOG_ALERT, "onewire_hd: error: vad: failure measval_hd "
               "check database setup of serialnum: %s", 
               echo_serialnum(serialnum));
           }
@@ -675,7 +675,7 @@ onewire_hd( void *arg)
                       vdd);
  
           if ( err != 0 )  {
-	    syslog(LOG_ALERT, "onewire_hd: vdd: failure measval_hd "
+	    syslog(LOG_ALERT, "onewire_hd: error: vdd: failure measval_hd "
               "check database setup of serialnum: %s", 
               echo_serialnum(serialnum));
           }
@@ -691,7 +691,7 @@ onewire_hd( void *arg)
                       temp2438);
  
           if ( err != 0 )  {
-	    syslog(LOG_ALERT, "onewire_hd: temp2438: failure measval_hd "
+	    syslog(LOG_ALERT, "onewire_hd: error: temp2438: failure measval_hd "
               "check database setup of serialnum: %s", 
               echo_serialnum(serialnum));
           }
@@ -721,12 +721,12 @@ onewire_hd( void *arg)
  
               if ( err != 0 )  {
 	        syslog(LOG_ALERT,
-                  "onewire_hd: humid2438: failure measval_hd "
+                  "onewire_hd: error: humid2438: failure measval_hd "
                   "check database setup of serialnum: %s", 
                   echo_serialnum(serialnum));
               }
             } else {
-              syslog(LOG_ALERT,"onewire_hd: humidity : "
+              syslog(LOG_ALERT,"onewire_hd: error: humidity : "
                 "negative value of VAD or VDD: skipping!");
             }
           } else {
@@ -758,12 +758,12 @@ onewire_hd( void *arg)
  
               if ( err != 0 )  {
 	        syslog(LOG_ALERT, 
-                  "onewire_hd: press2438: failure measval_hd "
+                  "onewire_hd: error: press2438: failure measval_hd "
                   "check database setup of serialnum: %s", 
                   echo_serialnum(serialnum));
               }
             } else {
-              syslog(LOG_ALERT,"onewire_hd: pressure: negative value "
+              syslog(LOG_ALERT,"onewire_hd: error: pressure: negative value "
                 "of VAD or VDD: skipping!");
             }
           } else {
@@ -787,7 +787,7 @@ onewire_hd( void *arg)
 	      mtime, echo_serialnum(serialnum),temp10); 
           } else {
             syslog(LOG_ALERT, 
-	      "onewire_hd: %f DS1820/DS1920 serialnum: %s "
+	      "onewire_hd: error: time: %f DS1820/DS1920 serialnum: %s "
               "Temperature conversion error", 
 	      mtime, echo_serialnum( serialnum)); 
           }
@@ -800,7 +800,7 @@ onewire_hd( void *arg)
         "onewire_hd: number of 1-wire devices detected: %d", numsens);
       if ( currsens != numsens) {
         syslog(LOG_ALERT, 
-          "onewire_hd: number of 1-Wire devices changed from %d to %d", 
+          "onewire_hd: warning: number of 1-Wire devices changed from %d to %d", 
           currsens, numsens);  
       }
       currsens = numsens;

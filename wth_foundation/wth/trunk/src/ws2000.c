@@ -103,7 +103,6 @@ int closeserial( int fd, struct termios *oldtio) {
   readdata
 
   reading data from serial port
-  signal SIGIO is sent by the weather station when data are available
   huh - the weather station sends its data frame in 
         chunks of several bytes   
 
@@ -472,7 +471,7 @@ int getrd ( unsigned char *data, int *mdat) {
     int fd;                        /* filedescriptor serial port */
     static char lword[6];          /* temporary array to hold commandword */
     struct termios newtio,oldtio;  /* termios structures to set 
-                                       comm parameters */
+                                      comm parameters */
 
     memset( lword, 0, 5);
     /* initialize serial port */    
@@ -482,10 +481,10 @@ int getrd ( unsigned char *data, int *mdat) {
     /* read ETX from serial port
  
     when the weather station is activated by setting DTR it answers
-    with an ETX char to signalize it's OK 
+    with an ETX char as OK response
     */
     if ( readdata(fd, data, mdat) == -1 ) {
-      syslog(LOG_ALERT, "getsrd: readdata problem\n");
+      syslog(LOG_ALERT, "getsrd: error: readdata problem\n");
       closeserial(fd, &oldtio);
       return(-1);
     }
@@ -996,7 +995,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR1, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR1 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR1 new flag configuration problem");
     }
     err = measval_hd( "sensor1",
                       "temperature",
@@ -1005,7 +1004,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR1 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR1 temperature : check configuration");
     }
     err = measval_hd( "sensor1",
                       "humidity",
@@ -1014,7 +1013,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR1 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR1 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR1 temperature/humidity not found");
@@ -1035,7 +1034,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR2, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR2 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR2 new flag configuration problem");
     }
     err = measval_hd( "sensor2",
                       "temperature",
@@ -1044,7 +1043,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR2 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR2 temperature : check configuration");
     }
     err = measval_hd( "sensor2",
                       "humidity",
@@ -1053,7 +1052,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR2 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR2 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR2 temperature/humidity not found");
@@ -1074,7 +1073,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR3, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR3 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR3 new flag configuration problem");
     }
     err = measval_hd( "sensor3",
                       "temperature",
@@ -1083,7 +1082,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR3 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR3 temperature : check configuration");
     }
     err = measval_hd( "sensor3",
                       "humidity",
@@ -1092,7 +1091,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR3 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR3 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR3 temperature/humidity not found");
@@ -1112,7 +1111,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR4, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR4 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR4 new flag configuration problem");
     }
     err = measval_hd( "sensor4",
                       "temperature",
@@ -1121,7 +1120,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR4 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR4 temperature : check configuration");
     }
     err = measval_hd( "sensor4",
                       "humidity",
@@ -1130,7 +1129,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR4 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR4 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR4 temperature/humidity not found");
@@ -1150,7 +1149,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR5, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR5 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR5 new flag configuration problem");
     }
     err = measval_hd( "sensor5",
                       "temperature",
@@ -1159,7 +1158,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR5 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR5 temperature : check configuration");
     }
     err = measval_hd( "sensor5",
                       "humidity",
@@ -1168,7 +1167,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR5 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR5 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR5 temperature/humidity not found");
@@ -1188,7 +1187,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR6, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR6 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR6 new flag configuration problem");
     }
     err = measval_hd( "sensor6",
                       "temperature",
@@ -1197,7 +1196,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR6 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR6 temperature : check configuration");
     }
     err = measval_hd( "sensor6",
                       "humidity",
@@ -1206,7 +1205,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR6 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR6 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR6 temperature/humidity not found");
@@ -1226,7 +1225,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR7, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR7 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR7 new flag configuration problem");
     }
     err = measval_hd( "sensor7",
                       "temperature",
@@ -1235,7 +1234,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR7 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR7 temperature : check configuration");
     }
     err = measval_hd( "sensor7",
                       "humidity",
@@ -1244,7 +1243,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR7 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR7 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR7 temperature/humidity not found");
@@ -1264,7 +1263,7 @@ datexn ( unsigned char *data, int ndat) {
       ws2000mval.new);
     err = new_ws2000db( SENSOR8, ws2000mval.new, ws2000station.config.dbtype);
     if ( err) {
-      syslog(LOG_ALERT,"datexn: SENSOR8 new flag configuration problem");
+      syslog(LOG_ALERT,"datexn: error: SENSOR8 new flag configuration problem");
     }
     err = measval_hd( "sensor8",
                       "temperature",
@@ -1273,7 +1272,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR8 temperature : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR8 temperature : check configuration");
     }
     err = measval_hd( "sensor8",
                       "humidity",
@@ -1282,7 +1281,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       ws2000mval.humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: SENSOR8 humidity : check configuration");
+      syslog(LOG_ALERT,"datexn: error: SENSOR8 humidity : check configuration");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: SENSOR8 temperature/humidity not found");
@@ -1298,7 +1297,7 @@ datexn ( unsigned char *data, int ndat) {
     new =  getbits(data[25], 7, 1); /* rainsensor new flag */
     err =new_ws2000db( RAINSENSOR, new, ws2000station.config.dbtype);
     if ( err ) {
-      syslog(LOG_ALERT,"datexn: sensor #9 RAINSENSOR cannot write new_flag to database");
+      syslog(LOG_ALERT,"datexn: error: sensor #9 RAINSENSOR new flag configuration problem");
     }
     err = measval_hd( "rainsensor",
                       "rainfall",
@@ -1307,7 +1306,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       rainfall);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: RAINSENSOR rainfall: check configuration");
+      syslog(LOG_ALERT,"datexn: error: RAINSENSOR rainfall: check configuration");
     }
     syslog(LOG_DEBUG,
 	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
@@ -1338,7 +1337,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       windspeed);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: RAINSENSOR rainfall: check configuration");
+      syslog(LOG_ALERT,"datexn: error: RAINSENSOR rainfall: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1350,7 +1349,7 @@ datexn ( unsigned char *data, int ndat) {
     new = getbits ( data[27], 7, 1);
     err = new_ws2000db( WINDSENSOR, new, ws2000station.config.dbtype);
     if ( err ) {
-      syslog(LOG_ALERT,"datexn: sensor #10 WINDSENSOR cannot write new flag\n");
+      syslog(LOG_ALERT,"datexn: error: sensor #10 WINDSENSOR cannot write new flag\n");
     }
 
 
@@ -1367,7 +1366,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       winddirection);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: WINDSENSOR winddirection: check configuration");
+      syslog(LOG_ALERT,"datexn: error: WINDSENSOR winddirection: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1387,7 +1386,7 @@ datexn ( unsigned char *data, int ndat) {
                       winddeviation);
 
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: WINDSENSOR winddeviation: check configuration");
+      syslog(LOG_ALERT,"datexn: error: WINDSENSOR winddeviation: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1417,7 +1416,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       pressure);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: INDOORSENSOR pressure: check configuration");
+      syslog(LOG_ALERT,"datexn: error: INDOORSENSOR pressure: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1438,7 +1437,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       temperature);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: INDOORSENSOR temperature: check configuration");
+      syslog(LOG_ALERT,"datexn: error: INDOORSENSOR temperature: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1457,7 +1456,7 @@ datexn ( unsigned char *data, int ndat) {
                       dataset_date, 
                       humidity);
     if ( err != 0 ) {
-      syslog(LOG_ALERT,"datexn: INDOORSENSOR humidity: check configuration");
+      syslog(LOG_ALERT,"datexn: error: INDOORSENSOR humidity: check configuration");
     }
 
     syslog(LOG_DEBUG,
@@ -1476,7 +1475,7 @@ datexn ( unsigned char *data, int ndat) {
 
     err = new_ws2000db( INDOORSENSOR, new, ws2000station.config.dbtype); 
     if ( err) {
-      syslog(LOG_ALERT,"datexn: sensor #11 INDOORSENSOR cannot write database");
+      syslog(LOG_ALERT,"datexn: error: sensor #11 INDOORSENSOR cannot write database");
     }
   } else {
     syslog(LOG_DEBUG,"datexn: sensor #11 indoorsensor not found\n");
@@ -1485,296 +1484,6 @@ datexn ( unsigned char *data, int ndat) {
   return(err);
 };
 
-
-/* datex 
-
-   data extraction
-   stores the message datagram of the weather station to structure sens
-
-*/
-int 
-datex ( unsigned char *data, int ndat) {
-  int i, j, err, mbit, nbit, nval, sensor_no, sensor_meas_no[3];
-  int Hi, Lo, new;
-  time_t dataset_date;
-  long age;
-  char *clk;
-  char tstrg[TBUFF+1];
-  float meas_value[3];
-	
-  syslog(LOG_DEBUG, "datex : ndat in datex : %d\n", ndat);
-
-  /* block number */
-  syslog(LOG_DEBUG, "datex : block NO (byte 1) : %d\n", data[0]);
-  syslog(LOG_DEBUG, "datex : block NO (byte 2) : %d\n", data[1]);
-
-  /* age of dataset is stored as minutes up to current time */
-  syslog(LOG_DEBUG, "datex : age (byte 1) : %d\n", data[2]);
-  syslog(LOG_DEBUG, "datex : age (byte 2) : %d\n", data[3]);
-  age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
-
-
-  /* time of dataset
-     if DCF synchronized use time delivered by weatherstation
-     if not, use localtime
-  */
-  if ( ws2000station.status.DCFtime != -1 ) {
-    dataset_date = ws2000station.status.DCFtime;
-  }
-  else { 
-    syslog(LOG_INFO,
-	   "datex : DCF not synchronized, using localtime for dataset\n");
-    err = time(&dataset_date);
-    syslog(LOG_DEBUG, 
-	   "datex : present time: %lu (seconds since EPOCH)\n", 
-           (long int)dataset_date);
-  }
-  
-  /* dataset time is echoed in EPOCH seconds, dataset age in minutes
-     up to present time
-  */
-  dataset_date = ( dataset_date/60 - age) * 60;
-  clk  = ctime(&dataset_date);
-  snprintf(tstrg,MAXMSGLEN, "%lu", (long)dataset_date);
-
-  syslog(LOG_DEBUG, "datex : ws2000station.status.ndats : %d\n",
-	 ws2000station.status.ndats);
-  syslog(LOG_DEBUG, "datex : measured at : %lu (seconds since EPOCH)\n",
-	 (long int)dataset_date);
-  syslog(LOG_DEBUG, "datex : measured at : %s\n", clk);
-  syslog(LOG_DEBUG, "datex : units : %s\n", wsconf.units);
-
-  nval = 0;
-  new  = 0;
-  /* get data of the first 8 temperature/humidity sensors */
-  for ( i = 1; i <= 8; i++) {
-    err = is_ws2000sens( i, ws2000station.config.dbtype);
-    if ( err != 0 )  {
-      nval = 2;
-      sensor_no = i;
-      syslog(LOG_DEBUG, "datex: sensor #%d temperature/humidity found\n", i);
-
-      j = (i-1) % 2;
-      /* even i */
-      if ( ((i-1) % 2) == 0 ) {
-	mbit=3; nbit=7;
-	j = (5*(i-1) - j)/2 + 4;
-
-	/* temperature */ 
-	meas_value[0] =  
-	  10 * getbits(data[j+1], mbit-1, 3) + getbits(data[j], nbit, 4) +
-	  0.1* getbits(data[j], mbit, 4);
-	if ( getbits(data[j+1], mbit, 1) == 1 ) {  
-	  meas_value[0] = -meas_value[0]; 
-	}
-
-	/* humidity 
-	   the value is calculated from an 8bit Byte which is formed
-	   by two Nibbles    
-	*/
-	Lo = getbits(data[j+1], nbit, 4);
-	Hi = getbits(data[j+2], mbit-1, 3) << 4;
-	meas_value[1] = Hi + Lo;
-
-	/* bit 3 of Hi nibble is new flag */
-        new = getbits(data[j+2], mbit, 1);
-
-        syslog(LOG_DEBUG, "datex: sensor #%d humidity: Hi: %x(h) Lo: %x(h)\n", 
-	       i, Hi, Lo);
-      } /* odd i */ else if ( ((i-1) % 2) == 1) {
-	mbit=7; nbit=3;
-	j = (5*(i-1) - j)/2 + 4;
-
-	/* temperature */
-	meas_value[0] =
-	  10  * getbits(data[j+1], mbit-1, 3) + getbits(data[j+1], nbit, 4) +
-	  0.1 * getbits(data[j], mbit, 4);
-	if (  getbits(data[j+1], mbit, 1) == 1) {
-	  meas_value[0] = - meas_value[0];
-	}
-	/* humidity 
-	   the value is calculated from an 8bit Byte which is formed
-	   by two Nibbles    
-	*/
-	Lo = getbits(data[j+2], nbit, 4);
-	Hi = getbits(data[j+2], mbit-1, 3) << 4;
-	meas_value[1] = Hi + Lo;
-	/* Bit 3 of Hi Nibble is new flag */
-	new =
-	  getbits(data[j+2], mbit, 1);
-      }
-      /* temperature */
-      sensor_meas_no[0] = 2*i - 1;
-      syslog(LOG_DEBUG,
-        "datex: sensor #%d temperature:\tdataset_date: %lu "
-        "meas_value: %f sensor_meas_no: %d\n", 
-        i, (long int)dataset_date, meas_value[0], sensor_meas_no[0]);
-      /* humidity */
-      sensor_meas_no[1] = 2*i;
-      syslog(LOG_DEBUG,
-        "datex: sensor #%d humidity:\t\tdataset_date: %lu meas_value: %f"
-        "sensor_meas_no: %d new flag: %d\n",
-        i, (long int)dataset_date, meas_value[1], sensor_meas_no[1], new);
-
-      err = new_ws2000db( i, new, ws2000station.config.dbtype);
-      if ( err) {
-        syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-      }
-      if ( ws2000station.config.dbtype == SQLITE) {
-        err = sqlite_writedb( sensor_no, nval, sensor_meas_no, 
-                       dataset_date, meas_value, ws2000db);
-      } else { err = 1; }
-      if ( err != 0 ) {
-        syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-      }
-    } else {
-      syslog(LOG_DEBUG,"datex: sensor #%d temperature/humidity not found\n", i);
-    }
-  }
-
-  /* Sensor #9: Rainsensor */
-  err = is_ws2000sens( 9, ws2000station.config.dbtype);
-  if ( err != 0 )  {
-    nval = 1;
-    sensor_no = 9;
-    syslog(LOG_DEBUG, "datex: sensor #9 rain found\n");
-    Hi = getbits(data[25], 6, 7) << 8 ;
-    Lo = getbits(data[24], 7, 8);
-    meas_value[0]   = Hi + Lo;
-    sensor_meas_no[0] = 17;
-    new =  getbits(data[25], 7, 1); /* rainsensor new flag */
-    err =new_ws2000db( 9, new, ws2000station.config.dbtype);
-    if ( err ) {
-      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write new_flag to database");
-    }
-    if ( ws2000station.config.dbtype == SQLITE) {
-      err = sqlite_writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
-                     meas_value, ws2000db);
-    } else { err = 1; }
-    if ( err != 0 ) {
-      syslog(LOG_ALERT,"datex: sensor #9 rainsensor cannot write database\n");
-    }
-    syslog(LOG_DEBUG,
-	   "datex: sensor #9 rain:\t\tdataset_date: %lu "
-           "meas_value: %f new: %d\n", 
-	   (long int)dataset_date, meas_value[0], new);
-  } else {
-    syslog(LOG_DEBUG,"datex: sensor #9 rain not found\n");
-  }
-
-  /* sensor #10: Windsensor */
-  err =  is_ws2000sens( 10, ws2000station.config.dbtype);
-  if ( err != 0 )  {
-    nval = 3;
-    sensor_no = 10;
-    syslog(LOG_DEBUG, "datex: sensor #10 wind found\n");
-    /* windspeed  raw data is km/h */
-    meas_value[0] = 
-      100 * getbits(data[27], 6, 3) +
-      10  * getbits(data[27], 3, 4) +
-      getbits(data[26], 6, 3) +
-      0.1 * getbits(data[26], 3, 4);
-    meas_value[0] = meas_value[0] / 3.6; /* km/h to m/s */
-    sensor_meas_no[0] = 18;
-
-    /* wind new flag */
-    new = getbits ( data[27], 7, 1);
-    err = new_ws2000db( 10, new, ws2000station.config.dbtype);
-    if ( err ) {
-      syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
-    }
-    syslog(LOG_DEBUG,
-     "datex: sensor #10 wind speed:\tdataset_date: %lu meas_value: %f new: %d\n", 
-     (long int)dataset_date, meas_value[0], new);
-
-    /* wind direction */
-    meas_value[1] =
-      100 * getbits( data[29], 1, 2 ) +
-      10 * getbits(data[28], 7, 4 ) +
-      getbits(data[28], 3, 4 );
-    sensor_meas_no[1] = 20;
-
-    syslog(LOG_DEBUG,
-      "datex: sensor #10 wind direction:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[1]);
-
-    /* mean deviation of wind direction */
-    meas_value[2] =
-      getbits( data[29], 4, 2 );
-    sensor_meas_no[2] = 19;
-
-    syslog(LOG_DEBUG,
-      "datex: sensor #10 wind variation:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[2]);
-    if ( ws2000station.config.dbtype ==SQLITE) {
-      err = sqlite_writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
-                     meas_value, ws2000db);
-    } else { err = 1; }
-    if ( err != 0 ) {
-      syslog(LOG_ALERT,"datex: sensor #10 windsensor cannot write database\n");
-    }
-  } else {
-    syslog(LOG_DEBUG,"datex: sensor #10 windsensor not found\n");
-  } 
-
-  /* sensor #11: Indoorsensor */
-  err = is_ws2000sens( 11, ws2000station.config.dbtype);
-  if ( err != 0 )  {
-    nval = 3;
-    sensor_no = 11;
-    syslog(LOG_DEBUG, "datex: sensor #11 indoor found\n");
-
-    /* barometric pressure */
-    meas_value[0] = 
-      100 *  getbits(data[30], 7, 4) +
-      10  *  getbits(data[30], 3, 4) +
-      getbits(data[29], 7, 4) + 200;
-    syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor pressure:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[0]);
-    sensor_meas_no[0] = 21;
-
-    /* indoor temperature */
-    meas_value[1] = 
-      10  * getbits(data[32], 3, 4) + 
-      getbits(data[31], 7, 4) +
-      0.1 * getbits(data[31], 7, 4);
-    sensor_meas_no[1] = 22;
-    syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor temp.:\tdataset_date: %lu meas_value: %f\n", 
-      (long int)dataset_date, meas_value[1]);
-
-    /* indoor humidity */
-    Lo = getbits(data[32], 7, 4);
-    Hi = getbits(data[33], 2, 3) << 4;
-    meas_value[2] = Hi + Lo;
-    sensor_meas_no[2] = 23;
-
-    /* indoor sensor new flag */
-    new = getbits( data[33], 3, 1);
-    syslog(LOG_DEBUG,
-      "datex: sensor #11 indoor humidity:\tdataset_date: %lu meas_value: %f "
-      "new: %d\n", (long int)dataset_date, meas_value[2], new);
-    syslog(LOG_DEBUG,"datex: sensor #11 humidity: Hi: %x(h) Lo: %x(h)", Hi, Lo);
-
-    /* write database */
-    err = new_ws2000db( 11, new, ws2000station.config.dbtype); 
-    if ( err) {
-      syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-    }
-    if ( ws2000station.config.dbtype ==SQLITE) {
-      err = sqlite_writedb( sensor_no, nval, sensor_meas_no, dataset_date, 
-            meas_value, ws2000db);
-    } else { err =1; }
-    if ( err != 0 ) {
-      syslog(LOG_ALERT,"datex: sensor #%d cannot write database\n", i);
-    }
-  } else {
-    syslog(LOG_DEBUG,"datex: sensor #11 indoorsensor not found\n");
-  }
-
-  return(err);
-};
 
 
 /* 
@@ -2132,12 +1841,12 @@ ws2000_hd( void *arg) {
 
   if ( ws2000station.config.dbtype == SQLITE) {
     if ( ( err = sqlite3_open( ws2000station.config.sqlite_dbfile, &ws2000db))) {
-      syslog(LOG_ALERT, "ws2000_hd: Failed to open database %s.",
+      syslog(LOG_ALERT, "ws2000_hd: error: failed to open database %s.",
         ws2000station.config.sqlite_dbfile);
       return( ( void *) &failure);
     }
   } else {
-    syslog(LOG_ALERT, "ws2000_hd: no database type defined");
+    syslog(LOG_ALERT, "ws2000_hd: error: no database type defined");
     return( ( void *) &failure);
   }
 

@@ -299,16 +299,11 @@ int echodata( unsigned char *data, int mdat);
 unsigned char getbits( unsigned char x, int p, int n);
 unsigned char lownibble(unsigned char x);
 unsigned char highnibble(unsigned char x);
-/*
-char *mkmsg( const char *, ...);
-char *mkmsg2( const char *, ...);
-*/
+
 int usage (int exitcode, char *error, char *addl);
 int usaged (int exitcode, char *error, char *addl);
 int readconfig();
 char *echoconfig( char *station);
-Sigfunc *signal(int signo, Sigfunc *func);
-void *signal_hd( void *arg);
 pid_t Fork(void);
 int daemon_init(void );
 
@@ -338,65 +333,4 @@ int statval_hd( char *sensorname, char *flagname,
 int stat_ws2000db( int sensor_status[], time_t statusset_date, int dbtype);
 int new_ws2000db( int sensor_no, int new_flag, int dbtype);
 int is_ws2000sens( int sensor_no, int dbtype);
-
-/* sqlite database functions */
-/*
-int sqlite_datadb( long dataset_date, int sensor_param, float meas_value,
-  sqlite3 *pcwsrdb);
-int stat_ws2000db( int sensor_status[], time_t statusset_date, sqlite3 *ws2000db);
-int new_ws2000db( long statusset_date, int sensor_no, int new_flag, 
-      sqlite3 *ws2000db);
-int sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[], 
-      time_t dataset_date,
-      float meas_value[], sqlite3 *ws2000db );
-int sqlite_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, 
-      sqlite3 *wthdb);
-int is_ws2000sens( int sensor_no, sqlite3 *ws2000db);
-int readpar( time_t *meastim, float *measval, 
-      int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-int sqlite_maxsensmeas( sqlite3 *onewiredb);
-
-sensdevpar_t
-sqlite_get_sensorparams( char *sensorname, char*parametername,
-                         int stationtype);
-sensflag_t
-sqlite_get_sensorflags( char *sensorname, char *flagname,
-                         int stationtype);
-int sqlite_datadbn( long dataset_date, int sensor_param, 
-                    float meas_value, int stationtype);
-int sqlite_statdbn( long statusset_date, int sensorflag, 
-                    long unsigned int stat_value, int stationtype);
-
-int measval_db( char *sensorname, char *parametername, 
-      time_t dataset_date, float mval, sqlite3 *database);
-int statval_db( char *sensorname, char *statusname, 
-      time_t dataset_date, long unsigned int sval, sqlite3 *database);
-*/
-
-/* postgresql database functions */
-/*
-int pg_datadb( long dataset_date, int sensor_param, float meas_value,
-      PGconn *pg_conn);
-int pg_stat_ws2000db( int sensor_status[], time_t statusset_date, 
-      PGconn *pg_conn);
-int pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, 
-      PGconn *pg_conn);
-int pg_writedb( int sensor_no, int nval, int sensor_meas_no[], 
-      time_t dataset_date, float meas_value[], PGconn *pg_conn );
-int pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp,
-      PGconn *pg_conn);
-int pg_is_ws2000sens( int sensor_no, PGconn *pg_conn);
-int pg_readpar( time_t *meastim, float *measval, 
-      int sensor_no, int sensor_meas_no, time_t timedif, char *wstation);
-int pg_maxsensmeas( PGconn *pg_conn);
-*/
-
-/*
-int datalogger_rd( unsigned char * datalogdata, int ndat);
-int packet_rd( unsigned char * packetdata, int ndat);
-int complete_rd( unsigned char * completedata, int ndat);
-int umeter_rd();
-int initumeter ( int *pfd, struct termios *newtio,struct termios *oldtio);
-int closeumeter( int fd, struct termios *oldtio);
-*/
 

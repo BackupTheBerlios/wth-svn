@@ -58,14 +58,6 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   syslog(LOG_DEBUG, "datalog_rd: data: (temp_out data faulty?)%s\n", datalogdata);
   time(&dataset_date);
 
-  /* open sqlite db file */
-  /*
-  if ( sqlite3_open( (const char *)umeterstation.config.sqlite_dbfile, &umeterdb) 
-         != SQLITE_OK ) {
-    return(1);
-  }
-  */
-
   /* Wind Speed */
   strncpy(umeterstr, (const char * )(datalogdata+2), 5); 
   umeterstr[4] = 0;
@@ -260,7 +252,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   tdiff = day_of_year - atoi(buf);
   if ( tdiff != 0 )
     syslog(LOG_ALERT, 
-      "complete_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      "complete_rd: error: time difference Ultimeter clock  - PC clock: %d days", 
       tdiff);
 
   /* Today's rain total */
@@ -526,7 +518,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   tdiff = day_of_year - atoi(buf);
   if ( tdiff != 0 )
     syslog(LOG_ALERT, 
-      "packet_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      "packet_rd: error: time difference Ultimeter clock  - PC clock: %d days", 
       tdiff);
 
   /* today's rain total */
@@ -893,7 +885,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   tdiff = day_of_year - atoi(buf);
   if ( tdiff != 0 )
     syslog(LOG_ALERT, 
-      "complete_rd: time difference Ultimeter clock  - PC clock: %d days", 
+      "complete_rd: error: time difference Ultimeter clock  - PC clock: %d days", 
       tdiff);
 
   /* 18. Today's Low Chill Value */
@@ -1581,7 +1573,6 @@ complete_rd( unsigned char * completedata, int ndat) {
 	      umeterstation.config.dbtype,
 	      dataset_date,
               (float)datafield);
-//  measval_db( "raingauge", "rain_total", dataset_date, (float)datafield, umeterdb);
 
   /* 109. Leap Year */
   strncpy(umeterstr, (const char *)(completedata+436), 5); 

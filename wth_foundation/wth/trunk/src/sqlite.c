@@ -27,8 +27,6 @@
 
 /*
   datadb - insert measured data values for use in 
-    - 1-Wire
-    - WS2000 
     - PCWSR 
   database
 
@@ -88,7 +86,7 @@ sqlite_stat_ws2000db( int sensor_status[], time_t statusset_date)
       syslog(LOG_ALERT,
         "sqlite_stat_ws2000db: error: insert sensor status: err: %d", err);
       syslog(LOG_ALERT,
-        "sqlite_stat_ws2000db: query: \"%s\"",query);
+        "sqlite_stat_ws2000db: error: query: \"%s\"",query);
     }
 
   }
@@ -135,6 +133,7 @@ sqlite_new_ws2000db( int sensor_no, int new_flag)
   writing ws2000 data to sqlite database
 
  */
+/*
 int
 sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[],
                 time_t dataset_date, float meas_value[], 
@@ -149,7 +148,7 @@ sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[],
 
   return(err);
 }
-
+*/
 
 /*
   sqlite_is_ws2000sens
@@ -172,7 +171,7 @@ sqlite_is_ws2000sens( int sensor_no)
     sensor_no);
   err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
   if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT, "Error: issens: select ws2000 status data: err: %d", err);
+    syslog( LOG_ALERT, "sqlite_is_ws2000sens: error: issens: select ws2000 status data: err: %d", err);
     return(err);
   }
 
@@ -183,7 +182,7 @@ sqlite_is_ws2000sens( int sensor_no)
 
   err = sqlite3_finalize(qcomp);
   if ( err != SQLITE_OK )  {
-    syslog( LOG_ALERT,  "Error: issens: sqilte3_finalize");
+    syslog( LOG_ALERT,  "sqlite_is_ws2000sens: error: issens: sqilte3_finalize");
     return(err);
   } 
 
@@ -273,7 +272,7 @@ sqlite_get_sensorparams( char *sensorname, char*parametername,
       syslog(LOG_DEBUG, "sqlite_get_sensorparams: query: %s\n", query);
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_get_sensorparams: unknown stationtype\n");
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: error: unknown stationtype\n");
       sqsenspar.sensor_meas_no = -1;
       return(sqsenspar);
   }
@@ -390,7 +389,7 @@ sqlite_get_sensorflags( char *sensorname, char *flagname,
                         query);
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_get_sensorparams: "
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: error: "
                         "unknown stationtype\n");
       sqsensflag.sensor_flag_no = -1;
       return(sqsensflag);
@@ -489,7 +488,7 @@ sqlite_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
       sqlitedb = ws2000db;
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_datadbn: unknown stationtype\n");
+      syslog(LOG_ALERT, "sqlite_datadbn: error: unknown stationtype\n");
       return(1);
   }  
 
@@ -557,7 +556,7 @@ sqlite_statdbn( long statusset_date, int sensor_flag_no,
       sqlitedb = wmr9x8db;
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_statdbn: unknown stationtype\n");
+      syslog(LOG_ALERT, "sqlite_statdbn: error: unknown stationtype\n");
       return(1);
   }  
 

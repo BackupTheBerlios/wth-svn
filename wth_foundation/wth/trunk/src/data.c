@@ -251,7 +251,7 @@ get_sensorparams( char * sensorname,  char * parametername,
                                           stationtype);
       break;
     default:
-      syslog(LOG_ALERT, "get_sensorparams: unknown dbtype\n");
+      syslog(LOG_ALERT, "get_sensorparams: error: unknown dbtype\n");
       lsenspar.sensor_meas_no = -1;
   }
 
@@ -272,7 +272,7 @@ get_sensorflags( char * sensorname, char * flagname,
                                          stationtype);
       break;
     default:
-      syslog(LOG_ALERT, "get_sensorflags: unknown dbtype\n");
+      syslog(LOG_ALERT, "get_sensorflags: error: unknown dbtype\n");
       lsensflag.sensor_flag_no = -1;
   }
 
@@ -317,7 +317,7 @@ int measvaln_db( char *sensorname, char *parametername,
                                    stationtype, dbtype);
   sensor_meas_no = sensorparams.sensor_meas_no; 
   if ( sensor_meas_no == -1) {
-    syslog(LOG_ALERT, "measvaln_db: configuration problem: "
+    syslog(LOG_ALERT, "measvaln_db: error: configuration problem: "
                       "sensor_meas_no undefined");
     return(1);
   }
@@ -373,7 +373,7 @@ int measval_hd(char * sensorname, char *parametername,
       syslog(LOG_DEBUG, "measval_hd: dbtype is MYSQL\n");
       break;
     default:
-      syslog(LOG_ALERT, "measval_hd: unknown dbtype\n");
+      syslog(LOG_ALERT, "measval_hd: error: unknown dbtype\n");
   }
 
   switch(stationtype) {
@@ -441,7 +441,7 @@ int statvaln_db( char *sensorname, char *flagname,
                                 stationtype, dbtype);
   sensor_flag_no = sensorflags.sensor_flag_no; 
   if ( sensor_flag_no == -1) {
-    syslog(LOG_ALERT, "statvaln_db: configuration problem: "
+    syslog(LOG_ALERT, "statvaln_db: error: configuration problem: "
                       "sensor_flag_no undefined");
     return(1);
   }
@@ -506,7 +506,7 @@ int statval_hd(char * sensorname, char *flagname,
       syslog(LOG_DEBUG, "statval_hd: dbtype is MYSQL\n");
       break;
     default:
-      syslog(LOG_ALERT, "statval_hd: unknown dbtype\n");
+      syslog(LOG_ALERT, "statval_hd: error: unknown dbtype\n");
   }
 
   switch(stationtype) {
@@ -559,7 +559,7 @@ stat_ws2000db( int sensor_status[], time_t statusset_date, int dbtype)
       err = sqlite_stat_ws2000db( sensor_status, statusset_date);
       break;
     default:
-      syslog(LOG_ALERT, "stat_ws2000db: unknown dbtype\n");
+      syslog(LOG_ALERT, "stat_ws2000db: error: unknown dbtype\n");
       err = 1;
   }
   return(err);
@@ -580,7 +580,7 @@ new_ws2000db( int sensor_no, int new_flag, int dbtype)
       err = sqlite_new_ws2000db( sensor_no, new_flag);
       break;
     default:
-      syslog(LOG_ALERT, "new_ws2000db: unknown dbtype\n");
+      syslog(LOG_ALERT, "new_ws2000db: error: unknown dbtype\n");
       err = 1;
   }
   return(err);
@@ -601,7 +601,7 @@ is_ws2000sens( int sensor_no, int dbtype)
       err = sqlite_is_ws2000sens( sensor_no);
       break;
     default:
-      syslog(LOG_ALERT, "is_ws2000sens: unknown dbtype\n");
+      syslog(LOG_ALERT, "is_ws2000sens: error: unknown dbtype\n");
       err = 1;
   }
   return(err);
