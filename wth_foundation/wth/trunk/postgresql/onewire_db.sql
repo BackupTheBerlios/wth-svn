@@ -30,6 +30,9 @@
 -- -----------------
 -- contains name and serial number of sensor
 -- 
+
+
+
 CREATE TABLE sensornames
     (
       sensor_no SERIAL PRIMARY KEY,
@@ -72,14 +75,14 @@ CREATE TABLE parameternames
       param_gain FLOAT NOT NULL,
       param_offset FLOAT NOT NULL
     );
-INSERT INTO parameternames VALUES (1, 'Temperature', '°C',  1.000, 0.000);
-INSERT INTO parameternames VALUES (2, 'VAD', 'V', 1.000, 0.000);
-INSERT INTO parameternames VALUES (3, 'VDD', 'V', 1.000, 0.000);
-INSERT INTO parameternames VALUES (4, 'VSENS+', 'mV', 1.000, 0.000);
-INSERT INTO parameternames VALUES (5, 'VSENS-', 'mV', 1.000, 0.000);
-INSERT INTO parameternames VALUES (6, 'Humidity', '%', 1.000, 0.000);
-INSERT INTO parameternames VALUES (7, 'Pressure', 'hPa', 1.000, 0.000);
-INSERT INTO parameternames VALUES (8, 'Radiation power', 'W/m²', 1.000, 0.000);
+INSERT INTO parameternames VALUES (1, 'Temperature', 'Temperatur', '°C',  1.000, 0.000);
+INSERT INTO parameternames VALUES (2, 'VAD', 'V AD', 'V', 1.000, 0.000);
+INSERT INTO parameternames VALUES (3, 'VDD', 'V DD', 'V', 1.000, 0.000);
+INSERT INTO parameternames VALUES (4, 'VSENS+', 'VSENS+', 'mV', 1.000, 0.000);
+INSERT INTO parameternames VALUES (5, 'VSENS-', 'VSENS-', 'mV', 1.000, 0.000);
+INSERT INTO parameternames VALUES (6, 'Humidity', 'Humidity', '%', 1.000, 0.000);
+INSERT INTO parameternames VALUES (7, 'Pressure', 'Pressure', 'hPa', 1.000, 0.000);
+INSERT INTO parameternames VALUES (8, 'Radiation power', 'Radiation power', 'W/m²', 1.000, 0.000);
 -- 
 -- Table sensordeviceparameters
 -- -----------------------

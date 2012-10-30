@@ -67,6 +67,7 @@ CREATE TABLE parameternames
     (
       param_no INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       param_name VARCHAR(64) NOT NULL,
+      param_description VARCHAR(1024) NOT NULL,
       param_unit VARCHAR(64) NOT NULL,
       param_gain FLOAT NOT NULL,
       param_offset FLOAT NOT NULL
