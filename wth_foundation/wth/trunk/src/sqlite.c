@@ -128,29 +128,6 @@ sqlite_new_ws2000db( int sensor_no, int new_flag)
 
 
 /*
-  sqlite_writedb
-
-  writing ws2000 data to sqlite database
-
- */
-/*
-int
-sqlite_writedb( int sensor_no, int nval, int sensor_meas_no[],
-                time_t dataset_date, float meas_value[], 
-                sqlite3 *ws2000db ) {
-  int i, err;
-  
-  err = 0;        
-  for ( i = 0; i < nval; i++) {
-    err = sqlite_datadb( dataset_date, sensor_meas_no[i], 
-                         meas_value[i], ws2000db);
-  }
-
-  return(err);
-}
-*/
-
-/*
   sqlite_is_ws2000sens
   
   check if status value of sensor is not equal to zero 

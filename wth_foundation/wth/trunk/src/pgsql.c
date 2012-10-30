@@ -26,15 +26,15 @@
 #include "wth.h"
 
 /*
-  pg_datadb - insert measured values for use in 
-    - 1-Wire
-    - WS2000 
+  PCWSR legacy
+
+  pgsql_datadb - insert measured values for use in 
     - PCWSR 
   database
 
 */
 int
-pg_datadb( long dataset_date, int sensor_meas_no, float meas_value,
+pgsql_datadb( long dataset_date, int sensor_meas_no, float meas_value,
   PGconn *pg_conn )
 {
   PGresult *res;
@@ -75,11 +75,13 @@ pg_datadb( long dataset_date, int sensor_meas_no, float meas_value,
 
 
 /*
-  pg_stat_ws2000db - insert status values of WS2000 weatherstation
+  WS2000 legacy
+
+  pgsql_stat_ws2000db - insert status values of WS2000 weatherstation
 
 */
 int
-pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn) 
+pgsql_stat_ws2000db( int sensor_status[], time_t statusset_date) 
 {
   PGresult *res;
   int i, err;
@@ -89,12 +91,13 @@ pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn)
   err = 0;
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
-     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, %lu, %d, %d)",
+     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, to_timestamp(%lu), %d, %d)",
      (long unsigned int) statusset_date, i, sensor_status[i]); 
-    res = PQexec( pg_conn, query);
+    res = PQexec( ws2000_pgconn, query);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
       syslog(LOG_ALERT,
-        "pg_statdb: error: insert sensor status: %s", PQerrorMessage(pg_conn));
+        "pgsql_stat_ws2000db: error: insert sensor status: %s",
+        PQerrorMessage(ws2000_pgconn));
       PQclear(res);
       err = 1;  
     }
@@ -106,7 +109,9 @@ pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn)
 
 
 /*
-  pg_new_ws2000db - insert new flag values of WS2000 weatherstation
+  legacy WS2000
+
+  pgsql_new_ws2000db - insert new flag values of WS2000 weatherstation
 
   new flag is read which each datarecord read command ( 1 2)
   status value is read with status command ( 5)
@@ -118,7 +123,7 @@ pg_stat_ws2000db( int sensor_status[], time_t statusset_date, PGconn *pg_conn)
 
 */
 int
-pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, PGconn *pg_conn) 
+pgsql_new_ws2000db( int sensor_no, int new_flag) 
 {
   PGresult *res;
   int err = 0;
@@ -128,175 +133,73 @@ pg_new_ws2000db( long statusset_date, int sensor_no, int new_flag, PGconn *pg_co
   snprintf(query, querylen, 
 	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
 	   new_flag, sensor_no, sensor_no); 
-  syslog(LOG_DEBUG, "newdb: query: %s", query);
-  res = PQexec( pg_conn, query);
+  syslog(LOG_DEBUG, "pgsql_new_ws2000db: query: %s", query);
+  res = PQexec( ws2000_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
-	   "newdb: error: insert sensor status: %s", PQerrorMessage(pg_conn));
+      "pgsql_new_ws2000db: error: insert sensor status: %s",
+      PQerrorMessage(ws2000_pgconn));
     PQclear(res);
     err = 1;
   }
   PQclear(res);
-  syslog( LOG_DEBUG, "datadb: INSERT query: %s", query);
+  syslog( LOG_DEBUG, "pgsql_new_ws2000db: INSERT query: %s", query);
 
   return(err);
 }
 
 
-/*
-  pg_get_onewireinfo
-  retrieve
-    sensor_meas_no,
-    sensor_name,
-    param_name,
-    param_gain,
-    param_offset, 
-    sensor number, 
-    devicetyp and 
-    parameter name of
-  1-wire device
-  returns these data in structure ssdp
-*/
-/*
-int
-pg_get_onewireinfo( char *parname, char *serialnum, sensdevpar_t *ssdp, PGconn *pg_conn)
-{
-  PGresult *res;
-  int i;
-  char query[SBUFF+1];
-
-  snprintf(query, SBUFF, 
-    "SELECT sp.sensor_meas_no, sn.sensor_name, "
-    "pn.param_name, pn.param_offset, pn.param_gain, "
-    "dt.devicetyp, dt.familycode, dt.serialnum "
-    "FROM sensorparameters AS sp, sensornames AS sn, parameternames AS pn, devicetyp AS dt "
-    "WHERE sp.param_no = pn.param_no "
-    "AND sp.sensor_no = sn.sensor_no "
-    "AND sp.device_no = dt.device_no "
-    "AND dt.serialnum = '%s' " 
-    "AND pn.param_name = '%s' ", 
-    serialnum, parname);
-  syslog(LOG_DEBUG, "pg_get_onewireinfo: sql: %s", query);
-
-  res = PQexec( pg_conn, query); 
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-	    "pg_get_onewireinfo: error: select sensor parameter info: %s\n", 
-	     PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
-
-  for ( i = 0; i < PQntuples(res); i++) {
-    ssdp->sensor_meas_no = (int )atoi(PQgetvalue(res, i, 0));
-    strncpy(ssdp->sensorname, PQgetvalue(res, i, 1), TBUFF);  
-    strncpy(ssdp->par_name, PQgetvalue(res, i, 2), TBUFF);
-    ssdp->offset = (float )atof(PQgetvalue(res, i, 3));
-    ssdp->gain   = (float )atof(PQgetvalue(res, i, 4));
-    strncpy(ssdp->devicetyp, PQgetvalue(res, i, 5), TBUFF);  
-    strncpy(ssdp->familycode, PQgetvalue(res, i, 6), TBUFF);  
-    strncpy(ssdp->serialnum, PQgetvalue(res, i, 7), TBUFF);  
-  }
-  PQclear(res);
-  if ( PQntuples(res) == 0) {
-    syslog( LOG_DEBUG, "pg_get_onewireinfo: no configuration data in database");
-    return(1);
-  }
-  return(0);
-}
-*/
-
 
 /*
-  pg_writedb
+  legacy WS2000
 
-  writing ws2000 data to sqlite database
-
- */
-int
-pg_writedb( int sensor_no, int nval, int sensor_meas_no[], time_t dataset_date, 
-         float meas_value[], PGconn *pg_conn ) {
-  int i, err;
-  
-  err = 0;        
-  for ( i = 0; i < nval; i++) {
-    err = pg_datadb( dataset_date, sensor_meas_no[i], meas_value[i], pg_conn);
-  }
-
-  return(err);
-}
-
-/*
-  pg_is_ws2000sens
+  pgsql_is_ws2000sens
   
   check if status value of sensor is not equal to zero 
   only works fpr WS2000 weatherstation 
   
 */
 int
-pg_is_ws2000sens( int sensor_no, PGconn *pg_conn)
+pgsql_is_ws2000sens( int sensor_no)
 {
-  int err;
-  time_t stattim;
-  int statval;
-  char query[SBUFF+1];
-  sqlite3_stmt *qcomp;
+  int i;
+  PGresult *res;
+  time_t   stattim;
+  int      statval = 0;
+  char     query[SBUFF+1];
 
   snprintf(query, SBUFF, 
-    "SELECT sensor_status, max(statusset_date) FROM sensorstatus WHERE sensor_no = %d",
+    "SELECT sensor_status, EXTRACT (EPOCH FROM statusset_date) FROM sensorstatus WHERE sensor_no = %d",
     sensor_no);
-  err = sqlite3_prepare( ws2000db, query, -1, &qcomp, 0); 
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT, "Error: issens: select ws2000 status data: err: %d", err);
-    return(err);
+
+  syslog(LOG_DEBUG, "pgsql_is_ws2000sens: query %s\n", query);
+  res = PQexec( ws2000_pgconn, query);
+  if (PQresultStatus(res) != PGRES_TUPLES_OK)
+  {
+    syslog( LOG_ALERT,
+            "pgsql_is_ws2000sens: error: select:  %s\n",
+             PQerrorMessage(ws2000_pgconn));
+    PQclear(res);
+    statval = 0;
+    return(statval);
   }
 
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-    statval = (int )sqlite3_column_int( qcomp, 0); 
-    stattim = (time_t )sqlite3_column_int( qcomp, 1); 
+  for ( i = 0; i < PQntuples(res); i++) {
+    statval = atoi(PQgetvalue( res, i, 0));
+    stattim = (time_t) atol(PQgetvalue( res, i, 1));
+    syslog(LOG_DEBUG, "pgsql_is_ws2000sens: statval: %d stattim: %lu",
+            statval, stattim);
   }
 
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK )  {
-    syslog( LOG_ALERT,  "Error: issens: sqilte3_finalize");
-    return(err);
-  } 
+  if ( PQntuples(res) == 0 ) {
+    syslog(LOG_ALERT,"pgsql_is_ws2000sens: no statusdatae in database");
+    statval = 0;
+  }
+  PQclear(res);
 
   return(statval); 
 }
 
-/*
-int
-pg_maxsensmeas( PGconn *pg_conn) {
-  PGresult *res;
-  int max_sens_meas;
-  int i,rowcnt;
-  char query[MAXQUERYLEN];
-
-  snprintf(query, SBUFF, "SELECT COUNT(*) FROM sensorparameters");
-  syslog(LOG_DEBUG, "pg_maxsensmeas: sql: %s", query);
-
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-    syslog(LOG_DEBUG, "pg_maxsensmeas: error: %s", PQerrorMessage(pg_conn));
-      PQclear(res);
-      return(-1);
-  }
-
-  for ( i = 0; i < PQntuples(res); i++) {
-    max_sens_meas = (int )atoi(PQgetvalue(res, i, 0));
-    rowcnt++;
-    syslog(LOG_DEBUG, "maxsensmeas  : max_sens_meas: %d", max_sens_meas);
-  }
-  PQclear(res);
-  if ( rowcnt == 0) {
-    syslog( LOG_ALERT, "Error: cant find relation sensor - device - parameter");
-    return(-1);
-  }
-  return(max_sens_meas);
-}
-*/
 
 /*
 
@@ -507,4 +410,406 @@ pg_statval_db( char *sensorname, char *flagname,
   PQclear(res);
   return(0);
 }
+
+
+sensdevpar_t
+pgsql_get_sensorparams( char *sensorname, char*parametername,
+                         int stationtype)
+{
+  int          i;
+  int          rowcnt             = 0;
+  char         query[SBUFF+1]     = "\0";
+  char         serialnum[TBUFF+1] = "\0";
+  float        *offset;
+  float        *gain;
+  sensdevpar_t sqsenspar;
+  PGconn       *wth_pgconn;
+  PGresult     *res;
+   
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+        "ONEWIRE\n");
+      wth_pgconn = onewire_pgconn;
+      strncpy( serialnum, sensorname, strlen( sensorname));
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain, "
+        "dt.devicetyp, dt.familycode, dt.serialnum "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn, devicetyp AS dt "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sp.device_no = dt.device_no "
+        "AND dt.serialnum = '%s' "
+        "AND pn.param_name = '%s' ",
+        serialnum, parametername);
+      //syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+        "WMR9X8\n");
+      wth_pgconn= wmr9x8_pgconn;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+        "UMETER\n");
+      wth_pgconn= umeter_pgconn;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
+      break;
+    case WS2000:
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+        "WS2000\n");
+      wth_pgconn= ws2000_pgconn;
+      snprintf(query, SBUFF,
+        "SELECT sp.sensor_meas_no, sn.sensor_name, "
+        "pn.param_name, pn.param_offset, pn.param_gain "
+        "FROM sensorparameters AS sp, sensornames AS sn, "
+        "parameternames AS pn "
+        "WHERE sp.param_no = pn.param_no "
+        "AND sp.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND pn.param_name  = '%s' ",
+        sensorname, parametername);
+      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
+      break;
+    default:
+      syslog(LOG_ALERT, "pgsql_get_sensorparams: error: unknown stationtype\n");
+      sqsenspar.sensor_meas_no = -1;
+      return(sqsenspar);
+  }
+
+  syslog(LOG_DEBUG, "pgsql_get_sensorparams: query %s\n", query);
+  res = PQexec( wth_pgconn, query);
+  if (PQresultStatus(res) != PGRES_TUPLES_OK)
+  {
+    syslog( LOG_ALERT,
+            "pgsql_get_sensorparams: error: select:  %s\n",
+             PQerrorMessage(wth_pgconn));
+    PQclear(res);
+    sqsenspar.sensor_meas_no = -1;
+    return(sqsenspar);
+  }
+
+  rowcnt =  PQntuples(res);
+  for ( i = 0; i < PQntuples(res); i++) {
+    sqsenspar.sensor_meas_no = atoi(PQgetvalue( res, i, 0));
+    strncpy(sqsenspar.sensorname, 
+      PQgetvalue( res, i, 1), TBUFF);
+    strncpy(sqsenspar.par_name, 
+      PQgetvalue( res, i, 2), TBUFF);
+    offset = ( float *)(PQgetvalue( res, i, 3));
+    sqsenspar.offset = *offset;
+    gain   = ( float *)(PQgetvalue( res, i, 4));
+    sqsenspar.gain   = *gain;
+    if ( stationtype == ONEWIRE ) {				  
+      strncpy(sqsenspar.devicetyp, 
+        PQgetvalue( res, i, 5), TBUFF);
+      strncpy(sqsenspar.familycode, 
+        PQgetvalue( res, i, 6), TBUFF);
+      strncpy(sqsenspar.serialnum, 
+        PQgetvalue( res, i, 7), TBUFF);
+    } else {
+      strncpy(sqsenspar.devicetyp, 
+        "n.a.", TBUFF);
+      strncpy(sqsenspar.familycode, 
+        "n.a.", TBUFF);
+      strncpy(sqsenspar.serialnum, 
+        "n.a.", TBUFF);
+    }
+  }
+
+  syslog(LOG_DEBUG, "pgsql_get_sensor_params: sensor_meas_no : %d\n", 
+                    sqsenspar.sensor_meas_no);
+  if ( rowcnt == 0) {
+    syslog( LOG_DEBUG, "pgsql_get_sensorparams: "
+                       "no configuration data in database");
+    sqsenspar.sensor_meas_no = -1;
+    return(sqsenspar);
+  }
+
+  PQclear(res);
+  return(sqsenspar);
+}
+
+
+sensflag_t
+pgsql_get_sensorflags( char *sensorname, char *flagname,
+                         int stationtype)
+{
+  int err;
+  int rowcnt = 0;
+  char query[SBUFF+1] = "\0";
+  sensflag_t sqsensflag;
+  sqlite3 *sqlitedb;
+  sqlite3_stmt *qcomp;
+
+   
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: no flags available"
+                        " for stationtype ONEWIRE\n");
+      sqsensflag.sensor_flag_no = -1;
+      return(sqsensflag);
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+                        "WMR9X8\n");
+      sqlitedb = wmr9x8db;
+      snprintf(query, SBUFF,
+        "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
+        "fn.flag_name "
+        "FROM sensorflags AS sf, sensornames AS sn, "
+        "flagnames AS fn "
+        "WHERE sf.flag_no = fn.flag_no "
+        "AND sf.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND fn.flag_name  = '%s' ",
+        sensorname, flagname);
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+                        query);
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+                        "UMETER\n");
+      sqlitedb = umeterdb;
+      snprintf(query, SBUFF,
+        "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
+        "fn.flag_name "
+        "FROM sensorflags AS sf, sensornames AS sn, "
+        "flagnames AS fn "
+        "WHERE sf.flag_no = fn.flag_no "
+        "AND sf.sensor_no = sn.sensor_no "
+        "AND sn.sensor_name = '%s' "
+        "AND fn.flag_name  = '%s' ",
+        sensorname, flagname);
+      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+                        query);
+      break;
+    default:
+      syslog(LOG_ALERT, "sqlite_get_sensorparams: error: "
+                        "unknown stationtype\n");
+      sqsensflag.sensor_flag_no = -1;
+      return(sqsensflag);
+  }
+
+  err = sqlite3_prepare( sqlitedb, query, -1, &qcomp, 0);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+      "sqlite_get_sensorflags: error: select sensor flag info: "
+      "err: %d : sqlite_errmsg: %s\n",
+      err, sqlite3_errmsg(sqlitedb));
+    sqsensflag.sensor_flag_no = -1;
+    return(sqsensflag);
+  }
+
+  rowcnt = 0;
+  while( SQLITE_ROW == sqlite3_step(qcomp)) {
+
+    sqsensflag.sensor_flag_no = sqlite3_column_int(qcomp, 0);
+    sqsensflag.sensor_no = sqlite3_column_int(qcomp, 1);
+    sqsensflag.flag_no = sqlite3_column_int(qcomp, 2);
+    strncpy(sqsensflag.sensorname, 
+      (char *)sqlite3_column_text(qcomp,3), TBUFF);
+    strncpy(sqsensflag.flagname, 
+      (char *)sqlite3_column_text(qcomp,4), TBUFF);
+
+    strncpy(sqsensflag.devicetyp, 
+      "n.a.", TBUFF);
+    strncpy(sqsensflag.familycode, 
+      "n.a.", TBUFF);
+    strncpy(sqsensflag.serialnum, 
+      "n.a.", TBUFF);
+   
+    rowcnt++;
+  }
+  
+  syslog(LOG_DEBUG, "sqlite_get_sensorflags: sensor_flag_no : %d\n", 
+                    sqsensflag.sensor_flag_no);
+  err = sqlite3_finalize(qcomp);
+  if ( err != SQLITE_OK ) {
+    syslog( LOG_ALERT,
+            "sqlite_get_sensorflags: error: select flagname: "
+            "err: %d : sqlite_errmsg: %s\n",
+            err, sqlite3_errmsg(sqlitedb));
+    return(sqsensflag);
+  }
+
+  if ( rowcnt == 0) {
+    syslog( LOG_DEBUG, "sqlite_get_sensorflags: "
+                       "no configuration data in database");
+    sqsensflag.sensor_flag_no = -1;
+    return(sqsensflag);
+  }
+
+  return(sqsensflag);
+}
+
+/*
+  pgsql_datadbn 
+
+  insert measured data values for use in 
+    - 1-Wire
+    - WS2000 
+    - PCWSR 
+  database
+
+*/
+int
+pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
+  int stationtype )
+{
+  int          err = 0;
+  int          querylen = MAXQUERYLEN;
+  char         query[MAXQUERYLEN];
+  PGconn       *wth_pgconn;
+  PGresult     *res;
+
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "pgsql_datadbn: stationtype is "
+        "ONEWIRE\n");
+      wth_pgconn = onewire_pgconn;
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "pgsql_datadbn: stationtype is "
+        "UMETER\n");
+      wth_pgconn = umeter_pgconn;
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "pgsql_datadbn: stationtype is "
+        "WMR9X8\n");
+      wth_pgconn = wmr9x8_pgconn;
+      break;
+    case WS2000:
+      syslog(LOG_DEBUG, "pgsql_datadbn: stationtype is "
+        "WS2000\n");
+      wth_pgconn = ws2000_pgconn;
+      break;
+    default:
+      syslog(LOG_ALERT, "pgsql_datadbn: error: unknown stationtype\n");
+      return(1);
+  }  
+
+  /* insert data values */
+  syslog(LOG_DEBUG, "pgsql_datadbn: dataset_date: %ld, "
+                    "sensor_meas_no: %d, meas_val: %f", 
+                    dataset_date, sensor_meas_no, meas_value);
+  snprintf(query, querylen, 
+    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
+    dataset_date, sensor_meas_no, meas_value); 
+  syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
+
+  res = PQexec( wth_pgconn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_ALERT,
+      "pg_datadbn: error: insert sensor status: %s",
+      PQerrorMessage(wth_pgconn));
+    PQclear(res);
+    err = 1;  
+  }
+  PQclear(res);
+
+  /* insert date when last data has been updated */
+  snprintf(query, querylen, 
+    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
+    dataset_date, sensor_meas_no); 
+  syslog(LOG_DEBUG, "sqlite_datadbn: query: %s", query);
+  res = PQexec( wth_pgconn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_ALERT,
+      "pg_datadbn: error: update sensorupdate: %s",
+      PQerrorMessage(wth_pgconn));
+    PQclear(res);
+    err = 1;  
+  }
+  PQclear(res);
+
+  return(err);
+}
+
+/*
+  sqlite_statdbn 
+
+  insert measured status values for use in 
+    - 1-Wire
+    - WS2000 
+    - PCWSR 
+  database
+
+*/
+int
+pgsql_statdbn( long statusset_date, int sensor_flag_no, 
+                long unsigned int stat_value, int stationtype )
+{
+  int          err;
+  int          querylen = MAXQUERYLEN;
+  char         query[MAXQUERYLEN];
+  sqlite3      *sqlitedb;
+
+  switch(stationtype) {
+    case ONEWIRE:
+      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+        "ONEWIRE\n");
+      sqlitedb = onewiredb;
+      break;
+    case UMETER:
+      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+        "UMETER\n");
+      sqlitedb = umeterdb;
+      break;
+    case WMR9X8:
+      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+        "WMR9X8\n");
+      sqlitedb = wmr9x8db;
+      break;
+    default:
+      syslog(LOG_ALERT, "sqlite_statdbn: error: unknown stationtype\n");
+      return(1);
+  }  
+
+  /* insert status values */
+  syslog(LOG_DEBUG, "sqlite_statdbn: dataset_date: %ld, "
+                    "sensor_flag_no: %d, stat_val: %lu", 
+                    statusset_date, sensor_flag_no, stat_value);
+  snprintf(query, querylen, 
+    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
+    statusset_date, sensor_flag_no, stat_value); 
+  syslog(LOG_DEBUG, "sqlite_statdbn: query: %s", query);
+  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
+  if ( err) { 
+    syslog(LOG_DEBUG,
+      "sqlite_statdbn: error: insert sensor data: err: %d", err);
+  }
+
+  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
+  if ( err) { 
+    syslog(LOG_DEBUG, 
+      "datadb: error: update sensor date: err: %d", err);
+  }
+
+  return(err);
+}
+
 

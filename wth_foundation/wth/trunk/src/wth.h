@@ -274,17 +274,19 @@ typedef struct threadinfo {
 thread_info_t pthread_info;
 
 
-
 int werrno;
 int daemon_proc;          /* set nonzero by daemon_init() */
 
-sqlite3 *ws2000db;
-sqlite3 *pcwsrdb;
+sqlite3 *umeterdb;
 sqlite3 *onewiredb;
 sqlite3 *wmr9x8db;
-sqlite3 *umeterdb;
+sqlite3 *ws2000db;
+sqlite3 *pcwsrdb;
 
-PGconn  *pg_conn;
+PGconn  *onewire_pgconn;
+PGconn  *umeter_pgconn;
+PGconn  *wmr9x8_pgconn;
+PGconn  *ws2000_pgconn;
 
 ws2000_t  ws2000station;
 pcwsr_t   pcwsrstation;

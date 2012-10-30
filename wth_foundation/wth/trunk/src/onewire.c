@@ -579,12 +579,12 @@ onewire_hd( void *arg)
       return( ( void *) &failure);
     }
   } else if ( onewirestation.config.dbtype == POSTGRESQL) {
-    pg_conn = PQconnectdb( onewirestation.config.dbconn);
-    if (PQstatus(pg_conn) != CONNECTION_OK)
+    onewire_pgconn = PQconnectdb( onewirestation.config.dbconn);
+    if (PQstatus(onewire_pgconn) != CONNECTION_OK)
     {
         syslog(LOG_ALERT, "onewire_hd: error: connection to database failed: %s",
-                PQerrorMessage(pg_conn));
-        PQfinish(pg_conn);
+                PQerrorMessage(onewire_pgconn));
+        PQfinish(onewire_pgconn);
         return( ( void *) &failure);
     }
   } else {
@@ -811,7 +811,7 @@ onewire_hd( void *arg)
     sqlite3_close( onewiredb);
   } 
   else if ( onewirestation.config.dbtype == POSTGRESQL) {
-    PQfinish(pg_conn);
+    PQfinish(onewire_pgconn);
   } 
 
   /* release the 1-Wire Net */

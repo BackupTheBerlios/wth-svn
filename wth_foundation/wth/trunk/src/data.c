@@ -172,7 +172,7 @@ avgmdat( struct mset ** mlist_ref,
     if ( dbtype == SQLITE) {
       sqlite_datadbn( avgtime, sens_meas_no, avgmval, stationtype);
     } else if ( dbtype == POSTGRESQL) {
-      pg_datadb( avgtime, sens_meas_no, avgmval, pg_conn);
+      pgsql_datadbn ( avgtime, sens_meas_no, avgmval, stationtype);
     }
   }
 }
@@ -215,26 +215,10 @@ avgsdat( struct sset ** slist_ref,
     if ( dbtype == SQLITE) {
       sqlite_statdbn( avgdate, sens_flag_no, avgval, stationtype);
     } else if ( dbtype == POSTGRESQL) {
-      pg_datadb( avgdate, sens_flag_no, avgval, pg_conn);
+      pgsql_datadbn( avgdate, sens_flag_no, avgval, stationtype);
     }
   }
 }
-
-/*
-int
-maxsensmeas( int dbtype) 
-{
-  int p_maxsensmeas = -1;
-
-  if (  dbtype == SQLITE) {
-    p_maxsensmeas = sqlite_maxsensmeas( onewiredb);
-  } else if ( dbtype == POSTGRESQL) {
-    p_maxsensmeas = pg_maxsensmeas( pg_conn);
-  }
-  return(p_maxsensmeas);
-}
-*/
-
 
 
 sensdevpar_t
