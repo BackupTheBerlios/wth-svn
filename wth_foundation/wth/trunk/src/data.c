@@ -2,7 +2,7 @@
 
    generic data handling independent of database specific routines
 
-   $Id$
+   $Id:$
    $Revision$
 
    Copyright (C) 2012 Volker Jahns <volker@thalreit.de>
@@ -234,6 +234,12 @@ get_sensorparams( char * sensorname,  char * parametername,
                                           parametername, 
                                           stationtype);
       break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "get_sensorparams: dbtype is POSTGRESQL\n");
+      lsenspar = pgsql_get_sensorparams( sensorname, 
+                                          parametername, 
+                                          stationtype);
+      break;
     default:
       syslog(LOG_ALERT, "get_sensorparams: error: unknown dbtype\n");
       lsenspar.sensor_meas_no = -1;
@@ -252,6 +258,12 @@ get_sensorflags( char * sensorname, char * flagname,
     case SQLITE:
       syslog(LOG_DEBUG, "get_sensorflags: dbtype is SQLITE\n");
       lsensflag = sqlite_get_sensorflags( sensorname, 
+                                         flagname, 
+                                         stationtype);
+      break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "get_sensorflags: dbtype is POSTGRESQL\n");
+      lsensflag = pgsql_get_sensorflags( sensorname, 
                                          flagname, 
                                          stationtype);
       break;
@@ -542,6 +554,10 @@ stat_ws2000db( int sensor_status[], time_t statusset_date, int dbtype)
       syslog(LOG_DEBUG, "stat_ws2000db: dbtype is SQLITE\n");
       err = sqlite_stat_ws2000db( sensor_status, statusset_date);
       break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "stat_ws2000db: dbtype is POSTGRESQL\n");
+      err = pgsql_stat_ws2000db( sensor_status, statusset_date);
+      break;
     default:
       syslog(LOG_ALERT, "stat_ws2000db: error: unknown dbtype\n");
       err = 1;
@@ -563,6 +579,10 @@ new_ws2000db( int sensor_no, int new_flag, int dbtype)
       syslog(LOG_DEBUG, "new_ws2000db: dbtype is SQLITE\n");
       err = sqlite_new_ws2000db( sensor_no, new_flag);
       break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "new_ws2000db: dbtype is POSTGRESQL\n");
+      err = pgsql_new_ws2000db( sensor_no, new_flag);
+      break;
     default:
       syslog(LOG_ALERT, "new_ws2000db: error: unknown dbtype\n");
       err = 1;
@@ -583,6 +603,10 @@ is_ws2000sens( int sensor_no, int dbtype)
     case SQLITE:
       syslog(LOG_DEBUG, "is_ws2000sens: dbtype is SQLITE\n");
       err = sqlite_is_ws2000sens( sensor_no);
+      break;
+    case POSTGRESQL:
+      syslog(LOG_DEBUG, "is_ws2000sens: dbtype is POSTGRESQL\n");
+      err = pgsql_is_ws2000sens( sensor_no);
       break;
     default:
       syslog(LOG_ALERT, "is_ws2000sens: error: unknown dbtype\n");

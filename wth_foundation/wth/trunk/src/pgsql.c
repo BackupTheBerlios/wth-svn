@@ -208,208 +208,208 @@ pgsql_is_ws2000sens( int sensor_no)
   ULTIMETER and WMR928 NX measurement data to postgresql database
 
  */
-int
-pg_measval_db( char *sensorname, char *parametername, 
-                   time_t dataset_date, float mval, PGconn *pg_conn) {
-  PGresult *res;
-  int i;
-  int sensor_no, parameter_no, sensor_meas_no;
-  char query[SBUFF+1];
+/* int */
+/* pg_measval_db( char *sensorname, char *parametername,  */
+/*                    time_t dataset_date, float mval, PGconn *pg_conn) { */
+/*   PGresult *res; */
+/*   int i; */
+/*   int sensor_no, parameter_no, sensor_meas_no; */
+/*   char query[SBUFF+1]; */
 
-  syslog(LOG_DEBUG, "pg_measval_db: sensorname: %s parametername: %s", 
-                                sensorname, parametername);
+/*   syslog(LOG_DEBUG, "pg_measval_db: sensorname: %s parametername: %s",  */
+/*                                 sensorname, parametername); */
 
-  /* select sensor_no */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'",
-    sensorname);
+/*   /\* select sensor_no *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'", */
+/*     sensorname); */
 
-  syslog(LOG_DEBUG, "pg_measval_sb: query :\'%s\'", query);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_measval_db: error: select:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
+/*   syslog(LOG_DEBUG, "pg_measval_sb: query :\'%s\'", query); */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_measval_db: error: select:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
 
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "pg_measval_db : sensorname: \'%s\' sensor_no: %d", 
-              sensorname, atoi(PQgetvalue(res, i, 0)));
-    sensor_no   = atoi(PQgetvalue( res, i, 0)); 
-  }
-  if ( PQntuples(res) == 0 )
-    syslog(LOG_ALERT," no sensorname %s\n in database", sensorname);
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "pg_measval_db : sensorname: \'%s\' sensor_no: %d",  */
+/*               sensorname, atoi(PQgetvalue(res, i, 0))); */
+/*     sensor_no   = atoi(PQgetvalue( res, i, 0));  */
+/*   } */
+/*   if ( PQntuples(res) == 0 ) */
+/*     syslog(LOG_ALERT," no sensorname %s\n in database", sensorname); */
 
-  PQclear(res);
-  /* select parameter_no of parametername */
-  snprintf(query, SBUFF, 
-    "SELECT param_no FROM parameternames WHERE param_name = '%s'",
-    parametername);
+/*   PQclear(res); */
+/*   /\* select parameter_no of parametername *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT param_no FROM parameternames WHERE param_name = '%s'", */
+/*     parametername); */
 
-  syslog(LOG_DEBUG, "measval_sb: query :\'%s\'", query);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_measval_db: error: select:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
+/*   syslog(LOG_DEBUG, "measval_sb: query :\'%s\'", query); */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_measval_db: error: select:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
 
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "measval_db : parametername: \'%s\' param_no: %d", 
-              parametername, atoi(PQgetvalue( res, i, 0)));
-    parameter_no   = atoi(PQgetvalue( res, i , 0));
-  }
-  if ( PQntuples( res) == 0 )
-    syslog(LOG_ALERT," no parametername %s\n in database", parametername);
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "measval_db : parametername: \'%s\' param_no: %d",  */
+/*               parametername, atoi(PQgetvalue( res, i, 0))); */
+/*     parameter_no   = atoi(PQgetvalue( res, i , 0)); */
+/*   } */
+/*   if ( PQntuples( res) == 0 ) */
+/*     syslog(LOG_ALERT," no parametername %s\n in database", parametername); */
 
-  PQclear(res);
+/*   PQclear(res); */
 
-  /* select sens_meas_no of windsensor and wind_direction */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND param_no = %d",
-    sensor_no, parameter_no);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_measval_db: error: select:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
+/*   /\* select sens_meas_no of windsensor and wind_direction *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND param_no = %d", */
+/*     sensor_no, parameter_no); */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_measval_db: error: select:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
 
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "measval_db : sensor_meas_no: %d", 
-      atoi(PQgetvalue(res, i, 0)));
-    sensor_meas_no   = atoi(PQgetvalue( res, i, 0));
-  }
-  if ( PQntuples(res) == 0 )
-    syslog(LOG_ALERT," no sensor_meas_no in database");
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "measval_db : sensor_meas_no: %d",  */
+/*       atoi(PQgetvalue(res, i, 0))); */
+/*     sensor_meas_no   = atoi(PQgetvalue( res, i, 0)); */
+/*   } */
+/*   if ( PQntuples(res) == 0 ) */
+/*     syslog(LOG_ALERT," no sensor_meas_no in database"); */
 
-  PQclear(res);
+/*   PQclear(res); */
 
-  /* insert data values */
-  snprintf(query, SBUFF, 
-    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
-    (long unsigned int)dataset_date, sensor_meas_no, (double)mval); 
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_ALERT, "pg_measval_db: error insert sensor data: %s",
-      PQerrorMessage(pg_conn));
-  }
-  PQclear(res);
+/*   /\* insert data values *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)", */
+/*     (long unsigned int)dataset_date, sensor_meas_no, (double)mval);  */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
+/*     syslog(LOG_ALERT, "pg_measval_db: error insert sensor data: %s", */
+/*       PQerrorMessage(pg_conn)); */
+/*   } */
+/*   PQclear(res); */
 
-  /* insert date when last data has been updated */
-  snprintf(query, SBUFF, 
-    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
-    (long unsigned int)dataset_date, sensor_meas_no); 
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_ALERT, "pg_measval_db: error update sensor data: %s",
-      PQerrorMessage(pg_conn));
-  }
-  PQclear(res);
-  return(0);
-}
+/*   /\* insert date when last data has been updated *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d", */
+/*     (long unsigned int)dataset_date, sensor_meas_no);  */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
+/*     syslog(LOG_ALERT, "pg_measval_db: error update sensor data: %s", */
+/*       PQerrorMessage(pg_conn)); */
+/*   } */
+/*   PQclear(res); */
+/*   return(0); */
+/* } */
 
-int
-pg_statval_db( char *sensorname, char *flagname,
-               time_t statusset_date, long unsigned int sval, PGconn *pg_conn) 
-{
-  PGresult *res;
-  int i;
-  int sensor_no, flag_no, sensor_flag_no;
-  char query[SBUFF+1];
+/* int */
+/* pg_statval_db( char *sensorname, char *flagname, */
+/*                time_t statusset_date, long unsigned int sval, PGconn *pg_conn)  */
+/* { */
+/*   PGresult *res; */
+/*   int i; */
+/*   int sensor_no, flag_no, sensor_flag_no; */
+/*   char query[SBUFF+1]; */
 
-  /* select sensor_no */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'",
-    sensorname);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_measval_db: error: select:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
+/*   /\* select sensor_no *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'", */
+/*     sensorname); */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_measval_db: error: select:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
 
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "pg_statval_db : sensorname: \'%s\' sensor_no: %d",
-              sensorname, atoi(PQgetvalue(res, i, 0)));
-    sensor_no   = atoi(PQgetvalue( res, i, 0));
-  }
-  if ( PQntuples(res) == 0 ) {
-    syslog(LOG_ALERT," no sensorname %s\n in database", sensorname);
-    return(1);
-  }
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "pg_statval_db : sensorname: \'%s\' sensor_no: %d", */
+/*               sensorname, atoi(PQgetvalue(res, i, 0))); */
+/*     sensor_no   = atoi(PQgetvalue( res, i, 0)); */
+/*   } */
+/*   if ( PQntuples(res) == 0 ) { */
+/*     syslog(LOG_ALERT," no sensorname %s\n in database", sensorname); */
+/*     return(1); */
+/*   } */
 
-  /* select flag_no of flagnames */
-  snprintf(query, SBUFF, 
-    "SELECT flag_no FROM flagnames WHERE flag_name = '%s'",
-    flagname);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_flagval_db: error: select:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "pg_statval_db : flagname: \'%s\' flag_no: %d",
-              flagname, atoi(PQgetvalue(res, i, 0)));
-    flag_no   = atoi(PQgetvalue( res, i, 0));
-  }
-  if ( PQntuples(res) == 0 ) {
-    syslog(LOG_ALERT," no flagname %s\n in database", flagname);
-    PQclear(res);
-    return(1);
-  }
-  PQclear(res);
+/*   /\* select flag_no of flagnames *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT flag_no FROM flagnames WHERE flag_name = '%s'", */
+/*     flagname); */
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_flagval_db: error: select:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "pg_statval_db : flagname: \'%s\' flag_no: %d", */
+/*               flagname, atoi(PQgetvalue(res, i, 0))); */
+/*     flag_no   = atoi(PQgetvalue( res, i, 0)); */
+/*   } */
+/*   if ( PQntuples(res) == 0 ) { */
+/*     syslog(LOG_ALERT," no flagname %s\n in database", flagname); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
+/*   PQclear(res); */
 
-  /* select sens_flag_no of sensorname and flagname */
-  snprintf(query, SBUFF, 
-    "SELECT sensor_flag_no FROM sensorflags WHERE sensor_no = %d AND flag_no = %d",
-    sensor_no, flag_no);
+/*   /\* select sens_flag_no of sensorname and flagname *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "SELECT sensor_flag_no FROM sensorflags WHERE sensor_no = %d AND flag_no = %d", */
+/*     sensor_no, flag_no); */
   
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pg_statval_db: error: select sensor_flag_no:  %s\n",
-             PQerrorMessage(pg_conn));
-    PQclear(res);
-    return(1);
-  }
-  for ( i = 0; i < PQntuples(res); i++) {
-    syslog(LOG_DEBUG, "statval_db : sensor_flag_no: %d", 
-      atoi(PQgetvalue( res, i, 0)));
-    sensor_flag_no   = atoi(PQgetvalue( res, i, 0)); 
-  }
-  PQclear(res);
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
+/*   { */
+/*     syslog( LOG_ALERT, */
+/*             "pg_statval_db: error: select sensor_flag_no:  %s\n", */
+/*              PQerrorMessage(pg_conn)); */
+/*     PQclear(res); */
+/*     return(1); */
+/*   } */
+/*   for ( i = 0; i < PQntuples(res); i++) { */
+/*     syslog(LOG_DEBUG, "statval_db : sensor_flag_no: %d",  */
+/*       atoi(PQgetvalue( res, i, 0))); */
+/*     sensor_flag_no   = atoi(PQgetvalue( res, i, 0));  */
+/*   } */
+/*   PQclear(res); */
 
-  /* insert status values */
-  snprintf(query, SBUFF, 
-    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
-    (long unsigned int)statusset_date, sensor_flag_no, (long unsigned int)sval); 
+/*   /\* insert status values *\/ */
+/*   snprintf(query, SBUFF,  */
+/*     "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)", */
+/*     (long unsigned int)statusset_date, sensor_flag_no, (long unsigned int)sval);  */
 
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_ALERT, "pg_statval_db: error insert status data: %s",
-      PQerrorMessage(pg_conn));
-  }
-  PQclear(res);
-  return(0);
-}
+/*   res = PQexec( pg_conn, query); */
+/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
+/*     syslog(LOG_ALERT, "pg_statval_db: error insert status data: %s", */
+/*       PQerrorMessage(pg_conn)); */
+/*   } */
+/*   PQclear(res); */
+/*   return(0); */
+/* } */
 
 
 sensdevpar_t
@@ -540,7 +540,7 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
     }
   }
 
-  syslog(LOG_DEBUG, "pgsql_get_sensor_params: sensor_meas_no : %d\n", 
+  syslog(LOG_DEBUG, "pgsql_get_sensorparams: sensor_meas_no : %d\n", 
                     sqsenspar.sensor_meas_no);
   if ( rowcnt == 0) {
     syslog( LOG_DEBUG, "pgsql_get_sensorparams: "
@@ -558,25 +558,24 @@ sensflag_t
 pgsql_get_sensorflags( char *sensorname, char *flagname,
                          int stationtype)
 {
-  int err;
-  int rowcnt = 0;
-  char query[SBUFF+1] = "\0";
-  sensflag_t sqsensflag;
-  sqlite3 *sqlitedb;
-  sqlite3_stmt *qcomp;
-
+  int          i;
+  int          rowcnt = 0;
+  char         query[SBUFF+1] = "\0";
+  sensflag_t   sqsensflag;
+  PGconn       *wth_pgconn;
+  PGresult     *res;
    
   switch(stationtype) {
     case ONEWIRE:
-      syslog(LOG_DEBUG, "sqlite_get_sensorflags: no flags available"
+      syslog(LOG_DEBUG, "pgsql_get_sensorflags: no flags available"
                         " for stationtype ONEWIRE\n");
       sqsensflag.sensor_flag_no = -1;
       return(sqsensflag);
       break;
     case WMR9X8:
-      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+      syslog(LOG_DEBUG, "pgsql_get_sensorflags: stationtype is "
                         "WMR9X8\n");
-      sqlitedb = wmr9x8db;
+      wth_pgconn = wmr9x8_pgconn;
       snprintf(query, SBUFF,
         "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
         "fn.flag_name "
@@ -587,13 +586,13 @@ pgsql_get_sensorflags( char *sensorname, char *flagname,
         "AND sn.sensor_name = '%s' "
         "AND fn.flag_name  = '%s' ",
         sensorname, flagname);
-      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+      syslog(LOG_DEBUG, "pgsql_get_sensorflags: query: %s\n",
                         query);
       break;
     case UMETER:
-      syslog(LOG_DEBUG, "sqlite_get_sensorflags: stationtype is "
+      syslog(LOG_DEBUG, "pgsql_get_sensorflags: stationtype is "
                         "UMETER\n");
-      sqlitedb = umeterdb;
+      wth_pgconn = umeter_pgconn;
       snprintf(query, SBUFF,
         "SELECT sf.sensor_flag_no, sn.sensor_no, fn.flag_no, sn.sensor_name, "
         "fn.flag_name "
@@ -604,65 +603,54 @@ pgsql_get_sensorflags( char *sensorname, char *flagname,
         "AND sn.sensor_name = '%s' "
         "AND fn.flag_name  = '%s' ",
         sensorname, flagname);
-      syslog(LOG_DEBUG, "sqlite_get_sensorflags: query: %s\n",
+      syslog(LOG_DEBUG, "pgsql_get_sensorflags: query: %s\n",
                         query);
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_get_sensorparams: error: "
+      syslog(LOG_ALERT, "pgsql_get_sensorflags: error: "
                         "unknown stationtype\n");
       sqsensflag.sensor_flag_no = -1;
       return(sqsensflag);
   }
 
-  err = sqlite3_prepare( sqlitedb, query, -1, &qcomp, 0);
-  if ( err != SQLITE_OK ) {
+  res = PQexec( wth_pgconn, query);
+  if (PQresultStatus(res) != PGRES_TUPLES_OK)
+  {
     syslog( LOG_ALERT,
-      "sqlite_get_sensorflags: error: select sensor flag info: "
-      "err: %d : sqlite_errmsg: %s\n",
-      err, sqlite3_errmsg(sqlitedb));
+            "pgsql_get_sensorflags: error: select:  %s\n",
+             PQerrorMessage(wth_pgconn));
+    PQclear(res);
     sqsensflag.sensor_flag_no = -1;
     return(sqsensflag);
   }
 
-  rowcnt = 0;
-  while( SQLITE_ROW == sqlite3_step(qcomp)) {
-
-    sqsensflag.sensor_flag_no = sqlite3_column_int(qcomp, 0);
-    sqsensflag.sensor_no = sqlite3_column_int(qcomp, 1);
-    sqsensflag.flag_no = sqlite3_column_int(qcomp, 2);
+  rowcnt =  PQntuples(res);
+  for ( i = 0; i < PQntuples(res); i++) {
+    sqsensflag.sensor_flag_no = atoi(PQgetvalue( res, i, 0));
+    sqsensflag.sensor_no      = atoi(PQgetvalue( res, i, 1));
+    sqsensflag.flag_no        = atoi(PQgetvalue( res, i, 1));
     strncpy(sqsensflag.sensorname, 
-      (char *)sqlite3_column_text(qcomp,3), TBUFF);
+      PQgetvalue( res, i, 3), TBUFF);
     strncpy(sqsensflag.flagname, 
-      (char *)sqlite3_column_text(qcomp,4), TBUFF);
-
+      PQgetvalue( res, i, 4), TBUFF);
     strncpy(sqsensflag.devicetyp, 
       "n.a.", TBUFF);
     strncpy(sqsensflag.familycode, 
       "n.a.", TBUFF);
     strncpy(sqsensflag.serialnum, 
       "n.a.", TBUFF);
-   
-    rowcnt++;
   }
-  
-  syslog(LOG_DEBUG, "sqlite_get_sensorflags: sensor_flag_no : %d\n", 
+  syslog(LOG_DEBUG, "pgsql_get_sensorflags: sensor_flag_no : %d\n", 
                     sqsensflag.sensor_flag_no);
-  err = sqlite3_finalize(qcomp);
-  if ( err != SQLITE_OK ) {
-    syslog( LOG_ALERT,
-            "sqlite_get_sensorflags: error: select flagname: "
-            "err: %d : sqlite_errmsg: %s\n",
-            err, sqlite3_errmsg(sqlitedb));
-    return(sqsensflag);
-  }
 
   if ( rowcnt == 0) {
-    syslog( LOG_DEBUG, "sqlite_get_sensorflags: "
+    syslog( LOG_DEBUG, "pgsql_get_sensorflags: "
                        "no configuration data in database");
     sqsensflag.sensor_flag_no = -1;
     return(sqsensflag);
   }
 
+  PQclear(res);
   return(sqsensflag);
 }
 
@@ -724,7 +712,7 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
-      "pg_datadbn: error: insert sensor status: %s",
+      "pgsql_datadbn: error: insert sensor status: %s",
       PQerrorMessage(wth_pgconn));
     PQclear(res);
     err = 1;  
@@ -735,11 +723,11 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
   snprintf(query, querylen, 
     "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
     dataset_date, sensor_meas_no); 
-  syslog(LOG_DEBUG, "sqlite_datadbn: query: %s", query);
+  syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
-      "pg_datadbn: error: update sensorupdate: %s",
+      "pgsql_datadbn: error: update sensorupdate: %s",
       PQerrorMessage(wth_pgconn));
     PQclear(res);
     err = 1;  
@@ -766,48 +754,49 @@ pgsql_statdbn( long statusset_date, int sensor_flag_no,
   int          err;
   int          querylen = MAXQUERYLEN;
   char         query[MAXQUERYLEN];
-  sqlite3      *sqlitedb;
+  PGconn       *wth_pgconn;
+  PGresult     *res;
 
   switch(stationtype) {
     case ONEWIRE:
-      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+      syslog(LOG_DEBUG, "pgsql_statdbn: stationtype is "
         "ONEWIRE\n");
-      sqlitedb = onewiredb;
+      wth_pgconn = onewire_pgconn;
       break;
     case UMETER:
-      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+      syslog(LOG_DEBUG, "pgsql_statdbn: stationtype is "
         "UMETER\n");
-      sqlitedb = umeterdb;
+      wth_pgconn = umeter_pgconn;
       break;
     case WMR9X8:
-      syslog(LOG_DEBUG, "sqlite_statdbn: stationtype is "
+      syslog(LOG_DEBUG, "pgsql_statdbn: stationtype is "
         "WMR9X8\n");
-      sqlitedb = wmr9x8db;
+      wth_pgconn = wmr9x8_pgconn;
       break;
     default:
-      syslog(LOG_ALERT, "sqlite_statdbn: error: unknown stationtype\n");
+      syslog(LOG_ALERT, "pgsql_statdbn: error: unknown stationtype\n");
       return(1);
   }  
 
-  /* insert status values */
-  syslog(LOG_DEBUG, "sqlite_statdbn: dataset_date: %ld, "
+
+  /* insert data values */
+  syslog(LOG_DEBUG, "pgsql_statdbn: dataset_date: %ld, "
                     "sensor_flag_no: %d, stat_val: %lu", 
                     statusset_date, sensor_flag_no, stat_value);
   snprintf(query, querylen, 
     "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
     statusset_date, sensor_flag_no, stat_value); 
-  syslog(LOG_DEBUG, "sqlite_statdbn: query: %s", query);
-  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
-  if ( err) { 
-    syslog(LOG_DEBUG,
-      "sqlite_statdbn: error: insert sensor data: err: %d", err);
-  }
+  syslog(LOG_DEBUG, "pgsql_statdbn: query: %s", query);
 
-  err = sqlite3_exec( sqlitedb, query, NULL, NULL, NULL);
-  if ( err) { 
-    syslog(LOG_DEBUG, 
-      "datadb: error: update sensor date: err: %d", err);
+  res = PQexec( wth_pgconn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_ALERT,
+      "pgsql_statdbn: error: insert sensor status: %s",
+      PQerrorMessage(wth_pgconn));
+    PQclear(res);
+    err = 1;  
   }
+  PQclear(res);
 
   return(err);
 }
