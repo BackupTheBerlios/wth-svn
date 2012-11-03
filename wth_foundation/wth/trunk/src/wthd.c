@@ -10,8 +10,8 @@
   each thread handles the serial data read,
   right now data are echoed to standard out
 
-  $Id: wthd.c 207 2008-10-17 18:43:08Z vjahns $
-  $Revision$
+  $Id$
+  $Revision: 350 $
 
   Copyright (C) 2002-2008 Volker Jahns, volker@thalreit.de
 

@@ -25,391 +25,6 @@
 */
 #include "wth.h"
 
-/*
-  PCWSR legacy
-
-  pgsql_datadb - insert measured values for use in 
-    - PCWSR 
-  database
-
-*/
-int
-pgsql_datadb( long dataset_date, int sensor_meas_no, float meas_value,
-  PGconn *pg_conn )
-{
-  PGresult *res;
-  int err;
-  int querylen = MAXQUERYLEN;
-  char query[MAXQUERYLEN];
-
-  err = 0;
-  /* insert data values */
-  snprintf(query, querylen, 
-    "INSERT INTO sensordata VALUES ( DEFAULT, to_timestamp(%lu), %d, %f)",
-    dataset_date, sensor_meas_no, meas_value); 
-  syslog( LOG_DEBUG, "datadb: INSERT query: %s", query);
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_DEBUG,
-      "pg_datadb: error: insert sensor data: %s", PQerrorMessage(pg_conn));
-      PQclear(res);
-      err = 1;
-  }
-  PQclear(res);
-
-  /* insert date when last data has been updated */
-  snprintf(query, querylen, 
-    "UPDATE sensorupdate SET last_update = to_timestamp(%lu) WHERE sensor_meas_no = %d",
-    dataset_date, sensor_meas_no); 
-  res = PQexec( pg_conn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_DEBUG,
-      "pg_datadb: error: update sensor data: %s", PQerrorMessage(pg_conn));
-      PQclear(res);
-      err = 1;  
-  }
-  PQclear(res);
-  syslog( LOG_DEBUG, "datadb: UPDATE query: %s", query);
-  return(err);
-}
-
-
-/*
-  WS2000 legacy
-
-  pgsql_stat_ws2000db - insert status values of WS2000 weatherstation
-
-*/
-int
-pgsql_stat_ws2000db( int sensor_status[], time_t statusset_date) 
-{
-  PGresult *res;
-  int i, err;
-  int querylen = MAXQUERYLEN;
-  char query[MAXQUERYLEN];
-
-  err = 0;
-  for ( i = 1; i <= 18; i++) {
-    snprintf(query, querylen, 
-     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, to_timestamp(%lu), %d, %d)",
-     (long unsigned int) statusset_date, i, sensor_status[i]); 
-    res = PQexec( ws2000_pgconn, query);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      syslog(LOG_ALERT,
-        "pgsql_stat_ws2000db: error: insert sensor status: %s",
-        PQerrorMessage(ws2000_pgconn));
-      PQclear(res);
-      err = 1;  
-    }
-    PQclear(res);
-  }
-  PQclear(res);
-  return(err);
-}
-
-
-/*
-  legacy WS2000
-
-  pgsql_new_ws2000db - insert new flag values of WS2000 weatherstation
-
-  new flag is read which each datarecord read command ( 1 2)
-  status value is read with status command ( 5)
-
-  there is a small time offset as both commands occur at different time
-  new flag is added to table sensorstatus with the same time value as
-  the sensorstatus value has been added with the status command before
-  using SQL update
-
-*/
-int
-pgsql_new_ws2000db( int sensor_no, int new_flag) 
-{
-  PGresult *res;
-  int err = 0;
-  int querylen = MAXQUERYLEN;
-  char query[MAXQUERYLEN];
-
-  snprintf(query, querylen, 
-	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
-	   new_flag, sensor_no, sensor_no); 
-  syslog(LOG_DEBUG, "pgsql_new_ws2000db: query: %s", query);
-  res = PQexec( ws2000_pgconn, query);
-  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    syslog(LOG_ALERT,
-      "pgsql_new_ws2000db: error: insert sensor status: %s",
-      PQerrorMessage(ws2000_pgconn));
-    PQclear(res);
-    err = 1;
-  }
-  PQclear(res);
-  syslog( LOG_DEBUG, "pgsql_new_ws2000db: INSERT query: %s", query);
-
-  return(err);
-}
-
-
-
-/*
-  legacy WS2000
-
-  pgsql_is_ws2000sens
-  
-  check if status value of sensor is not equal to zero 
-  only works fpr WS2000 weatherstation 
-  
-*/
-int
-pgsql_is_ws2000sens( int sensor_no)
-{
-  int i;
-  PGresult *res;
-  time_t   stattim;
-  int      statval = 0;
-  char     query[SBUFF+1];
-
-  snprintf(query, SBUFF, 
-    "SELECT sensor_status, EXTRACT (EPOCH FROM statusset_date) FROM sensorstatus WHERE sensor_no = %d",
-    sensor_no);
-
-  syslog(LOG_DEBUG, "pgsql_is_ws2000sens: query %s\n", query);
-  res = PQexec( ws2000_pgconn, query);
-  if (PQresultStatus(res) != PGRES_TUPLES_OK)
-  {
-    syslog( LOG_ALERT,
-            "pgsql_is_ws2000sens: error: select:  %s\n",
-             PQerrorMessage(ws2000_pgconn));
-    PQclear(res);
-    statval = 0;
-    return(statval);
-  }
-
-  for ( i = 0; i < PQntuples(res); i++) {
-    statval = atoi(PQgetvalue( res, i, 0));
-    stattim = (time_t) atol(PQgetvalue( res, i, 1));
-    syslog(LOG_DEBUG, "pgsql_is_ws2000sens: statval: %d stattim: %lu",
-            statval, stattim);
-  }
-
-  if ( PQntuples(res) == 0 ) {
-    syslog(LOG_ALERT,"pgsql_is_ws2000sens: no statusdatae in database");
-    statval = 0;
-  }
-  PQclear(res);
-
-  return(statval); 
-}
-
-
-/*
-
-  pg_measval_db
-
-  ULTIMETER and WMR928 NX measurement data to postgresql database
-
- */
-/* int */
-/* pg_measval_db( char *sensorname, char *parametername,  */
-/*                    time_t dataset_date, float mval, PGconn *pg_conn) { */
-/*   PGresult *res; */
-/*   int i; */
-/*   int sensor_no, parameter_no, sensor_meas_no; */
-/*   char query[SBUFF+1]; */
-
-/*   syslog(LOG_DEBUG, "pg_measval_db: sensorname: %s parametername: %s",  */
-/*                                 sensorname, parametername); */
-
-/*   /\* select sensor_no *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'", */
-/*     sensorname); */
-
-/*   syslog(LOG_DEBUG, "pg_measval_sb: query :\'%s\'", query); */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_measval_db: error: select:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "pg_measval_db : sensorname: \'%s\' sensor_no: %d",  */
-/*               sensorname, atoi(PQgetvalue(res, i, 0))); */
-/*     sensor_no   = atoi(PQgetvalue( res, i, 0));  */
-/*   } */
-/*   if ( PQntuples(res) == 0 ) */
-/*     syslog(LOG_ALERT," no sensorname %s\n in database", sensorname); */
-
-/*   PQclear(res); */
-/*   /\* select parameter_no of parametername *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT param_no FROM parameternames WHERE param_name = '%s'", */
-/*     parametername); */
-
-/*   syslog(LOG_DEBUG, "measval_sb: query :\'%s\'", query); */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_measval_db: error: select:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "measval_db : parametername: \'%s\' param_no: %d",  */
-/*               parametername, atoi(PQgetvalue( res, i, 0))); */
-/*     parameter_no   = atoi(PQgetvalue( res, i , 0)); */
-/*   } */
-/*   if ( PQntuples( res) == 0 ) */
-/*     syslog(LOG_ALERT," no parametername %s\n in database", parametername); */
-
-/*   PQclear(res); */
-
-/*   /\* select sens_meas_no of windsensor and wind_direction *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT sensor_meas_no FROM sensorparameters WHERE sensor_no = %d AND param_no = %d", */
-/*     sensor_no, parameter_no); */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_measval_db: error: select:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "measval_db : sensor_meas_no: %d",  */
-/*       atoi(PQgetvalue(res, i, 0))); */
-/*     sensor_meas_no   = atoi(PQgetvalue( res, i, 0)); */
-/*   } */
-/*   if ( PQntuples(res) == 0 ) */
-/*     syslog(LOG_ALERT," no sensor_meas_no in database"); */
-
-/*   PQclear(res); */
-
-/*   /\* insert data values *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)", */
-/*     (long unsigned int)dataset_date, sensor_meas_no, (double)mval);  */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
-/*     syslog(LOG_ALERT, "pg_measval_db: error insert sensor data: %s", */
-/*       PQerrorMessage(pg_conn)); */
-/*   } */
-/*   PQclear(res); */
-
-/*   /\* insert date when last data has been updated *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d", */
-/*     (long unsigned int)dataset_date, sensor_meas_no);  */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
-/*     syslog(LOG_ALERT, "pg_measval_db: error update sensor data: %s", */
-/*       PQerrorMessage(pg_conn)); */
-/*   } */
-/*   PQclear(res); */
-/*   return(0); */
-/* } */
-
-/* int */
-/* pg_statval_db( char *sensorname, char *flagname, */
-/*                time_t statusset_date, long unsigned int sval, PGconn *pg_conn)  */
-/* { */
-/*   PGresult *res; */
-/*   int i; */
-/*   int sensor_no, flag_no, sensor_flag_no; */
-/*   char query[SBUFF+1]; */
-
-/*   /\* select sensor_no *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT sensor_no FROM sensornames WHERE sensor_name = '%s'", */
-/*     sensorname); */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_measval_db: error: select:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "pg_statval_db : sensorname: \'%s\' sensor_no: %d", */
-/*               sensorname, atoi(PQgetvalue(res, i, 0))); */
-/*     sensor_no   = atoi(PQgetvalue( res, i, 0)); */
-/*   } */
-/*   if ( PQntuples(res) == 0 ) { */
-/*     syslog(LOG_ALERT," no sensorname %s\n in database", sensorname); */
-/*     return(1); */
-/*   } */
-
-/*   /\* select flag_no of flagnames *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT flag_no FROM flagnames WHERE flag_name = '%s'", */
-/*     flagname); */
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_flagval_db: error: select:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "pg_statval_db : flagname: \'%s\' flag_no: %d", */
-/*               flagname, atoi(PQgetvalue(res, i, 0))); */
-/*     flag_no   = atoi(PQgetvalue( res, i, 0)); */
-/*   } */
-/*   if ( PQntuples(res) == 0 ) { */
-/*     syslog(LOG_ALERT," no flagname %s\n in database", flagname); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-/*   PQclear(res); */
-
-/*   /\* select sens_flag_no of sensorname and flagname *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "SELECT sensor_flag_no FROM sensorflags WHERE sensor_no = %d AND flag_no = %d", */
-/*     sensor_no, flag_no); */
-  
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_TUPLES_OK) */
-/*   { */
-/*     syslog( LOG_ALERT, */
-/*             "pg_statval_db: error: select sensor_flag_no:  %s\n", */
-/*              PQerrorMessage(pg_conn)); */
-/*     PQclear(res); */
-/*     return(1); */
-/*   } */
-/*   for ( i = 0; i < PQntuples(res); i++) { */
-/*     syslog(LOG_DEBUG, "statval_db : sensor_flag_no: %d",  */
-/*       atoi(PQgetvalue( res, i, 0))); */
-/*     sensor_flag_no   = atoi(PQgetvalue( res, i, 0));  */
-/*   } */
-/*   PQclear(res); */
-
-/*   /\* insert status values *\/ */
-/*   snprintf(query, SBUFF,  */
-/*     "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)", */
-/*     (long unsigned int)statusset_date, sensor_flag_no, (long unsigned int)sval);  */
-
-/*   res = PQexec( pg_conn, query); */
-/*   if (PQresultStatus(res) != PGRES_COMMAND_OK) { */
-/*     syslog(LOG_ALERT, "pg_statval_db: error insert status data: %s", */
-/*       PQerrorMessage(pg_conn)); */
-/*   } */
-/*   PQclear(res); */
-/*   return(0); */
-/* } */
 
 
 sensdevpar_t
@@ -801,4 +416,179 @@ pgsql_statdbn( long statusset_date, int sensor_flag_no,
   return(err);
 }
 
+/*
+  WS2000 legacy
+
+  pgsql_stat_ws2000db - insert status values of WS2000 weatherstation
+
+*/
+int
+pgsql_stat_ws2000db( int sensor_status[], time_t statusset_date) 
+{
+  PGresult *res;
+  int i, err;
+  int querylen = MAXQUERYLEN;
+  char query[MAXQUERYLEN];
+
+  err = 0;
+  for ( i = 1; i <= 18; i++) {
+    snprintf(query, querylen, 
+     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, to_timestamp(%lu), %d, %d)",
+     (long unsigned int) statusset_date, i, sensor_status[i]); 
+    res = PQexec( ws2000_pgconn, query);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+      syslog(LOG_ALERT,
+        "pgsql_stat_ws2000db: error: insert sensor status: %s",
+        PQerrorMessage(ws2000_pgconn));
+      PQclear(res);
+      err = 1;  
+    }
+    PQclear(res);
+  }
+  PQclear(res);
+  return(err);
+}
+
+
+/*
+  legacy WS2000
+
+  pgsql_new_ws2000db - insert new flag values of WS2000 weatherstation
+
+  new flag is read which each datarecord read command ( 1 2)
+  status value is read with status command ( 5)
+
+  there is a small time offset as both commands occur at different time
+  new flag is added to table sensorstatus with the same time value as
+  the sensorstatus value has been added with the status command before
+  using SQL update
+
+*/
+int
+pgsql_new_ws2000db( int sensor_no, int new_flag) 
+{
+  PGresult *res;
+  int err = 0;
+  int querylen = MAXQUERYLEN;
+  char query[MAXQUERYLEN];
+
+  snprintf(query, querylen, 
+	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
+	   new_flag, sensor_no, sensor_no); 
+  syslog(LOG_DEBUG, "pgsql_new_ws2000db: query: %s", query);
+  res = PQexec( ws2000_pgconn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_ALERT,
+      "pgsql_new_ws2000db: error: insert sensor status: %s",
+      PQerrorMessage(ws2000_pgconn));
+    PQclear(res);
+    err = 1;
+  }
+  PQclear(res);
+  syslog( LOG_DEBUG, "pgsql_new_ws2000db: INSERT query: %s", query);
+
+  return(err);
+}
+
+
+
+/*
+  legacy WS2000
+
+  pgsql_is_ws2000sens
+  
+  check if status value of sensor is not equal to zero 
+  only works fpr WS2000 weatherstation 
+  
+*/
+int
+pgsql_is_ws2000sens( int sensor_no)
+{
+  int i;
+  PGresult *res;
+  time_t   stattim;
+  int      statval = 0;
+  char     query[SBUFF+1];
+
+  snprintf(query, SBUFF, 
+    "SELECT sensor_status, EXTRACT (EPOCH FROM statusset_date) FROM sensorstatus WHERE sensor_no = %d",
+    sensor_no);
+
+  syslog(LOG_DEBUG, "pgsql_is_ws2000sens: query %s\n", query);
+  res = PQexec( ws2000_pgconn, query);
+  if (PQresultStatus(res) != PGRES_TUPLES_OK)
+  {
+    syslog( LOG_ALERT,
+            "pgsql_is_ws2000sens: error: select:  %s\n",
+             PQerrorMessage(ws2000_pgconn));
+    PQclear(res);
+    statval = 0;
+    return(statval);
+  }
+
+  for ( i = 0; i < PQntuples(res); i++) {
+    statval = atoi(PQgetvalue( res, i, 0));
+    stattim = (time_t) atol(PQgetvalue( res, i, 1));
+    syslog(LOG_DEBUG, "pgsql_is_ws2000sens: statval: %d stattim: %lu",
+            statval, stattim);
+  }
+
+  if ( PQntuples(res) == 0 ) {
+    syslog(LOG_ALERT,"pgsql_is_ws2000sens: no statusdatae in database");
+    statval = 0;
+  }
+  PQclear(res);
+
+  return(statval); 
+}
+
+
+
+/*
+  PCWSR legacy
+
+  pgsql_datadb - insert measured values for use in 
+    - PCWSR 
+  database
+
+*/
+int
+pgsql_datadb( long dataset_date, int sensor_meas_no, float meas_value,
+  PGconn *pg_conn )
+{
+  PGresult *res;
+  int err;
+  int querylen = MAXQUERYLEN;
+  char query[MAXQUERYLEN];
+
+  err = 0;
+  /* insert data values */
+  snprintf(query, querylen, 
+    "INSERT INTO sensordata VALUES ( DEFAULT, to_timestamp(%lu), %d, %f)",
+    dataset_date, sensor_meas_no, meas_value); 
+  syslog( LOG_DEBUG, "datadb: INSERT query: %s", query);
+  res = PQexec( pg_conn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_DEBUG,
+      "pg_datadb: error: insert sensor data: %s", PQerrorMessage(pg_conn));
+      PQclear(res);
+      err = 1;
+  }
+  PQclear(res);
+
+  /* insert date when last data has been updated */
+  snprintf(query, querylen, 
+    "UPDATE sensorupdate SET last_update = to_timestamp(%lu) WHERE sensor_meas_no = %d",
+    dataset_date, sensor_meas_no); 
+  res = PQexec( pg_conn, query);
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    syslog(LOG_DEBUG,
+      "pg_datadb: error: update sensor data: %s", PQerrorMessage(pg_conn));
+      PQclear(res);
+      err = 1;  
+  }
+  PQclear(res);
+  syslog( LOG_DEBUG, "datadb: UPDATE query: %s", query);
+  return(err);
+}
 

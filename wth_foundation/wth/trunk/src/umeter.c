@@ -3,8 +3,8 @@
 
   ULTIMETER weatherstation handler implemented as POSIX thread
 
-  $Id: umeter.c 348 2012-10-11 13:43:22Z vjahns $
-  $Revision$
+  $Id$
+  $Revision: 361 $
 
   Copyright (C) 2010,2011 Volker Jahns <volker@thalreit.de>
 

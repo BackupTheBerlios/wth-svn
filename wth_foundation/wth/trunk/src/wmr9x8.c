@@ -3,8 +3,8 @@
 
   wmr9x8 handler implemented as POSIX thread
 
-  $Id: wmr9x8.c 349 2012-10-11 22:07:46Z vjahns $
-  $Revision$
+  $Id$
+  $Revision: 361 $
 
   Copyright (C) 2010 Volker Jahns <volker@thalreit.de>
 

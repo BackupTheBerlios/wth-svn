@@ -2,7 +2,7 @@
 
    generic data handling independent of database specific routines
 
-   $Id:$
+   $Id$
    $Revision$
 
    Copyright (C) 2012 Volker Jahns <volker@thalreit.de>
