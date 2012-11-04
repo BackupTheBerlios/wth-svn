@@ -141,12 +141,6 @@ void hh10d_i2c_rd(void)
   int offmsb  = 0x00;
   int offlsb  = 0x00; 
   int retbyte;
-/*
-  sbuf[0] = 0x55; // primary USB-ISS command
-  sbuf[1] = 0xA4; // address of HH10D 0xA3 + 1 with R/W bit high
-  sbuf[2] = 0x0A; // 1st internal register of SRF08 to read from: 0x0A sens MSB
-  sbuf[3] = 0x04; // number of bytes we wish to read
-*/
 
 /* 
   Read Operation on M24C02
@@ -184,92 +178,6 @@ void hh10d_i2c_rd(void)
   }
   */
 
-/*
-  Read Operation on M24C02
-
-  Random Access Read
-  using I2C_DIRECT command
-
-*/
-/*
-  sbuf[0] = 0x57; // I2C_DIRECT command
-  sbuf[1] = 0x01; // send start sequence
-  sbuf[2] = 0x31; // write 2 bytes
-  sbuf[3] = 0xA2; // EEPROM write access 0xA2
-  sbuf[4] = 0x0B; // 1st address to read
-
-  sbuf[5] = 0x01; // send 2nd start sequence
-  sbuf[6] = 0x30; // write 1 byte
-  sbuf[7] = 0xA3; // EEPROM read access 0xA3
-  sbuf[8] = 0x20; // read 1 bytes
-  sbuf[9] = 0x04; // send NACK
-  sbuf[10] = 0x03; // send stop sequence
-
-  printf("send I2C_DIRECT command\n");
-  echodata( sbuf, 11);
-
-  if (write(fd, sbuf, 11) < 0)
-    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
-  if (tcdrain(fd) < 0)
-    perror("hh10d_i2c_rd tcdrain");
-  if (read(fd, sbuf, 2) < 0)
-    perror("hh10d_i2c_rd read");  // Read back error byte
-  printf("return byte #1 I2C_DIRECT command: 0x%X\n", sbuf[0]);
-  printf("return byte #2 I2C_DIRECT command: 0x%X\n", sbuf[1]);
-*/
-/*
-  Current Address Read
-  using I2C_AD0 command
-*/
-/*
-  sbuf[0] = 0x54; // primary USB-ISS command
-  sbuf[1] = 0xA3; // address of HH10D 0xA3 + 1 with R/W bit high
-  sbuf[3] = 0x01; // number of bytes we wish to read
-
-  echodata( sbuf, 3);
-
-  if (write(fd, sbuf, 3) < 0)
-    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
-  if (tcdrain(fd) < 0)
-    perror("hh10d_i2c_rd tcdrain");
-  if (read(fd, sbuf, 2) < 0)
-    perror("hh10d_i2c_rd read");  // Read back error byte
-  printf("return byte #1 I2C_AD0 command: 0x%X\n", sbuf[0]);
-  printf("return byte #2 I2C_AD0 command: 0x%X\n", sbuf[1]);
-
-*/
-/*
-  sbuf[0] = 0x56; // primary USB-ISS command
-  sbuf[1] = 0xA3; // address of HH10D 0xA3 + 1 with R/W bit high
-  sbuf[2] = 0x0D; // 1st internal register of SRF08 to read from: 0x0A sens MSB
-  sbuf[3] = 0x0A; // 1st internal register of SRF08 to read from: 0x0A sens MSB
-  sbuf[4] = 0x04; // number of bytes we wish to read
-
-  if (write(fd, sbuf, 5) < 0)
-    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
-  if (tcdrain(fd) < 0)
-    perror("hh10d_i2c_rd tcdrain");
-  if (read(fd, sbuf, 4) < 0)
-    perror("hh10d_i2c_rd read");  // Read back error byte
-*/
-
-/*
-  sbuf[0] = 0x53; // primary USB-ISS command I2C_SGL
-  sbuf[1] = 0xA2; // address of HH10D 0xA2 + 0 with R/W bit low
-  sbuf[2] = 0x0A; // 1st internal register of HD10D to read from: 0x0A sens MSB
-
-  if (write(fd, sbuf, 3) < 0)
-    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
-  if (tcdrain(fd) < 0)
-    perror("hh10d_i2c_rd tcdrain");
-  if (read(fd, sbuf, 1) < 0)
-    perror("hh10d_i2c_rd read");  // Read back error byte
-
-  retbyte = sbuf[0];
-  printf("return byte I2C_SGL command: 0x%X\n", retbyte);
-*/
-
-/*
   sensmsb = sbuf[0];
   printf("sensmsb at 0x0A: 0x%X\n", sensmsb);
   senslsb = sbuf[1];
@@ -278,7 +186,6 @@ void hh10d_i2c_rd(void)
   printf("offmsb at 0x0B: 0x%X\n", offmsb);
   offlsb = sbuf[3];
   printf("offlsb at 0x0B: 0x%X\n", offlsb);
-*/
 
 }
 

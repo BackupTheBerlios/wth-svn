@@ -66,14 +66,14 @@ int closeserial( int fd, struct termios *oldtio) {
     /* lower DTR on serial line */
     if ( ioctl(fd, TIOCMGET, &tset) == -1 ) {
 	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
+	  syslog(LOG_ALERT, "closeserial: error ioctl: %s",
 			 strerror(werrno));
 	  return(-1);	
 	}
     tset &= ~TIOCM_DTR;
     if ( ioctl(fd, TIOCMSET, &tset) == -1 ) {
       werrno = errno;
-      syslog(LOG_INFO, "closeserial: error ioctl: %s",
+      syslog(LOG_ALERT, "closeserial: error ioctl: %s",
 	     strerror(werrno));
       return(-1);	
     }
@@ -83,7 +83,7 @@ int closeserial( int fd, struct termios *oldtio) {
        if tcsetattr is called to restore */
     if ( tcsetattr(fd,TCSANOW,oldtio) == -1 ) {
 	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error ioctl: %s",
+	  syslog(LOG_ALERT, "closeserial: error ioctl: %s",
 			 strerror(werrno));
 	  return(-1);	
 	}
@@ -91,7 +91,7 @@ int closeserial( int fd, struct termios *oldtio) {
     /* close serial port */
     if ( close(fd) == -1 ) {
 	  werrno = errno;
-	  syslog(LOG_INFO, "closeserial: error close: %s",
+	  syslog(LOG_ALERT, "closeserial: error close: %s",
 			 strerror(werrno));
 	  return(-1);	
     }
@@ -218,7 +218,7 @@ initws2000 (int *pfd, struct termios *newtio,
   *pfd = open(ws2000station.config.device, O_RDWR| O_NOCTTY| O_NDELAY| O_NONBLOCK );
   if ( *pfd <0) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error opening serial device : %s",
+    syslog(LOG_ALERT, "initserial: error opening serial device : %s",
 	   strerror(werrno));
     return(-1);
   }
@@ -226,7 +226,7 @@ initws2000 (int *pfd, struct termios *newtio,
   /* is this asynchronous? probably not */
   if ( fcntl(*pfd, F_SETFL, 0) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error fcntl: %s",
+    syslog(LOG_ALERT, "initserial: error fcntl: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -234,7 +234,7 @@ initws2000 (int *pfd, struct termios *newtio,
   /* save current port settings */
   if ( tcgetattr(*pfd,oldtio) == -1 ) {  
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error tcgetattr oldtio: %s",
+    syslog(LOG_ALERT, "initserial: error tcgetattr oldtio: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -242,7 +242,7 @@ initws2000 (int *pfd, struct termios *newtio,
   /* prefill port settings */
   if ( tcgetattr(*pfd,newtio) == -1 ) { 
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error tcgetattr newtio: %s",
+    syslog(LOG_ALERT, "initserial: error tcgetattr newtio: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -250,14 +250,14 @@ initws2000 (int *pfd, struct termios *newtio,
   /* set communication link parameters */
   if ( cfsetispeed(newtio, B9600) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error cfsetispeed: %s",
+    syslog(LOG_ALERT, "initserial: error cfsetispeed: %s",
 	   strerror(werrno));
     return(-1);	
   }
   
   if ( cfsetospeed(newtio, B9600) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error cfsetospeed: %s",
+    syslog(LOG_ALERT, "initserial: error cfsetospeed: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -288,7 +288,7 @@ initws2000 (int *pfd, struct termios *newtio,
 
   if ( tcsetattr(*pfd,TCSANOW,newtio) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error tcsetattr: %s",
+    syslog(LOG_ALERT, "initserial: error tcsetattr: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -296,7 +296,7 @@ initws2000 (int *pfd, struct termios *newtio,
   /* lower DTR and RTS on serial line */
   if ( ioctl(*pfd, TIOCMGET, &itio) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error ioctl: %s",
+    syslog(LOG_ALERT, "initserial: error ioctl: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -304,7 +304,7 @@ initws2000 (int *pfd, struct termios *newtio,
   itio &= ~TIOCM_RTS;
   if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
     errno = errno;
-    syslog(LOG_INFO, "initserial: error ioctl: %s",
+    syslog(LOG_ALERT, "initserial: error ioctl: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -313,7 +313,7 @@ initws2000 (int *pfd, struct termios *newtio,
   itio |= TIOCM_DTR;
   if ( ioctl(*pfd, TIOCMSET, &itio) == -1 ) {
     werrno = errno;
-    syslog(LOG_INFO, "initserial: error ioctl: %s",
+    syslog(LOG_ALERT, "initserial: error ioctl: %s",
 	   strerror(werrno));
     return(-1);	
   }
@@ -501,7 +501,7 @@ int getrd ( unsigned char *data, int *mdat) {
     /* write to command to serial line */
     if ( write(fd, lword, sizeof(lword)) == -1 ) {
       werrno = errno;
-      syslog(LOG_INFO, "getsrd: write failed: %s",
+      syslog(LOG_ALERT, "getsrd: write failed: %s",
 	     strerror(werrno));
       return(-1);
     }
@@ -670,7 +670,7 @@ chkframe( unsigned char *data, int *mdat) {
 	
     /* check if NAK dataframe has been received */
     if ( !strncmp( (char *)data, nakfram, strlen(nakfram)) ) {
-	  syslog(LOG_INFO, 
+	  syslog(LOG_WARNING, 
 		 "chkframe : NAK received : faulty data reception\n");
 	  werrno = ERCPT;
 	  return(-1);
@@ -1620,7 +1620,6 @@ wcmd ( ) {
       syslog(LOG_DEBUG, "wcmd : returncode datexn: %d\n", err);
       ws2000station.status.ndats = ws2000station.status.ndats + 1;
     }
-    syslog(LOG_INFO, "wcmd: data available");
     return(err);
   } 
 
@@ -1738,7 +1737,7 @@ wcmd ( ) {
 
     /* weather station response : <ACK> */
     if ( ( ndat == 1 ) && ( data[0] == ACK ) ) {
-      syslog(LOG_INFO, 
+      syslog(LOG_NOTICE, 
 	     "set logging interval to %d [min] (<ACK> received)\n", 
 	     wsconf.argcmd);
       return(0);
@@ -1836,7 +1835,7 @@ ws2000_hd( void *arg) {
   int lfd, err;
   int waitmax  = 0;
 
-  syslog(LOG_INFO,"ws2000_hd start exceuting\n");
+  syslog(LOG_NOTICE,"ws2000_hd start exceuting\n");
 
 
   if ( ws2000station.config.dbtype == SQLITE) {
