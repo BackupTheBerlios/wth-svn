@@ -41,3 +41,123 @@ i2cdetect -y 3
 70: -- -- -- -- -- -- -- -- 
 
 
+Reading Frequency of HH10D humidity sensor
+==========================================
+
+Record sound to WAV file and plot audiosignal with GNU octave
+----------------------------------------------------------------
+
+Read 10 seconds frequency signal of HH10D, 16-Bit Little Endian, 44100Hz, Stereo
+
+arecord -d 10 -f cd -t wav hh10d.wav
+Aufnahme: WAVE 'hh10d.wav' : Signed 16 bit Little Endian, Rate: 44100 Hz, stereo
+
+Start octave
+octave
+
+Load audio in GNU Octave
+octave:12> [y, Fs, bps] = wavread ("hh10d.wav", 80)
+y =
+
+   0.0000000   0.0000000
+  -0.0000610   0.0000000
+   0.0001221   0.0000000
+  -0.0002441   0.0000000
+   0.0003662   0.0000000
+  -0.0004883   0.0000000
+   0.0004578   0.0000000
+  -0.0001831   0.0000000
+  -0.0003662   0.0000000
+   0.0014648   0.0000000
+...
+
+Fs =  44100
+bps =  16
+
+Plot data
+octave:13> plot(y)
+
+
+Calculate frequency of audiosignal
+----------------------------------
+(1) using hh10_freq_read utility and GNU octave
+
+follows closely MATLAB documentation of FFT use , sunspot example
+http://www.mathworks.de/products/matlab/examples.html?file=/products/demos/shipping/matlab/sunspots.html
+
+Read audiosignal
+
+hh10d_freq_read
+# HH10D frequency as audio signal
+#
+# Display info about PCM interface
+# PCM handle name = 'default'
+# PCM state = PREPARED
+# access type = RW_INTERLEAVED
+# format = 'S8' (Signed 8 bit)
+# subformat = 'STD' (Standard)
+# channels = 1
+# rate = 44100 bps
+# period time = 21333 us
+# period size = 940 frames
+# buffer time = 341315 us
+# buffer size = 15052 frames
+# periods per buffer = 341315 frames
+# exact rate = 44100/1 bps
+# significant bits = 8
+# is batch = 0
+# is block transfer = 1
+# is double = 0
+# is half duplex = 0
+# is joint duplex = 0
+# can overrange = 0
+# can mmap = 0
+# can pause = 0
+# can resume = 0
+# can sync start = 1
+#
+# frames read: 940
+# buffer size: 940 ( should be frames * bytes/sample * channels)
+# time [s], audiosignal [arb.units]
+0.000023, 0
+0.000045, 0
+0.000068, 0
+0.000091, 0
+...
+
+redirect to outfile, which is then read in ocatve
+hh10d_freq_read >hh10d_freq.out
+
+start octave
+octave
+
+# load data in octave
+load hh10d_freq.out
+time = hh10d_freq(:,1);
+audio = hh10d_freq(:,2);
+
+# plot audiosignal
+plot(time,audio)
+
+# plot first 80 samples of audiosignal
+plot(time(1:80),audio(1:80),'b.-');
+
+# calculate FFT of audiosignal
+Y = fft(audio);
+Y(1) = [];
+
+# calculate power spectrum from FFT
+n=length(Y);
+power = abs(Y(1:floor(n/2))).^2;
+samplerate=44100;
+nyquist = 1/(2*samplerate);
+freq = (1:n/2)/(n/2)*nyquist;
+
+# plot power spectrum
+plot(freq,power)
+xlabel('frequency [Hz]')
+title('HH10D humidity sensor frequency readout')
+
+# find frequency of powermaximum 
+index=find(power==max(power));
+mainFreqStr=num2str(freq(index))

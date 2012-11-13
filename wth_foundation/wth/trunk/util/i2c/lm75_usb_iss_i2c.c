@@ -14,7 +14,7 @@
   - OpenSUSE 11.4 x86_64
 
   Compile command
-  gcc -Wall -o linux_usb_iss_i2c linux_usb_iss_i2c.c 
+  gcc -Wall -o lm75_usb_iss_i2c lm75_usb_iss_i2c.c 
 
   technical documentation 
   http://www.robot-electronics.co.uk/htm/usb_iss_tech.htm
@@ -34,9 +34,8 @@
 
 void display_version(void);   // Read and display USB-ISS module information
 void display_serialnum(void); // Read and display USB-ISS module serial number
-void set_i2c_mode(void);      // Set the USB-ISS into I2C mode, 100KHz clock
-void hh10d_i2c_rd(void);      // Read HH10D I2C EEPROM
-void hh10d_freq_rd(void);     // Read HH10D frequency
+void set_i2c_mode(void);      // Set the USB-ISS into I2C mode
+void lm75_i2c_rd(void);       // Read LM75 I2C EEPROM
 int echodata( unsigned char *data, int ndat);
 
 int fd;
@@ -65,7 +64,7 @@ int main(int argc, char *argv[])
       display_version();
       display_serialnum();
       set_i2c_mode();
-      if(!error) hh10d_i2c_rd();
+      if(!error) lm75_i2c_rd();
 			
       if (tcsetattr(fd, TCSANOW, &defaults) < 0) 
         perror("tcsetattr default");	// Restore port default before closing
@@ -134,43 +133,36 @@ void set_i2c_mode(void)
   }
 }
 
-void hh10d_i2c_rd(void)
+void lm75_i2c_rd(void)
 {
-  int sensmsb = 0x00;
-  int senslsb = 0x00;
-  int offmsb  = 0x00;
-  int offlsb  = 0x00; 
-  int sens    = 0x00;
-  int off     = 0x00;
-
-  int retbyte;
+  int   tempmsb = 0x00;
+  int   templsb = 0x00;
+  float temp    = 0.00;
 
 /* 
-  Read Operation on M24C02
+  Read Operation on LM75 EEPROM
 
   Random Access Read
   using I2C_AD1 command
 */
   sbuf[0] = 0x55; // primary USB-ISS command
-  sbuf[1] = 0xA3; // device address of HH10D: 0xA2 with R/W bit low
-  sbuf[2] = 0x0A; // 1st internal register of HH10D to read from: 0x0A sens MSB
-  sbuf[3] = 0x04; // read 4 bytes
+  sbuf[1] = 0x91; // device address of LM75: 0xA3 with R/W bit high
+  sbuf[2] = 0x00; // 1st internal register of LM75 to read from: 0x00 MSB
+  sbuf[3] = 0x02; // read 4 bytes
 
   printf("send I2C_AD1 command\n");
   echodata( sbuf, 4);
 
 
   if (write(fd, sbuf, 4) < 0)
-    perror("hh10d_i2c_rd write"); // Write data to USB-ISS
+    perror("lm75_i2c_rd write"); // Write data to USB-ISS
   if (tcdrain(fd) < 0)
-    perror("hh10d_i2c_rd tcdrain");
-  if (read(fd, sbuf, 4) < 0)
-    perror("hh10d_i2c_rd read");  // Read back error byte
+    perror("lm75_i2c_rd tcdrain");
+  if (read(fd, sbuf, 2) < 0)
+    perror("lm75_i2c_rd read");  // Read back error byte
 
   printf("return byte #1 I2C_AD1 command: 0x%X\n", sbuf[0]);
   printf("return byte #2 I2C_AD1 command: 0x%X\n", sbuf[1]);
-  printf("return byte #3 I2C_AD1 command: 0x%X\n", sbuf[2]);
-  printf("return byte #4 I2C_AD1 command: 0x%X\n", sbuf[3]);
   /*
 
   if ( sbuf[0] == 0x0 ) {
@@ -181,19 +173,17 @@ void hh10d_i2c_rd(void)
   }
   */
 
-  sensmsb = sbuf[0];
-  printf("sensmsb at 0x0A: 0x%X\n", sensmsb);
-  senslsb = sbuf[1];
-  printf("senslsb at 0x0B: 0x%X\n", senslsb);
-  sens = (sensmsb << 8 )+ senslsb;
-  printf("sens: 0x%X\n", sens);
+  tempmsb = sbuf[0];
+  printf("tempmsb at 0x00: 0x%X\n", tempmsb);
 
-  offmsb  = sbuf[2];
-  printf("offmsb at 0x0B: 0x%X\n", offmsb);
-  offlsb = sbuf[3];
-  printf("offlsb at 0x0B: 0x%X\n", offlsb);
-  off = (offmsb << 8 )+ offlsb;
-  printf("off: 0x%X %d(dec)\n", off, off);
+  templsb = sbuf[1];
+  printf("templsb at 0x01: 0x%X\n", templsb);
+
+  templsb = templsb >> 7;
+  printf("templsb shifted: 0x%X\n", templsb);
+
+  temp = tempmsb + 0.5 * templsb;
+  printf("temp: %f\n", temp);
 
 }
 
