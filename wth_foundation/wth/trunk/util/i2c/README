@@ -150,7 +150,7 @@ Y(1) = [];
 n=length(Y);
 power = abs(Y(1:floor(n/2))).^2;
 samplerate=44100;
-nyquist = 1/(2*samplerate);
+nyquist = samplerate/2;
 freq = (1:n/2)/(n/2)*nyquist;
 
 # plot power spectrum
@@ -160,4 +160,4 @@ title('HH10D humidity sensor frequency readout')
 
 # find frequency of powermaximum 
 index=find(power==max(power));
-mainFreqStr=num2str(freq(index))
+freq(index)
