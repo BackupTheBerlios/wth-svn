@@ -403,6 +403,7 @@ main( int argc, char **argv) {
   fftw_plan hh10d_plan;
   double *sample;
   double *sabs;
+  double *spow;
   float nyquist;
   float *freq;
   sndconf_t sndconfig;
@@ -529,15 +530,25 @@ main( int argc, char **argv) {
   /* frequency calculation using Numerical Recipes four1 FFT */
   if ( do_nrfft == TRUE) {
     printf("#\n# FFT using Numerical Recipes four1\n");
+
     /* calculate NFFT as the next higher power of 2 >= Nx */
     NFFT = (int)pow(2.0, ceil(log((double)size)/log(2.0)));
-    printf("# NFFT = %d\n", NFFT);
+    printf("# Number of data points (NFFT) = %d\n", NFFT);
+
+    nyquist = sndconfig.rate / 2;
+    printf("# Nyquist frequency: %.2f (should be half of samplerate)\n", nyquist);
 
     /* allocate memory for NFFT complex numbers (note the +1) */
     sample = (double *) malloc((2*NFFT+1) * sizeof(double));
 
     /* allocate memory for NFFT absolute numbers (note the +1) */
     sabs = (double *) malloc((NFFT+1) * sizeof(double));
+
+    /* allocate memory for NFFT absolute numbers (note the +1) */
+    spow = (double *) malloc((NFFT+1) * sizeof(double));
+
+    /* allocate memory for frequency values (note the +1) */
+    freq        = (float *) malloc((NFFT+1) * sizeof(float));
 
     /* Storing x(n) in a complex array to make it work with four1. 
     This is needed even though x(n) is purely real in this case. */
@@ -553,24 +564,49 @@ main( int argc, char **argv) {
       sabs[i] = 0.0;
     }
 
-      printf("#\n# Input complex sequence (padded to next highest power of 2):\n");
-      for(i=0; i<NFFT; i++) {
-        printf("sample[%d] = (%.2f + j %.2f)\n", i, sample[2*i+1], sample[2*i+2]);
+    if ( verbose == TRUE) {
+        printf("#\n# Input complex sequence (padded to next highest power of 2):\n");
+        for(i=0; i<NFFT; i++) {
+          printf("sample[%d] = (%.2f + j %.2f)\n", 
+                 i,
+                 sample[2*i+1],
+                 sample[2*i+2]);
       }
+    }
     /* FFT of audiosignal */
     four1( sample, NFFT, 1);
 
     printf("#\n# FFT of audiosignal [arb.units]\n");
     for ( i = 0; i < NFFT; i++)  {
-      sabs[i] = sqrt(sample[2*i+1]*sample[2*i+1] + sample[2*i+2]*sample[2*i+2]);
-      printf("sample[%d] = (%.2f + j %.2f) : sabs[%d] = %.2f\n",
-             i,
-             sample[2*i+1],
-             sample[2*i+2],
-             i,
-             sabs[i]);
+      sabs[i] = sqrt(sample[2*i+1]*sample[2*i+1] +
+                     sample[2*i+2]*sample[2*i+2]);
+      if ( verbose == TRUE) {
+        printf("sample[%d] = (%.2f + j %.2f) : sabs[%d] = %.2f\n",
+               i,
+               sample[2*i+1],
+                sample[2*i+2],
+                i,
+                sabs[i]);
+      }
     }
 
+    for ( i = 0; i < NFFT/2; i++) {
+      freq[i] = nyquist * (float) i / (NFFT/2);
+      spow[i] = sabs[i]*sabs[i];
+      //printf("spow[i]: %.2f\n", spow[i]);
+    }
+
+    if ( print_timetick == TRUE) {
+      printf("# frequency [Hz], power  [arb.units]\n");
+      for ( i = 0; i <  NFFT/2; i++) {
+          printf("%.2f, %.2f\n", freq[i], spow[i]);
+      } 
+    } else {
+      printf("# power [arb.units]\n");
+      for ( i = 0; i <  NFFT/2; i++) {
+        printf("%.2f\n", sabs[i]*sabs[i]);
+      } 
+    } 
     /* 
        free unused arrays 
        n.b. if not done allocation of hh10d_in, hh10d_out, hh10d_abs using fftw_malloc
@@ -578,6 +614,8 @@ main( int argc, char **argv) {
      */
     free(sample);
     free(sabs);
+    free(spow);
+    free(freq);
 
   }
 
@@ -587,7 +625,9 @@ main( int argc, char **argv) {
     printf("#\n# FFT using FFTW fftw_plan_dft_1d\n");
 
     NFFTW = size;
-    printf("#\n# NFFTW: %d\n", NFFTW);
+    printf("#\n# Number of data points (NFFTW): %d\n", NFFTW);
+    nyquist = sndconfig.rate / 2;
+    printf("# Nyquist frequency: %.2f (should be half of samplerate)\n", nyquist);
 
     /* reserve memory and initialize hh10d_in, hh10d_out and hh10d_abs */
     hh10d_in  = (fftw_complex *) fftw_malloc(sizeof(fftw_complex)*(NFFTW));
@@ -628,14 +668,11 @@ main( int argc, char **argv) {
                                    FFTW_ESTIMATE);
     fftw_execute(hh10d_plan);
 
-    nyquist = sndconfig.rate / 2;
-    printf("# Nyquist frequency: %.2f (should be half of samplerate)\n", nyquist);
     for ( i = 0; i < NFFTW/2; i++) {
       freq[i] = nyquist * (float) i / (NFFTW/2);
       hh10d_abs[i]   = sqrt(hh10d_out[i][0]*hh10d_out[i][0] + 
                           hh10d_out[i][1]*hh10d_out[i][1]);
       hh10d_power[i] = hh10d_abs[i]*hh10d_abs[i];
-      freq[i] = nyquist * (float) i / (NFFTW/2);
 
       if ( verbose == TRUE) {
         printf("hh10d_out[%d] = (%.2f + j %.2f) : hh10d_abs[%d] = %.2f\n",
@@ -647,16 +684,16 @@ main( int argc, char **argv) {
       }
     }
 
-    printf("# Frequency of maximum power: %.2f\n", 
+    printf("#\n# Frequency of maximum power: %.2f\n#\n", 
            freq[index_maxpower(hh10d_abs, NFFTW/2)]);
 
     if ( print_timetick == TRUE) {
-      printf("# frequency [Hz], fft absolute val [arb.units]\n");
+      printf("# frequency [Hz], power val [arb.units]\n");
       for ( i = 0; i <  NFFTW/2; i++) {
           printf("%.2f, %.2f\n", freq[i], hh10d_power[i]);
       } 
     } else {
-      printf("# fft absolute val [arb.units]\n");
+      printf("# power val [arb.units]\n");
       for ( i = 0; i <  NFFTW/2; i++) {
         printf("%.2f\n", hh10d_power[i]);
       } 
@@ -664,6 +701,7 @@ main( int argc, char **argv) {
     fftw_destroy_plan(hh10d_plan);
     free(hh10d_in);
     free(hh10d_out);
+    free(freq);
   }
 
   free(buffer);

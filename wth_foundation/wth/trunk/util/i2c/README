@@ -87,7 +87,7 @@ http://www.mathworks.de/products/matlab/examples.html?file=/products/demos/shipp
 
 Read audiosignal
 
-hh10d_freq_read
+hh10d_freq_read -i -a -z
 # HH10D frequency as audio signal
 #
 # Display info about PCM interface
@@ -126,15 +126,15 @@ hh10d_freq_read
 ...
 
 redirect to outfile, which is then read in ocatve
-hh10d_freq_read >hh10d_freq.out
+hh10d_freq_read -i -z -a >hh10d_audio.out
 
 start octave
 octave
 
 # load data in octave
-load hh10d_freq.out
-time = hh10d_freq(:,1);
-audio = hh10d_freq(:,2);
+load hh10d_audio.out
+time  = hh10d_audio(:,1);
+audio = hh10d_audio(:,2);
 
 # plot audiosignal
 plot(time,audio)
@@ -162,3 +162,66 @@ title('HH10D humidity sensor frequency readout')
 # find frequency of powermaximum 
 index=find(power==max(power));
 freq(index)
+
+(2) using different FFT algorithms
+
+a) Numerical recipes four1
+The audiosignal is sampled. The data are fed to Numerical Recipes four1 
+FFT function.
+
+hh10d_freq_read -z -n
+# HH10D frequency as audio signal
+#
+# frames read: 510
+# buffer size: 510 ( should be frames * bytes/sample * channels)
+#
+# FFT using Numerical Recipes four1
+# Number of data points (NFFT) = 512
+# Nyquist frequency: 11975.00 (should be half of samplerate)
+#
+# FFT of audiosignal [arb.units]
+# frequency [Hz], power  [arb.units]
+0.00, 201601.00
+46.78, 27210.41
+...
+6969.82, 4888782.33
+7016.60, 9335159.84
+7063.38, 19663776.10
+7110.16, 53869290.80
+7156.93, 409359790.79
+7203.71, 683912912.41
+7250.49, 53921275.49
+7297.27, 15439801.57
+7344.04, 5962631.92
+7390.82, 2324793.08
+7437.60, 1066065.35
+7484.38, 372803.94
+...
+
+b) FFTW fftw_plan_dft_1d
+The power spectrum is calculated from the FFTW fourier transform
+using fftw_plan_dft_1d
+
+# HH10D frequency as audio signal
+#
+# frames read: 510
+# buffer size: 510 ( should be frames * bytes/sample * channels)
+#
+# FFT using FFTW fftw_plan_dft_1d
+#
+# Number of data points (NFFTW): 510
+# Nyquist frequency: 11975.00 (should be half of samplerate)
+#
+# Frequency of maximum power: 7185.00
+#
+# frequency [Hz], power val [arb.units]
+0.00, 478864.00
+46.96, 9116.37
+...
+7091.08, 5738131.86
+7138.04, 10482877.56
+7185.00, 1166006143.55
+7231.96, 53919.67
+7278.92, 826848.83
+7325.88, 1322990.78
+...
