@@ -368,7 +368,7 @@ four1(double data[], int nn, int isign)
 }
 
 /* return index of maximum power value */
-int index_maxpower( float data[], int ndata)
+int index_maxpower( double data[], int ndata)
 {
   int i;
   float maxpower = 0.0;
@@ -647,7 +647,9 @@ main( int argc, char **argv) {
       }
     }
 
-    print("# Frequency of maximum power: %.2f\n", freq[index_maxpower(hh10d_abs, NFFTW/2)]);
+    printf("# Frequency of maximum power: %.2f\n", 
+           freq[index_maxpower(hh10d_abs, NFFTW/2)]);
+
     if ( print_timetick == TRUE) {
       printf("# frequency [Hz], fft absolute val [arb.units]\n");
       for ( i = 0; i <  NFFTW/2; i++) {
