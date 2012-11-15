@@ -149,7 +149,8 @@ Y(1) = [];
 # calculate power spectrum from FFT
 n=length(Y);
 power = abs(Y(1:floor(n/2))).^2;
-samplerate=44100;
+# samplerate=44100;
+samplerate=23950;
 nyquist = samplerate/2;
 freq = (1:n/2)/(n/2)*nyquist;
 

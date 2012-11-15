@@ -3,14 +3,17 @@
   hh10d_freq_read.c
 
   compile command
-  gcc -Wall -o hh10d_freq_read hh10d_freq_read.c -lasound
+  gcc -Wall -o hh10d_freq_read hh10d_freq_read.c -lasound -lfftw3 -lm
 
   This example reads the frequency of HH10D humidity sensor
   as ausdio signal from the default PCM device
   8-Bit signed
 
 */
+
+
 #define _USE_MATH_DEFINES
+#include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,14 +53,17 @@ sndconf_t set_soundconfig( void) {
   //soundcnf.device       = "hw:0,0";
   soundcnf.device       = "default";
   soundcnf.format       = SND_PCM_FORMAT_S8;  /* 8-Bit signed */
-  soundcnf.rate         = 44100;
+  //soundcnf.rate         = 44100;
+  soundcnf.rate         = 23950; /* at this sample rate approx. 510 frames are read, 
+				    close enough to 512 data points for Numerical Recipes
+                                    four1 FFT */
   soundcnf.timestep     = 1. / soundcnf.rate;
   soundcnf.channels     = 1;
   soundcnf.buffer_time  = 500000;
   soundcnf.period_time  = 100000;
   soundcnf.resample     = 1;
   soundcnf.period_event = 0;
-  soundcnf.frames       = 32;
+  soundcnf.frames       = 64;
   soundcnf.access       = SND_PCM_ACCESS_RW_INTERLEAVED; 
 
   return soundcnf;
@@ -361,6 +367,22 @@ four1(double data[], int nn, int isign)
     }
 }
 
+/* return index of maximum power value */
+int index_maxpower( float data[], int ndata)
+{
+  int i;
+  float maxpower = 0.0;
+  int maxindex = 0;
+
+  for ( i = 0; i < ndata; i++){
+    if (data[i] > maxpower) {
+      maxpower = data[i];
+      maxindex = i;
+    }
+  }
+  return(maxindex);
+}
+
 
 int 
 main( int argc, char **argv) {
@@ -374,27 +396,57 @@ main( int argc, char **argv) {
   int dir;
   char *buffer;
   int NFFT;
+  int NFFTW;
+  fftw_complex *hh10d_in, *hh10d_out;
+  double *hh10d_abs;
+  double *hh10d_power;
+  fftw_plan hh10d_plan;
   double *sample;
+  double *sabs;
+  float nyquist;
+  float *freq;
   sndconf_t sndconfig;
   sndstat_t sndstatus;
-  int display_info  = FALSE;
+  int print_audio    = FALSE;
+  int print_freq     = FALSE;
+  int display_info   = FALSE;
   int print_timetick = FALSE;
+  int do_nrfft       = FALSE;
+  int do_fftw        = FALSE;
+  int verbose        = FALSE;
 
 
   printf("# HH10D frequency as audio signal\n#\n");
 
-  while ((op = getopt(argc, argv, "izh")) != -1) {
+  while ((op = getopt(argc, argv, "ianfzvh")) != -1) {
     switch(op) {
     case 'i':
-      display_info = TRUE;
+      display_info   = TRUE;
+      break;
+    case 'a':
+      print_audio    = TRUE;
+      break;
+    case 'n':
+      do_nrfft       = TRUE;
+      print_freq     = TRUE;
+      break;
+    case 'f':
+      do_fftw        = TRUE;
+      print_freq     = TRUE;
       break;
     case 'z':
-      print_timetick= TRUE;
+      print_timetick = TRUE;
+      break;
+    case 'v':
+      verbose        = TRUE;
       break;
     case 'h':
       printf("Usage: hh10d_freq_read [options]\n");
       printf("where options include:\n");
       printf("\t-i\tdisplay information about sound device\n");
+      printf("\t-a\tprint audio signal in time domain\n");
+      printf("\t-n\tprint signal in frequency domain using Numerical Recipes fourier transformation\n");
+      printf("\t-f\tprint signal in frequency domain using FFTW fourier transformation\n");
       printf("\t-z\tprint timetick and audiosignal in comma-separated format\n");
       break;
     default:
@@ -456,50 +508,162 @@ main( int argc, char **argv) {
   printf("# frames read: %d\n", err);
   printf("# buffer size: %d ( should be frames * bytes/sample * channels)\n", size);
 
-  /* echo measured data */
-  if ( print_timetick == TRUE ) { 
-     printf("# audiosignal [arb.units]\n");
-     for ( i = 0; i < size; i++) 
-       printf("%d\n", buffer[i]);
-   } else {
-     printf("# time [s], audiosignal [arb.units]\n");
-     for ( i = 0; i < size; i++) 
-      printf("%f, %d\n", sndconfig.timestep*(i+1), buffer[i]);
-  }
-
-  /* calculate NFFT as the next higher power of 2 >= Nx */
-  NFFT = (int)pow(2.0, ceil(log((double)size)/log(2.0)));
-  printf("NFFT = %d\n", NFFT);
-
-  /* allocate memory for NFFT complex numbers (note the +1) */
-  sample = (double *) malloc((2*NFFT+1) * sizeof(double));
-
-  /* Storing x(n) in a complex array to make it work with four1. 
-  This is needed even though x(n) is purely real in this case. */
-  for(i=0; i<size; i++) {
-    sample[2*i+1] = buffer[i];
-    sample[2*i+2] = 0.0;
-  }
-  /* pad the remainder of the array with zeros (0 + 0 j) */
-  for(i=size; i<NFFT; i++) {
-    sample[2*i+1] = 0.0;
-    sample[2*i+2] = 0.0;
-  }
-
-  printf("\nInput complex sequence (padded to next highest power of 2):\n");
-  for(i=0; i<NFFT; i++) {
-    printf("sample[%d] = (%.2f + j %.2f)\n", i, sample[2*i+1], sample[2*i+2]);
-  }
-
-  /* FFT of audiosignal */
-  four1( sample, NFFT, 1);
-  printf("# FFT of audiosignal [arb.units]\n");
-  for ( i = 0; i < NFFT; i++) 
-    printf("sample[%d] = (%.f + j %.2f)\n", i, sample[2*i+1], sample[2*i+2]);
-
+  /* PCM device not needed anymore */
   snd_pcm_drain(handle);
   snd_pcm_close(handle);
-  free(buffer);
 
+  /* print audio signal in time domain */
+  if ( print_audio == TRUE) {
+    if ( print_timetick == FALSE ) { 
+       printf("# audiosignal [arb.units]\n");
+       for ( i = 0; i < size; i++) 
+         printf("%d\n", buffer[i]);
+     } else {
+       printf("# time [s], audiosignal [arb.units]\n");
+       for ( i = 0; i < size; i++) 
+        printf("%f, %d\n", sndconfig.timestep*(i+1), buffer[i]);
+    }
+  }
+
+
+  /* frequency calculation using Numerical Recipes four1 FFT */
+  if ( do_nrfft == TRUE) {
+    printf("#\n# FFT using Numerical Recipes four1\n");
+    /* calculate NFFT as the next higher power of 2 >= Nx */
+    NFFT = (int)pow(2.0, ceil(log((double)size)/log(2.0)));
+    printf("# NFFT = %d\n", NFFT);
+
+    /* allocate memory for NFFT complex numbers (note the +1) */
+    sample = (double *) malloc((2*NFFT+1) * sizeof(double));
+
+    /* allocate memory for NFFT absolute numbers (note the +1) */
+    sabs = (double *) malloc((NFFT+1) * sizeof(double));
+
+    /* Storing x(n) in a complex array to make it work with four1. 
+    This is needed even though x(n) is purely real in this case. */
+    for(i=0; i<size; i++) {
+      sample[2*i+1] = buffer[i];
+      sample[2*i+2] = 0.0;
+      sabs[i] = 0.0;
+    }
+    /* pad the remainder of the array with zeros (0 + 0 j) */
+    for(i=size; i<NFFT; i++) {
+      sample[2*i+1] = 0.0;
+      sample[2*i+2] = 0.0;
+      sabs[i] = 0.0;
+    }
+
+      printf("#\n# Input complex sequence (padded to next highest power of 2):\n");
+      for(i=0; i<NFFT; i++) {
+        printf("sample[%d] = (%.2f + j %.2f)\n", i, sample[2*i+1], sample[2*i+2]);
+      }
+    /* FFT of audiosignal */
+    four1( sample, NFFT, 1);
+
+    printf("#\n# FFT of audiosignal [arb.units]\n");
+    for ( i = 0; i < NFFT; i++)  {
+      sabs[i] = sqrt(sample[2*i+1]*sample[2*i+1] + sample[2*i+2]*sample[2*i+2]);
+      printf("sample[%d] = (%.2f + j %.2f) : sabs[%d] = %.2f\n",
+             i,
+             sample[2*i+1],
+             sample[2*i+2],
+             i,
+             sabs[i]);
+    }
+
+    /* 
+       free unused arrays 
+       n.b. if not done allocation of hh10d_in, hh10d_out, hh10d_abs using fftw_malloc
+       will result in erroneous results
+     */
+    free(sample);
+    free(sabs);
+
+  }
+
+  /* frequency calculation using FFTW fourier transformation */
+  if ( do_fftw == TRUE) {
+    /* FFT using FFTW functions */
+    printf("#\n# FFT using FFTW fftw_plan_dft_1d\n");
+
+    NFFTW = size;
+    printf("#\n# NFFTW: %d\n", NFFTW);
+
+    /* reserve memory and initialize hh10d_in, hh10d_out and hh10d_abs */
+    hh10d_in  = (fftw_complex *) fftw_malloc(sizeof(fftw_complex)*(NFFTW));
+    if ( hh10d_in == NULL) {
+      fprintf(stderr,"can't allocate memory for hh10d_in\n");
+      exit(EXIT_FAILURE);
+    }
+
+    /* allocate memory for NFFTW absolute numbers (note the +1) */
+    hh10d_abs   = (double *) malloc((NFFTW+1) * sizeof(double));
+    hh10d_power = (double *) malloc((NFFTW+1) * sizeof(double));
+    freq        = (float *) malloc((NFFTW+1) * sizeof(float));
+
+    hh10d_out = (fftw_complex *) fftw_malloc(sizeof(fftw_complex)*(NFFTW));
+    if ( hh10d_out == NULL) {
+      fprintf(stderr,"can't allocate memory for hh10d_out\n");
+      exit(EXIT_FAILURE);
+    }
+
+    
+    for ( i = 0; i < NFFTW; i++) {
+      hh10d_in[i][0] = buffer[i];
+      hh10d_in[i][1] = 0.0;
+
+      hh10d_out[i][0] = 0.0;
+      hh10d_out[i][1] = 0.0;
+    
+      hh10d_abs[i] = 0.0;
+      if ( verbose == TRUE) { 
+        printf("hh10d_in[%d] = %.2f + %.2f\n", i, hh10d_in[i][0], hh10d_in[i][1]);
+      }
+    }
+
+    hh10d_plan = fftw_plan_dft_1d( NFFTW,
+                                   hh10d_in, 
+                                   hh10d_out,
+                                   FFTW_FORWARD,
+                                   FFTW_ESTIMATE);
+    fftw_execute(hh10d_plan);
+
+    nyquist = sndconfig.rate / 2;
+    printf("# Nyquist frequency: %.2f (should be half of samplerate)\n", nyquist);
+    for ( i = 0; i < NFFTW/2; i++) {
+      freq[i] = nyquist * (float) i / (NFFTW/2);
+      hh10d_abs[i]   = sqrt(hh10d_out[i][0]*hh10d_out[i][0] + 
+                          hh10d_out[i][1]*hh10d_out[i][1]);
+      hh10d_power[i] = hh10d_abs[i]*hh10d_abs[i];
+      freq[i] = nyquist * (float) i / (NFFTW/2);
+
+      if ( verbose == TRUE) {
+        printf("hh10d_out[%d] = (%.2f + j %.2f) : hh10d_abs[%d] = %.2f\n",
+               i, 
+               hh10d_out[i][0],
+                 hh10d_out[i][1],
+               i,
+               hh10d_abs[i]);
+      }
+    }
+
+    print("# Frequency of maximum power: %.2f\n", freq[index_maxpower(hh10d_abs, NFFTW/2)]);
+    if ( print_timetick == TRUE) {
+      printf("# frequency [Hz], fft absolute val [arb.units]\n");
+      for ( i = 0; i <  NFFTW/2; i++) {
+          printf("%.2f, %.2f\n", freq[i], hh10d_power[i]);
+      } 
+    } else {
+      printf("# fft absolute val [arb.units]\n");
+      for ( i = 0; i <  NFFTW/2; i++) {
+        printf("%.2f\n", hh10d_power[i]);
+      } 
+    } 
+    fftw_destroy_plan(hh10d_plan);
+    free(hh10d_in);
+    free(hh10d_out);
+  }
+
+  free(buffer);
   return 0;
 }
