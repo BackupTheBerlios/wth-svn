@@ -44,6 +44,8 @@
 
 */
 #define _USE_MATH_DEFINES
+#include <alsa/asoundlib.h>
+#include <fcntl.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
@@ -52,9 +54,8 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <alsa/asoundlib.h>
+#include <sys/time.h>
 
 #define PI	M_PI	/* pi to machine precision, defined in math.h */
 #define TWOPI	(2.0*PI)
@@ -276,10 +277,11 @@ sndconf_t set_soundconfig( void) {
   //soundcnf.device       = "hw:0,0";
   soundcnf.device       = "default";
   soundcnf.format       = SND_PCM_FORMAT_S8;  /* 8-Bit signed */
+  soundcnf.rate         = 48000;
   //soundcnf.rate         = 44100;
-  soundcnf.rate         = 23950; /* at this sample rate approx. 510 frames are read, 
-				    close enough to 512 data points for Numerical Recipes
-                                    four1 FFT */
+  //soundcnf.rate         = 23950; // at this sample rate approx. 510 frames are read, 
+				 // close enough to 512 data points for Numerical Recipes
+                                 // four1 FFT
   soundcnf.timestep     = 1. / soundcnf.rate;
   soundcnf.channels     = 1;
   soundcnf.buffer_time  = 500000;
@@ -395,9 +397,9 @@ int print_soundconfig(snd_pcm_t *handle,
 
 
 int set_hwparams(snd_pcm_t *handle,
-                        snd_pcm_hw_params_t *params,
-                        sndconf_t sndconfig,
-                        sndstat_t sndstatus)
+                 snd_pcm_hw_params_t *params,
+                 sndconf_t sndconfig,
+                 sndstat_t sndstatus)
 {
   unsigned int rrate;
   snd_pcm_uframes_t size;
@@ -494,9 +496,9 @@ int set_hwparams(snd_pcm_t *handle,
 }
 
 int set_swparams(snd_pcm_t *handle, 
-                        snd_pcm_sw_params_t *swparams,
-                        sndconf_t sndconfig,
-                        sndstat_t sndstatus)
+                 snd_pcm_sw_params_t *swparams,
+                 sndconf_t sndconfig,
+                 sndstat_t sndstatus)
 {
   int err;
   /* get the current swparams */
@@ -659,6 +661,8 @@ main( int argc, char **argv) {
   hh10dcoeff_t calibration;
   float soh;
   float humidity;
+  struct timezone tz;
+  struct timeval  tv;
 
   struct termios defaults;     // to store initial default port settings
   struct termios config;       // These will be our new settings
@@ -708,6 +712,7 @@ main( int argc, char **argv) {
       printf("\t-n\tprint signal in frequency domain using Numerical Recipes fourier transformation\n");
       printf("\t-f\tprint signal in frequency domain using FFTW fourier transformation\n");
       printf("\t-z\tprint timetick and audiosignal in comma-separated format\n");
+      printf("\t-v\tprint more information\n");
       exit(EXIT_SUCCESS);
       break;
     default:
@@ -1032,9 +1037,12 @@ main( int argc, char **argv) {
   }
   free(buffer);
 
+  gettimeofday(&tv, &tz);
+
   /* calculate humidity */
   humidity = ( calibration.offset - soh ) * calibration.sens / 4096;
-  printf("# humidity: %.2f\n", humidity);
+  printf("# time [EPOCH seconds], humidity [rel. %%]\n");
+  printf("%lu.%lu, %.2f\n", ( long unsigned int)tv.tv_sec, tv.tv_usec, humidity);
 
   return 0;
 }

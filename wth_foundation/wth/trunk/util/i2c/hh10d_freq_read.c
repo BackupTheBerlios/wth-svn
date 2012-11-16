@@ -53,10 +53,11 @@ sndconf_t set_soundconfig( void) {
   //soundcnf.device       = "hw:0,0";
   soundcnf.device       = "default";
   soundcnf.format       = SND_PCM_FORMAT_S8;  /* 8-Bit signed */
-  //soundcnf.rate         = 44100;
-  soundcnf.rate         = 23950; /* at this sample rate approx. 510 frames are read, 
-				    close enough to 512 data points for Numerical Recipes
-                                    four1 FFT */
+  soundcnf.rate         = 44100;
+  soundcnf.rate         = 48000;
+  //soundcnf.rate         = 23950; // at this sample rate approx. 510 frames are read, 
+				   // close enough to 512 data points for Numerical Recipes
+                                   // four1 FFT
   soundcnf.timestep     = 1. / soundcnf.rate;
   soundcnf.channels     = 1;
   soundcnf.buffer_time  = 500000;
