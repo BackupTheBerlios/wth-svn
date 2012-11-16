@@ -6,7 +6,7 @@
   gcc -Wall -o hh10d_freq_read hh10d_freq_read.c -lasound -lfftw3 -lm
 
   This example reads the frequency of HH10D humidity sensor
-  as ausdio signal from the default PCM device
+  as audio signal from the default PCM device
   8-Bit signed
 
 */
