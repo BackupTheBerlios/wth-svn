@@ -35,8 +35,8 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
   int          rowcnt             = 0;
   char         query[SBUFF+1]     = "\0";
   char         serialnum[TBUFF+1] = "\0";
-  float        *offset;
-  float        *gain;
+  double        offset;
+  double        gain;
   sensdevpar_t sqsenspar;
   PGconn       *wth_pgconn;
   PGresult     *res;
@@ -59,7 +59,6 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
         "AND dt.serialnum = '%s' "
         "AND pn.param_name = '%s' ",
         serialnum, parametername);
-      //syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
       break;
     case WMR9X8:
       syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
@@ -75,7 +74,6 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
         "AND sn.sensor_name = '%s' "
         "AND pn.param_name  = '%s' ",
         sensorname, parametername);
-      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
       break;
     case UMETER:
       syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
@@ -91,7 +89,6 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
         "AND sn.sensor_name = '%s' "
         "AND pn.param_name  = '%s' ",
         sensorname, parametername);
-      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
       break;
     case WS2000:
       syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
@@ -107,7 +104,6 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
         "AND sn.sensor_name = '%s' "
         "AND pn.param_name  = '%s' ",
         sensorname, parametername);
-      syslog(LOG_DEBUG, "pgsql_get_sensorparams: query: %s\n", query);
       break;
     default:
       syslog(LOG_ALERT, "pgsql_get_sensorparams: error: unknown stationtype\n");
@@ -115,7 +111,7 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
       return(sqsenspar);
   }
 
-  syslog(LOG_DEBUG, "pgsql_get_sensorparams: query %s\n", query);
+  //syslog(LOG_DEBUG, "pgsql_get_sensorparams: query %s\n", query);
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_TUPLES_OK)
   {
@@ -134,10 +130,10 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
       PQgetvalue( res, i, 1), TBUFF);
     strncpy(sqsenspar.par_name, 
       PQgetvalue( res, i, 2), TBUFF);
-    offset = ( float *)(PQgetvalue( res, i, 3));
-    sqsenspar.offset = *offset;
-    gain   = ( float *)(PQgetvalue( res, i, 4));
-    sqsenspar.gain   = *gain;
+    offset = atof((PQgetvalue( res, i, 3)));
+    sqsenspar.offset = offset;
+    gain   = atof((PQgetvalue( res, i, 4)));
+    sqsenspar.gain   = gain;
     if ( stationtype == ONEWIRE ) {				  
       strncpy(sqsenspar.devicetyp, 
         PQgetvalue( res, i, 5), TBUFF);
@@ -320,7 +316,7 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
                     "sensor_meas_no: %d, meas_val: %f", 
                     dataset_date, sensor_meas_no, meas_value);
   snprintf(query, querylen, 
-    "INSERT INTO sensordata VALUES ( NULL, %lu, %d, %f)",
+    "INSERT INTO sensordata VALUES ( nextval('sensordata_dataset_no_seq'), to_timestamp(%lu), %d, %f)",
     dataset_date, sensor_meas_no, meas_value); 
   syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
 
@@ -336,7 +332,7 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
 
   /* insert date when last data has been updated */
   snprintf(query, querylen, 
-    "UPDATE sensorupdate SET last_update = %lu WHERE sensor_meas_no = %d",
+    "UPDATE sensorupdate SET last_update = to_timestamp(%lu) WHERE sensor_meas_no = %d",
     dataset_date, sensor_meas_no); 
   syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
   res = PQexec( wth_pgconn, query);
@@ -399,7 +395,7 @@ pgsql_statdbn( long statusset_date, int sensor_flag_no,
                     "sensor_flag_no: %d, stat_val: %lu", 
                     statusset_date, sensor_flag_no, stat_value);
   snprintf(query, querylen, 
-    "INSERT INTO statusdata VALUES ( NULL, %lu, %d, %lu)",
+    "INSERT INTO statusdata VALUES ( nextval('statusdata_statusset_no'), to_timestamp(%lu), %d, %lu)",
     statusset_date, sensor_flag_no, stat_value); 
   syslog(LOG_DEBUG, "pgsql_statdbn: query: %s", query);
 
@@ -433,7 +429,7 @@ pgsql_stat_ws2000db( int sensor_status[], time_t statusset_date)
   err = 0;
   for ( i = 1; i <= 18; i++) {
     snprintf(query, querylen, 
-     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( NULL, to_timestamp(%lu), %d, %d)",
+     "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( nextval('sensorstatus_statusset_no_seq'), to_timestamp(%lu), %d, %d)",
      (long unsigned int) statusset_date, i, sensor_status[i]); 
     res = PQexec( ws2000_pgconn, query);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {

@@ -746,6 +746,7 @@ onewire_hd( void *arg)
             if ( ( cvad > 0) || ( cvdd > 0)) {
               press2438 = sensorparams.gain * ( vad/vdd) 
                           + sensorparams.offset;
+              syslog(LOG_DEBUG,"onewire_hd: pressure sensor: sensorparams.gain: %f, vad: %f, vdd: %f sensorparams.offset: %f",  sensorparams.gain,vad,vdd,sensorparams.offset);
               syslog(LOG_DEBUG,
                 "onewire_hd: pressure sensor discovered: "
                 "pressure[hPa] : %f", press2438);

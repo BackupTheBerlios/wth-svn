@@ -1,0 +1,17 @@
+Nagios for wth monitoring
+
+Steps to activate nagios monitoring include
+
+(1) install nagios
+
+(2) configure and copy check plugin check_wth to /usr/lib/nagios/plugins/check_wth
+
+(3) configure and copy weatherstation.cfg to /etc/nagios/objects
+
+(4) edit /etc/nagios/nagios.cfg and add the follwong two lines which 
+    represent weatherstation definitions
+--
+# Definitions for monitoring weatherstation
+cfg_file=/etc/nagios/objects/weatherstation.cfg
+--
+

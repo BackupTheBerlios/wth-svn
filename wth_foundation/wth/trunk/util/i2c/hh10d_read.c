@@ -674,11 +674,12 @@ main( int argc, char **argv) {
   int print_timetick = FALSE;
   int do_nrfft       = TRUE;
   int do_fftw        = FALSE;
-
+  int do_loop        = FALSE;
+  int loop_time      = 60;    // default wait 60 sec between two measurements
 
   printf("# HH10D humidity sensor readout\n#\n");
 
-  while ((op = getopt(argc, argv, "ianfzvh")) != -1) {
+  while ((op = getopt(argc, argv, "ialt:nfzvh")) != -1) {
     switch(op) {
     case 'r':
       display_info   = TRUE;
@@ -688,6 +689,12 @@ main( int argc, char **argv) {
       break;
     case 'a':
       print_audio    = TRUE;
+      break;
+    case 'l':
+      do_loop        = TRUE;
+      break;
+    case 't':
+      loop_time      = atoi(optarg);
       break;
     case 'n':
       do_nrfft       = TRUE;
@@ -709,6 +716,7 @@ main( int argc, char **argv) {
       printf("where options include:\n");
       printf("\t-i\tdisplay information about EEPROM parameters and sound device\n");
       printf("\t-a\tprint audio signal in time domain\n");
+      printf("\t-l\tloop readout\n");
       printf("\t-n\tprint signal in frequency domain using Numerical Recipes fourier transformation\n");
       printf("\t-f\tprint signal in frequency domain using FFTW fourier transformation\n");
       printf("\t-z\tprint timetick and audiosignal in comma-separated format\n");
@@ -780,6 +788,7 @@ main( int argc, char **argv) {
     exit(1);
   }
 
+  while ( TRUE ) {
   /* configure PCM device */
   err = set_hwparams(handle, hwparams, sndconfig, sndstatus);
   if ( err < 0 ) {
@@ -794,6 +803,8 @@ main( int argc, char **argv) {
   */
   if ( display_info == TRUE ) 
     print_soundconfig(handle, hwparams, sndconfig, sndstatus);
+
+
   /* use a buffer large enough to hold one period */
   snd_pcm_hw_params_get_period_size(hwparams,
                                     &sndconfig.frames, &dir);
@@ -820,9 +831,6 @@ main( int argc, char **argv) {
     printf("# buffer size: %d ( should be frames * bytes/sample * channels)\n", size);
   }
 
-  /* PCM device not needed anymore */
-  snd_pcm_drain(handle);
-  snd_pcm_close(handle);
 
   /* print audio signal in time domain */
   if ( print_audio == TRUE) {
@@ -1007,7 +1015,7 @@ main( int argc, char **argv) {
         printf("hh10d_out[%d] = (%.2f + j %.2f) : hh10d_abs[%d] = %.2f\n",
                i, 
                hh10d_out[i][0],
-                 hh10d_out[i][1],
+               hh10d_out[i][1],
                i,
                hh10d_abs[i]);
       }
@@ -1041,8 +1049,17 @@ main( int argc, char **argv) {
 
   /* calculate humidity */
   humidity = ( calibration.offset - soh ) * calibration.sens / 4096;
-  printf("# time [EPOCH seconds], humidity [rel. %%]\n");
-  printf("%lu.%lu, %.2f\n", ( long unsigned int)tv.tv_sec, tv.tv_usec, humidity);
+  if ( do_loop == FALSE) 
+    printf("# time [EPOCH seconds], humidity [rel. %%]\n");
+  printf("%lu.%2lu, %.2f\n", ( long unsigned int)tv.tv_sec, tv.tv_usec, humidity);
+  if ( do_loop == FALSE) {
+    break;
+  }
+  sleep(loop_time);
+  }
 
+  /* PCM device not needed anymore */
+  snd_pcm_drain(handle);
+  snd_pcm_close(handle);
   return 0;
 }

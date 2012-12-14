@@ -23,13 +23,48 @@ Starting PostgreSQL                                                  done
 
 persist runlevel in YaST
 
-create db user
-
+create db user 'wth' with RW access
 --
 createuser wth -S -d -R -e
 CREATE ROLE wth NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
 --
 
+create db user 'wthrd' with RO access
+--
+createuser wthrd -D -R -S -e
+CREATE ROLE wthrd NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN;
+--
+
+psql -d umeter -U wth
+grant select on all tables in schema public to wthrd;
+GRANT
+
+Display privileges
+
+\dp
+                                           Zugriffsprivilegien
+ Schema |                Name                 |   Typ   | Zugriffsprivilegien | Spalten-Zugriffsprivilegien 
+--------+-------------------------------------+---------+---------------------+-----------------------------
+ public | devicetyp                           | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | devicetyp_device_no_seq             | Sequenz |                     | 
+ public | parameternames                      | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | parameternames_param_no_seq         | Sequenz |                     | 
+ public | sensordata                          | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | sensordata_dataset_no_seq           | Sequenz |                     | 
+ public | sensornames                         | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | sensornames_sensor_no_seq           | Sequenz |                     | 
+ public | sensorparameters                    | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | sensorparameters_sensor_meas_no_seq | Sequenz |                     | 
+ public | sensorupdate                        | Tabelle | wth=arwdDxt/wth    +| 
+        |                                     |         | wthrd=r/wth         | 
+ public | sensorupdate_sensor_meas_no_seq     | Sequenz |                     | 
+
+--
 connect to database with other user than login uid
 --
 psql -d umeter -U wth
@@ -164,3 +199,15 @@ onewire=# \di
 (1 Zeile)
 --
 
+Network access
+--------------
+To enable network access the following configuration is used
+The file /etc/sysconfig/postgresql is edited, the configuration 
+parameter POSTGRES_OPTIONS="-i" is set.
+The follwing line ist added to postgresql configuration file
+--
+# IPv4 local network only onewire db to user wthrd:
+host    onewire         wthrd             xxx.yyy.zzz.0/24           trust
+--
+The user wthrd is configured to access database onewire on the network
+xxx.yyy.zzz.0/24 without password.

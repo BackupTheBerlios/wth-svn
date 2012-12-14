@@ -1,0 +1,71 @@
+LM324 as operational amplifier for Schenk Pyrradiometer
+
+Testsetup
+
+Using voltage source of 0 - 25 mV at approx 200 Ohm
+LM324 as non-inverting DC gain ( 0v input = 0v output)
+
+1st setup uses R1 10kOhm, R2 100kOhm, gain should be
+G =  1 + R2/R1
+  =  1 + 100/10
+  =  11
+
+Data are measured manually using two voltmeters, one
+for input voltage vin, the other for output voltage 
+vout
+
+Data are stored in file, 
+obtain gain using GNU octave function 
+'polyfit' for least squares fit 
+
+octave commands to calculate gain and offset
+--
+load LM324_setup_10k_100k_20121120.dat 
+vin = LM324_setup_10k_100k_20121120(:,1);
+vout = LM324_setup_10k_100k_20121120(:,2);
+plot (vin, vout)
+plot (vin, vout, 'bo-')
+title('LM324 Noninverting DC Gain')
+plot (vin, vout, 'o')
+title('LM324 Noninverting DC Gain')
+pcoeff=polyfit(vin,vout,1)
+pcoeff =
+
+   10.9790    1.0900
+
+plot (vin, vout, 'o')
+hold
+vin_p=0:80:80;
+vout_p=polyval(pcoeff,vin_p);
+plot(vin_p, vout_p)
+--
+
+gain is fitted to 10.979. 
+
+
+2nd setup uses R1 10kOhm, R2 1MOhm, gain should be
+G =  1 + R2/R1
+  =  1 + 1000/10
+  =  101
+
+Measurement as described above and calculating
+Least Squares fit with the help of GNU octave
+--
+load LM324_setup_10k_1M_20121120.dat
+vin = LM324_setup_10k_1M_20121120(:,1);
+vout = LM324_setup_10k_1M_20121120(:,2);
+plot (vin, vout, 'o')
+p=polyfit(vin,vout,1) 
+p =
+
+   101.4276     8.3239
+--
+
+Gain of experimental setup is 101.43
+
+
+R1(nom)	R1(meas)	R2(nom)	R2(meas)	Dataset					Gain		Offset
+10kOhm	10.07kOhm	1MOhm	1.006MOhm	LM324_setup_10k_1M_20121207.dat		101.1074	7.6402
+10kOhm	10.07kOhm	100kOhm	100.2kOhm	LM324_setup_10k_100k_20121207.dat	10.94569	-0.85297
+
+

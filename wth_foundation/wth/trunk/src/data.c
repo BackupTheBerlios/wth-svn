@@ -303,7 +303,7 @@ int measvaln_db( char *sensorname, char *parametername,
       mcycle = pcwsrstation.config.mcycle;
       break;
     default:
-      syslog(LOG_DEBUG, "measval_hd: unknown stationtype\n");
+      syslog(LOG_DEBUG, "measvaln_db: unknown stationtype\n");
       return(1);
   }
 
