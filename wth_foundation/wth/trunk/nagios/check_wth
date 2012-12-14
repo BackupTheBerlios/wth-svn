@@ -71,6 +71,9 @@ if the count *is* inside the specified range.
   or a critical error
   if it is less than 4.
 
+  $PROGNAME -w 12 -c 24 -W 1WIRE -D postgresql
+  run the check on weatherstation 1WIRE having its data 
+  in postgresql database
   "
 );
 
