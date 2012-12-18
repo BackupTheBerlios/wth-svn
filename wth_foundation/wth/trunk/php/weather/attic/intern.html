@@ -1,0 +1,89 @@
+<%method Title>
+<title>
+Thalreit Linux
+</title>
+</%method>
+
+<%method Left>
+
+<table id='wikimid' width='100%' cellspacing='0' cellpadding='0'><tr>
+<td id='wikileft' valign='top'>
+<p>
+<a href="/weather/pressure.html">
+<img src="/rrdgraph?rrd=PressureI&start=-1000000"  alt="[Pressure]" ></a>
+<p>
+<a href="/weather/temperature-intern.html">
+<img src="/rrdgraph?rrd=TempI&start=-84600" alt="[Temperature]" ></a>
+<p>
+<a href="/weather/humidity-intern.html">
+<img src="/rrdgraph?rrd=HumidityI&start=-84600" alt="[Humidity]" ></a>
+
+</td>
+</%method>
+
+
+<%method Right>
+<td id='wikibody' valign='top'>
+<div id='wikitext'>
+
+<h2><center>Current weather conditions</center></h2>
+
+<p>
+<table>
+<tr><td bgcolor="#FFFFCC">Atmospheric Pressure</td>
+<td bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "PressureI");</%perl></td>
+<td bgcolor="#FFFFCC">hPa</td></tr>
+
+<tr><td>Indoor Temperature</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "TempI");</%Perl></td>
+<td>&deg;C</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Indoor Humidity</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "HumidityI");</%perl></td>
+<td  bgcolor="#FFFFCC"> % rel.hum.</td></tr>
+
+<tr><td>Temperature</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Temp1");</%perl></td>
+<td> &deg;C</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Humidity</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Humidity1");</%perl></td>
+<td  bgcolor="#FFFFCC"> % rel.hum.</td></tr>
+
+<tr><td>Wind Speed</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Windspeed");</%perl></td>
+<td> km/h</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Wind Direction</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Winddir");</%perl></td>
+<td  bgcolor="#FFFFCC"> &deg;</td></tr>
+
+<tr><td>Variation of Wind Direction</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Winddev");</%perl></td>
+<td> &deg;</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Rainfall</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Rainfall");</%perl></td>
+<td  bgcolor="#FFFFCC"> ml</td></tr>
+
+</table>
+
+<p>
+measured at : 
+<%perl>$m->subexec('/rrdfetch', rrd => "PressureI", time => 1); </%perl><br>
+values are 15 minute averages if not otherwise stated
+</p>
+<div class='vspace'></div>
+</div>
+</td></tr></table>
+
+</%method>

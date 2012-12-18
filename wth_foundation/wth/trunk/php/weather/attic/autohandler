@@ -1,0 +1,20 @@
+<%method Left>
+<table id='wikimid' width='100%' cellspacing='0' cellpadding='0'><tr>
+<td id='wikileft' valign='top'>
+<p>
+<a href="/weather/pressure.html">
+<img src="/rrdgraph?rrd=PressureI&start=-84600"  alt="[Pressure]" ></a>
+<p>
+<a href="/weather/temperature.html">
+<img src="/rrdgraph?rrd=Temp1&start=-84600" alt="[Temperature]" ></a>
+<p>
+<a href="/weather/humidity.html">
+<img src="/rrdgraph?rrd=Humidity1&start=-84600" alt="[Humidity]" ></a>
+<p>
+<a href="/weather/windspeed.html">
+<img src="/rrdgraph?rrd=Windspeed&start=-84600" alt="[Wind Speed]" ></a>
+<p>
+<a href="/weather/winddir.html">
+<img src="/rrdgraph?rrd=Winddir&start=-84600" alt="[Wind Direction]" ></a>
+</td>
+</%method>

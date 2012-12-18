@@ -1,0 +1,196 @@
+<%method Title>
+<title>
+Thalreit Linux
+</title>
+</%method>
+
+<%method Left>
+<p>
+<table>
+<tr><td><img src="/rrdgraph?rrd=pressure&start=-200000" alt="[Pressure]" ></td></tr>
+<tr><td><img src="/rrdgraph?rrd=temperature_i&start=-84600" alt="[Temperature]" ></td></tr>
+<tr><td><img src="/rrdgraph?rrd=humidity_i&start=-84600" alt="[Temperature]" ></td></tr>
+</table>
+</%method>
+
+
+<%method Right>
+
+<%args>
+#$dfile  => "definitions"
+$tmpdef => "0"
+$Time   => undef
+$Val    => undef
+$Name   => undef
+</%args>
+
+<%init>
+my $RRD_BASE = "/proj/wetter/logs";
+my @LoSensor = (
+  {
+    rrd  => "sens22.rrd",
+    name => "Indoor Humidity",
+    unit => "%",
+  },
+  {
+    rrd  => "sens21.rrd",
+    name => "Indoor Temperature",
+    unit => "°C",
+  },
+  {
+    rrd  => "sens20.rrd",
+    name => "Atmospheric Pressure",
+    unit => "mbar",
+  },
+);
+</%init>
+
+
+
+      <table border=0 cellpadding=0 cellspacing=0 width="80%">
+      <caption align=top><h2>Current weather conditions</h2></caption>
+      <tr bgcolor="#CCFFFF">
+%foreach my $sensor (@LoSensor) {
+% ( $Time, $Val, $Name) = getlast("$RRD_BASE/$sensor->{rrd}");
+% $Val = ( $Val + ( 456 / 8 ) + 200 ) if ( $sensor->{name} eq "Air Pressure" );
+            <td align="center" valign="top"><table border=0>
+	    <tr><td align="center"><b><% $sensor->{name} %></b></td></tr>
+	    <tr><td align="center"><% $Val %> &nbsp; <% $sensor->{unit} %></td></tr>
+% if ( $sensor->{name} eq "Wind Direction" ) {
+%       $Val = getwinddir($Val);
+% }      
+% else {
+%       $Val = "";
+% }
+            <tr><td align="center"><% $Val %></td></tr>
+	    </table></td>
+%}
+      </tr>
+      <tr><td>&nbsp;</td></tr>
+      <tr>
+         <td align="left" colspan="<% $#LoSensor+1 %>"><small>measured at <%
+	 scalar localtime($Time) %> GMT+<% 1 + (localtime)[8] %> </small></td>     
+      </tr>
+      <tr><td align="left" colspan="<% $#LoSensor+1 %>"><small>values are 5 minute averages if not otherwise stated</small></td></tr>
+      </table>
+
+</%method>
+
+<%once>
+use RRDs;
+
+sub getlast {
+  my $lasttim;
+  my $lastval;
+  my $dsname;
+  my $ERROR;
+  my @retlist;
+
+  my $sensor = shift(@_);
+  my ($start,$step,$names,$array) = RRDs::fetch "$sensor", "--start", "-6000", "LAST";
+
+  $ERROR = RRDs::error;
+  print "ERROR: $ERROR\n" if $ERROR ;
+
+  foreach my $val (@$names) {
+    $dsname = $val if ($val ne "");
+  }
+
+  #
+  # get last entry in rrd and store to $lastval
+  #
+  foreach my $line (@$array){
+    foreach my $val (@$line) {
+      if ($val ne "") {
+        $lasttim = $start;
+        $lastval = $val;
+        push (@retlist, $start);
+        push (@retlist, $val);
+      }
+    }
+    $start += $step;
+  }
+
+  #
+  # no data found 
+  # 
+  if ( $lastval eq "") {
+    $lasttim= $start;
+    $lastval = "NA";
+    push(@retlist, $lasttim);
+    push(@retlist, $lastval);
+  }
+
+  push(@retlist, $dsname);
+  return wantarray ? @retlist : $retlist[0];
+
+}
+
+
+sub getwinddir {
+  my $wdir = shift(@_);
+  my $wdirsym;
+  my @retlist;
+
+  if ( ((348.75 <= $wdir) && ( $wdir < 360 )) || 
+       ((0 <= $wdir ) && ($wdir < 11.25)) ) {
+      $wdirsym = "N";
+  }
+  elsif ( ( 11.25 <= $wdir) && ( $wdir < 33.75 ) )  {
+      $wdirsym = "NNE";
+  }
+  elsif ( ( 33.75 <= $wdir) && ( $wdir < 56.25 ) )  {
+      $wdirsym = "NE";
+  }
+  elsif ( ( 56.25 <= $wdir) && ( $wdir < 78.75 ) )  {
+      $wdirsym = "ENE";
+  }
+  elsif ( ( 78.75 <= $wdir) && ( $wdir < 101.25 ) )  {
+      $wdirsym = "E";
+  }
+  elsif ( ( 101.25 <= $wdir) && ( $wdir < 123.75 ) )  {
+      $wdirsym = "ESE";
+  }
+  elsif ( ( 123.75 <= $wdir) && ( $wdir < 146.25 ) )  {
+      $wdirsym = "SE";
+  }
+  elsif ( ( 146.25 <= $wdir) && ( $wdir < 168.75 ) )  {
+      $wdirsym = "SSE";
+  }
+  elsif ( ( 168.75 <= $wdir) && ( $wdir < 191.25 ) )  {
+      $wdirsym = "S";
+  }
+  elsif ( ( 191.25 <= $wdir) && ( $wdir < 213.75 ) )  {
+      $wdirsym = "SSW";
+  }
+  elsif ( ( 213.75 <= $wdir) && ( $wdir < 236.25 ) )  {
+      $wdirsym = "SW";
+  }
+  elsif ( ( 236.25 <= $wdir) && ( $wdir < 258.75 ) )  {
+      $wdirsym = "WSW";
+  }
+  elsif ( ( 258.75 <= $wdir) && ( $wdir < 281.25 ) )  {
+      $wdirsym = "W";
+  }
+  elsif ( ( 281.25 <= $wdir) && ( $wdir < 303.75 ) )  {
+      $wdirsym = "WNW";
+  }
+  elsif ( ( 303.75 <= $wdir) && ( $wdir < 326.25 ) )  {
+      $wdirsym = "NW";
+  }
+  elsif ( ( 326.25 <= $wdir) && ( $wdir < 348.75 ) )  {
+      $wdirsym = "NNW";
+  }
+  else {
+      $wdirsym = "NNN";
+  }
+  
+  push(@retlist, $wdirsym);
+  return wantarray ? @retlist : $retlist[0];
+}
+
+
+</%once>
+
+
+

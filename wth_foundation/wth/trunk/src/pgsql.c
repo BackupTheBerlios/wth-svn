@@ -112,6 +112,50 @@ pgsql_get_sensorparams( char *sensorname, char*parametername,
   }
 
   //syslog(LOG_DEBUG, "pgsql_get_sensorparams: query %s\n", query);
+  if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"pgsql_get_sensorparams: Connection to database failed: %s",
+            PQerrorMessage(wth_pgconn));
+    PQfinish(wth_pgconn);
+    switch(stationtype) {
+      case ONEWIRE:
+        syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+          "ONEWIRE\n");
+        onewire_pgconn = PQconnectdb(onewirestation.config.dbconn);
+        wth_pgconn = onewire_pgconn;
+        break;
+      case WMR9X8:
+        syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+          "WMR9X8\n");
+        wmr9x8_pgconn= PQconnectdb(wmr9x8station.config.dbconn);
+        wth_pgconn= wmr9x8_pgconn;
+        break;
+      case UMETER:
+        syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+          "UMETER\n");
+        umeter_pgconn= PQconnectdb(umeterstation.config.dbconn);
+        wth_pgconn= umeter_pgconn;
+        break;
+     case WS2000:
+        syslog(LOG_DEBUG, "pgsql_get_sensorparams: stationtype is "
+          "WS2000\n");
+        ws2000_pgconn= PQconnectdb(ws2000station.config.dbconn);
+        wth_pgconn= ws2000_pgconn;
+        break;
+     default:
+       syslog(LOG_ALERT, "pgsql_get_sensorparams: error: unknown stationtype\n");
+       sqsenspar.sensor_meas_no = -1;
+       return(sqsenspar);
+    }
+    if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+      syslog( LOG_ALERT,"pgsql_get_sensorparams: Reconnection to database failed: %s",
+              PQerrorMessage(wth_pgconn));
+      sqsenspar.sensor_meas_no = -1;
+      return(sqsenspar);
+    } else {
+      syslog(LOG_INFO, "pgsql_getsensorparams: Reconnect to database success");
+    }
+  }
+
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_TUPLES_OK)
   {
@@ -223,6 +267,11 @@ pgsql_get_sensorflags( char *sensorname, char *flagname,
       sqsensflag.sensor_flag_no = -1;
       return(sqsensflag);
   }
+  if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(wth_pgconn));
+  }
+
 
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -319,6 +368,11 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
     "INSERT INTO sensordata VALUES ( nextval('sensordata_dataset_no_seq'), to_timestamp(%lu), %d, %f)",
     dataset_date, sensor_meas_no, meas_value); 
   syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
+  if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(wth_pgconn));
+  }
+
 
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -335,6 +389,11 @@ pgsql_datadbn( long dataset_date, int sensor_meas_no, float meas_value,
     "UPDATE sensorupdate SET last_update = to_timestamp(%lu) WHERE sensor_meas_no = %d",
     dataset_date, sensor_meas_no); 
   syslog(LOG_DEBUG, "pgsql_datadbn: query: %s", query);
+  if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(wth_pgconn));
+  }
+
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
@@ -399,6 +458,11 @@ pgsql_statdbn( long statusset_date, int sensor_flag_no,
     statusset_date, sensor_flag_no, stat_value); 
   syslog(LOG_DEBUG, "pgsql_statdbn: query: %s", query);
 
+  if (PQstatus(wth_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(wth_pgconn));
+  }
+
   res = PQexec( wth_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
@@ -431,6 +495,11 @@ pgsql_stat_ws2000db( int sensor_status[], time_t statusset_date)
     snprintf(query, querylen, 
      "INSERT INTO sensorstatus (statusset_no, statusset_date, sensor_no, sensor_status) VALUES ( nextval('sensorstatus_statusset_no_seq'), to_timestamp(%lu), %d, %d)",
      (long unsigned int) statusset_date, i, sensor_status[i]); 
+
+    if (PQstatus(ws2000_pgconn) != CONNECTION_OK) {
+      syslog( LOG_ALERT,"Connection to database failed: %s",
+              PQerrorMessage(ws2000_pgconn));
+    }
     res = PQexec( ws2000_pgconn, query);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
       syslog(LOG_ALERT,
@@ -472,6 +541,10 @@ pgsql_new_ws2000db( int sensor_no, int new_flag)
 	   "UPDATE sensorstatus SET new_flag = %d WHERE sensor_no = %d AND statusset_date =  ( select MAX(statusset_date) from sensorstatus where sensor_no = %d )",
 	   new_flag, sensor_no, sensor_no); 
   syslog(LOG_DEBUG, "pgsql_new_ws2000db: query: %s", query);
+  if (PQstatus(ws2000_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(ws2000_pgconn));
+  }
   res = PQexec( ws2000_pgconn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_ALERT,
@@ -511,6 +584,10 @@ pgsql_is_ws2000sens( int sensor_no)
     sensor_no);
 
   syslog(LOG_DEBUG, "pgsql_is_ws2000sens: query %s\n", query);
+  if (PQstatus(ws2000_pgconn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(ws2000_pgconn));
+  }
   res = PQexec( ws2000_pgconn, query);
   if (PQresultStatus(res) != PGRES_TUPLES_OK)
   {
@@ -563,6 +640,10 @@ pgsql_datadb( long dataset_date, int sensor_meas_no, float meas_value,
     "INSERT INTO sensordata VALUES ( DEFAULT, to_timestamp(%lu), %d, %f)",
     dataset_date, sensor_meas_no, meas_value); 
   syslog( LOG_DEBUG, "datadb: INSERT query: %s", query);
+  if (PQstatus(pg_conn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(pg_conn));
+  }
   res = PQexec( pg_conn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_DEBUG,
@@ -576,6 +657,10 @@ pgsql_datadb( long dataset_date, int sensor_meas_no, float meas_value,
   snprintf(query, querylen, 
     "UPDATE sensorupdate SET last_update = to_timestamp(%lu) WHERE sensor_meas_no = %d",
     dataset_date, sensor_meas_no); 
+  if (PQstatus(pg_conn) != CONNECTION_OK) {
+    syslog( LOG_ALERT,"Connection to database failed: %s",
+            PQerrorMessage(pg_conn));
+  }
   res = PQexec( pg_conn, query);
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
     syslog(LOG_DEBUG,

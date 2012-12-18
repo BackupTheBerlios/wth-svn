@@ -1,0 +1,70 @@
+<%method Title>
+<title>
+Thalreit Linux
+</title>
+</%method>
+
+
+<%method Right>
+<td id='wikibody' valign='top'>
+<div id='wikitext'>
+
+<h2><center>Thalreit current weather conditions</center></h2>
+
+<p>
+<table>
+<tr>
+<td valign=top width=400>
+<table>
+<tr><td bgcolor="#FFFFCC">Atmospheric Pressure</td>
+<td bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "PressureI");</%perl></td>
+<td bgcolor="#FFFFCC">hPa</td></tr>
+
+<tr><td>Temperature</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Temp1");</%perl></td>
+<td> &deg;C</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Relative humidity</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Humidity1");</%perl></td>
+<td  bgcolor="#FFFFCC"> %</td></tr>
+
+<tr><td>Wind Speed</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Windspeed");</%perl></td>
+<td> km/h</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Wind Direction</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Winddir");</%perl></td>
+<td  bgcolor="#FFFFCC"> &deg;</td></tr>
+
+<tr><td>Variance of Wind Direction</td>
+<td>
+  <%perl>$m->subexec('/rrdfetch', rrd => "Winddev");</%perl></td>
+<td> &deg;</td></tr>
+
+<tr><td  bgcolor="#FFFFCC">Precipitation</td>
+<td  bgcolor="#FFFFCC">
+  <%perl>$m->subexec('/rrdfetch', rrd => "Rainfall");</%perl></td>
+<td  bgcolor="#FFFFCC"> l/m<sup>2</sup></td></tr>
+<tr><td colspan=3>
+measured at : 
+<%perl>$m->subexec('/rrdfetch', rrd => "PressureI", time => 1); </%perl><br>
+values are 15 minute averages if not otherwise stated
+</td></tr>
+</table>
+</td>
+<td align=middle valign=top>
+<a href="/images/thalreit-aktuell.jpg">
+<img src="/images/thalreit-aktuell.jpg" align=center alt="[Webcam Image]" ></a>
+</td>
+</tr>
+</table>
+<div class='vspace'></div>
+</div>
+</td></tr></table>
+
+</%method>

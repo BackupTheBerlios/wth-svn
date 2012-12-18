@@ -1,0 +1,50 @@
+<%method Title>
+<title>
+Thalreit Linux
+</title>
+</%method>
+
+
+<%method Left>
+<p>
+<a href="/weather/pressure.html">
+<img src="/rrdgraph?rrd=PressureI&start=-1000000"  alt="[Pressure]" ></a>
+<p>
+<a href="/weather/temperature-intern.html">
+<img src="/rrdgraph?rrd=TempI&start=-84600" alt="[Temperature]" ></a>
+<p>
+<a href="/weather/humidity-intern.html">
+<img src="/rrdgraph?rrd=HumidityI&start=-84600" alt="[Humidity]" ></a>
+</%method>
+
+<%method Right>
+
+<h2><center>Indoor Temperature</center></h2>
+
+<p>
+<table>
+<tr>
+<th>Daily</th><th>Weekly</th></tr>
+<tr><td>
+    <img src="/rrdgraph?rrd=TempI&start=-84600&width=200" alt="[Temperature]" >
+</td><td>
+    <img src="/rrdgraph?rrd=TempI&start=-592200&width=200" alt="[Temperature]" >
+</td>
+</tr>
+<tr><th>Monthly</th><th>1 Year</th></tr>
+<tr><td>
+    <img src="/rrdgraph?rrd=TempI&start=-2368800&width=200" alt="[Temperature]" >
+</td><td>
+    <img src="/rrdgraph?rrd=TempI&start=-28425600&width=200" alt="[Temperature]" >
+</td></tr>
+<tr><th>2 Year</th><th>3 Year</th></tr>
+<tr><td>
+    <img src="/rrdgraph?rrd=TempI&start=-56851200&width=200" alt="[Wind Speed]
+" >
+</td><td>
+    <img src="/rrdgraph?rrd=TempI&start=-85276800&width=200" alt="[Wind Speed]
+" >
+</td></tr>
+</table>
+
+</%method>
