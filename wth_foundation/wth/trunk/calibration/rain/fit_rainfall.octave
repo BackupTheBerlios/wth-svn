@@ -1,0 +1,118 @@
+#
+# fit_rainfall.octave
+#
+# run as
+#   octave fit_rainfall.octave
+#
+# octave script to 
+#   read rainfall data of WMR9x8 weatherstation
+#   read rainfall data of UMER weatherstation
+#
+# check scaling factor of ULTIMETER raingauge and WMR9x8 rainsensor
+#   rain(WMR9x8) = gain * rain(ULTIMETER) + offset
+#
+# n.b. - if both rainsensors are calibrated correctly gain is 1
+#      - script does not help to calibrate sensors
+#
+# procedure
+# - rain data are read from sqlite databases of WMR9x8 and ULTIMETER
+# - rain data of WMR9x8 are fetched into vectors 
+#   t_wmr9x8 and r_wmr9x8 (time resp. rainfall data)
+# - rain data of ULTIMETER are fetched into vectors 
+#   t_umeter and r_umeter (time resp. rainfall data)
+# - rain data are interpolated to vector t_intp time steps
+#   vector r_wmr9x9i and r_umeteri 
+# - interpolated rainfall data r_wmr9x8i and r_umeteri are
+#   fitted polyfit routine to function 
+#   rain(WMR9x8) = gain * rain(ULTIMETER) + offset to obtain 
+#   gain value
+
+disp("Scaling rain data of ULTIMETER raingauge to WMR9x8 rainsensor");
+
+disp("Removing old ULTIMETER data");
+[status, errout] = system('rm umeter_rain.dat');
+if ( status ~= 0 )
+  disp("No old data file present. Seems OK")
+end
+
+#
+# create vector of time values used for interpolating both datasets to 
+# same time basis
+#
+#t_intp = [1350000000:300:1357387355];
+t_intp = [1357310000:300:1357369000];
+len = length(t_intp);
+disp ("length of vector t_intp:"), disp(len)
+
+#
+# Fetch, load and plot ULTIMETER raingauge data
+#
+disp("Fetching ULTIMETER raingauge data from sqlite database")
+[status, errout] = system('sqlite3 /proj/wetter/logs/umeter/umeter.db < get_umeter_rain_longterm_total.sql >umeter_rain.dat');
+
+disp("Loading ULTIMETER raingauge data")
+load umeter_rain.dat;
+t_umeter=umeter_rain(:,1);
+r_umeter=umeter_rain(:,2);
+len = length(r_umeter);
+disp ("Length of vector r_umeter:"), disp(len)
+r_umeteri = interp1(t_umeter, r_umeter, t_intp) - 830.58 ;
+len = length(r_umeteri);
+disp ("Length of vector r_umeteri:"), disp(len)
+
+disp("Plotting ULTIMETER raingauge data")
+plot(t_umeter, r_umeter, 'o');
+hold;
+plot(t_intp, r_umeteri, '-');
+print -dpng umeter_rain_interpolated.png;
+
+disp("Removing old WMR9x8 rainsensor data")
+[status, errout] = system('rm wmr9x8_rain.dat');
+if ( status ~= 0 )
+  disp("No old data file present. Seems OK")
+end;
+
+#
+# Fetch, load and plot WMR9x8 rainsensor  data
+#
+disp("Fetching WMR9x8 rainsensor data from sqlite database")
+[status, errout] = system('sqlite3 /proj/wetter/logs/wmr9x8/wmr9x8.db < get_wmr9x8_total_rainfall.sql >wmr9x8_rain.dat');
+
+disp("Loading WMR9x8 rainsensor data");
+load wmr9x8_rain.dat;
+t_wmr9x8=wmr9x8_rain(:,1);
+r_wmr9x8=wmr9x8_rain(:,2);
+len = length(r_wmr9x8);
+disp ("Length of vector r_wmr9x8:"), disp(len);
+r_wmr9x8i = interp1(t_wmr9x8, r_wmr9x8, t_intp) - 830.58;
+len = length(r_wmr9x8i);
+disp ("Length of vector r_wmr9x8i:"), disp(len);
+
+#hold off;
+disp("Plotting WMR9x8 rainsensor data")
+plot(t_wmr9x8, r_wmr9x8, 'o');
+hold;
+plot(t_intp, r_wmr9x8i, '*');
+print -dpng wmr9x8_rain_interpolated.png;
+
+#
+# least squares fit to polynom of degree 1
+#
+[ pcoeff, lsqs] = polyfit(r_umeteri, r_wmr9x8i, 1);
+#disp("lsqs.yf : "), disp(lsqs.yf);
+#disp("pcoeff: "), disp(pcoeff);
+disp("rain(wmr9x8) = gain * rain(umeter) + offset");
+disp("gain: "), disp(pcoeff(1));
+disp("offset: "), disp(pcoeff(2));
+
+#
+# rain (ULTIMETER) vs. rain (WMR9x8)
+#
+plot(r_umeteri, r_wmr9x8i, 'o');
+#hold;
+#plot(r_umeteri, lsqs.yf, 'r');
+title('Scaling ULTIMETER rain to WMR9x8 rain');
+ylabel('ULTIMETER [mm]');
+xlabel('WMR9x8 [mm]');
+print -dpng scaling_umeter_wmr9x8.png;
+

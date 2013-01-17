@@ -1,0 +1,11 @@
+#!/bin/sh
+
+#
+# logging pressure measurements of 1wire and pcwsr
+# to be used for calibration
+#
+
+while [ 1 ]; do
+  /proj/wetter/software/1wire/build_FreeBSD-6.2-STABLE-i386/ds2438rd /dev/ttyd1 >>1wire.log
+  sleep 300
+done

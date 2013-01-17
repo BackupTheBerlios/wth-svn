@@ -1,0 +1,17 @@
+Hi Emmanuel: PDL is indeed a general purpose matrix manipulation language. It has similar features to IDL or MATLAB, but it has a more powerful scripting language and some nicer facilities for flowing data between dimensions in complex matrices.
+
+I routinely pull numeric data from an SQL database to a PDL. The formula is something like this:
+
+use DBI;
+use PDL;
+my $dbstr = "dbi:Pg:dbname=$dbname;host=$dbhost";
+my $dbh   = DBI->connect($dbstr);
+my $sql   = 'select yr, mon, day, value from db_table where yr=2007';
+my $data  = pdl($dbh->selectall_arrayref($sql));
+
+Now $data is a 4 x N PDL (which defaults to type 'double').
+
+Regards,
+
+  Doug
+

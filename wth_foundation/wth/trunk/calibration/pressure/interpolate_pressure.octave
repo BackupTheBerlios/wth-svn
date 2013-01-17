@@ -1,0 +1,57 @@
+#
+#
+# octave script to 
+#   read pressure data of WS2000 weatherstation using pcwsr
+#   read Vdd and Vad of 1-wire barometer (ds2834)
+# 
+filename = 'pcwsr_corr.log';
+fid = fopen (filename, 'r');
+[pcwsr_dat, count] = fscanf( fid, '%g %g', [2, Inf]);
+fclose (fid);
+disp(count);
+
+filename = 'onewire_corr.log';
+fid = fopen (filename, 'r');
+[onewr_dat, count] = fscanf( fid, '%g %g', [2, Inf]);
+fclose (fid);
+disp(count);
+
+t_intp = [1227469000:60:1227811000];
+length(t_intp);
+
+t_pcwsr=pcwsr_dat(1,:);
+p_pcwsr=pcwsr_dat(2,:);
+p_pcwsri = interp1(t_pcwsr, p_pcwsr, t_intp);
+length(p_pcwsri);
+
+plot(t_pcwsr, p_pcwsr, 'o');
+hold;
+plot(t_intp, p_pcwsri, '-');
+print -dpng pcwsr_interpolated.png;
+
+t_onewr=onewr_dat(1,:);
+p_onewr=onewr_dat(2,:);
+p_owintp = interp1(t_onewr, p_onewr, t_intp);
+length(p_owintp);
+plot(t_onewr, p_onewr, 'o');
+hold;
+plot(t_intp, p_owintp, '*');
+print -dpng onewire_interpolated.png;
+
+#
+# least squares fit to polynom of degree 1
+#
+[ pcoeff, lsqs] = polyfit(p_owintp, p_pcwsri, 1);
+disp(lsqs.yf);
+disp(pcoeff);
+
+#
+# pressure (pcwsr) vs. Vad/Vdd (1-wire)
+#
+plot(p_owintp, p_pcwsri, 'b');
+hold;
+plot(p_owintp, lsqs.yf, 'r');
+title('Fitting V_ad/V_dd vs. pressure');
+ylabel('[mbar]');
+xlabel('V_ad/V_dd');
+print -dpng onewire_pcwsr_calib.png;

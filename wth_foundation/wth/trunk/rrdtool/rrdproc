@@ -12,7 +12,7 @@ use Image::Magick;
 use Tk;
 use Tk::PNG;
 use Data::Dumper;
-use Env qw(DEBUG);
+use Env qw(DEBUG); # set environment variable DEBUG=1 
 use DBI;
 
 my $version = "RRD processing tool - Version 0.0.3\n";
@@ -38,6 +38,7 @@ usage {
     print "\tverbose:\tshow more information\n";
     print "\tconfig=<filename>:\tuse <filename> as configuration file\n";
     print "\thelp:\tprint this help\n";
+    print "to enable debug mode run DEBUG=1 rrdproc --<option>\n";
     exit 1;
 }
 
@@ -111,13 +112,14 @@ getlast {
        #
        # no data found
        #
+       if ( $lastval) {
        if ( $lastval eq "") {
          $lasttim= $sstart;
          $lastval = "NA";
          push(@retlist, $lasttim);
          push(@retlist, $lastval);
        }
-
+       }
        push(@retlist, $dsname);
     } else {
         printf "fetch (getlast)\t: Can't find sensor : \"$rrd\"!\n" 
@@ -401,7 +403,12 @@ if ( $info) {
           foreach $dsname (keys %dsh) {
             print "\tDataSource[ $dsname]:\n";
             foreach $dsparam (keys %{ $dsh{ $dsname}}) {
-                print "\t\t$dsparam: $dsh{ $dsname}{ $dsparam}\n";
+                print "\t\tdsparam: $dsparam\n";
+                if ( $dsh{ $dsname}{ $dsparam} ) {
+                  print "\t\t$dsparam: $dsh{ $dsname}{ $dsparam}\n";
+                } else {
+                  print "\t\t$dsparam: Error! (Check RRD)\n";
+                }
             }
           }
 
@@ -487,6 +494,7 @@ if ( $info) {
 # Update rrd files
 #
 if ( $update) {
+  $DEBUG = 1;
   if ($DEBUG) {
     print "Configured sensors: "; 
     foreach (@Sensors) { print "$_ "}; print "\n";
@@ -596,7 +604,11 @@ if ( $fetch) {
             if ( $DEBUG);
         foreach $fds ( keys %{ $graphopts{$sensor}}) {
           ($time, $val, $name) = getlast($sensor, $fds);
-          print "$sensor\t$fds:\t$val\tat " . scalar localtime($time) . "\n";
+          if ( $val ) {
+            print "$sensor\t$fds:\t$val\tat " . scalar localtime($time) . "\n";
+          } else {
+            print "$sensor\t$fds:\tERR\t(Error: Check RRD)\n";
+          }
         }
     }
 }

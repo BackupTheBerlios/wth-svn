@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#
+# logging pressure measurements of 1wire and pcwsr
+# to be used for calibration
+#
+
+while [ 1 ]; do
+#  ./build_FreeBSD-6.2-STABLE-i386/ds2438rd /dev/ttyd1 >>1wire.log
+  cat /proj/wetter/software/serial/wth/wth_foundation/wth/trunk/sqlite/pressure_select_pcwsr.sql |\
+    sqlite3 /usr/data/wetter/logs/pcwsr.db  >>pcwsr.log
+  sleep 300
+done
