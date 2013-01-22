@@ -494,7 +494,6 @@ if ( $info) {
 # Update rrd files
 #
 if ( $update) {
-  $DEBUG = 1;
   if ($DEBUG) {
     print "Configured sensors: "; 
     foreach (@Sensors) { print "$_ "}; print "\n";

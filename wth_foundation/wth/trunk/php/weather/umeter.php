@@ -37,6 +37,8 @@
     <img src="umeter/windsensor_windspeed_5min_avg.png">
 <!--    <img src="umeter/windsensor_windspeed_5min_peak.png"> -->
     <img src="umeter/windsensor_winddirection_peak.png">
+    <img src="umeter/th_out_sensor_outdoor_temp.png">
+    <img src="umeter/th_out_sensor_outdoor_hum.png">
   </div>
   <div id='content'>
     <h1>Ultimeter 2100 weatherstation</h1>
@@ -93,7 +95,7 @@ Data measured with Peetbros. Ultimeter 2100 weatherstation. Values are always mo
 </div>
 
 <div id='footer'>
-  <img SRC="/images/power-button.png"  border=0 alt="[FreeBSD powered]">
+  <img SRC="/images/power-button.png"  border=0 alt="[Linux powered]">
   &copy 2001-2011 <a href="mailto:volker@thalreit.de">Volker Jahns</a>
 </div>
 </body>

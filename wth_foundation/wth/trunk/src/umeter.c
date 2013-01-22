@@ -114,7 +114,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   rain_longterm_total = strtol(umeterstr, NULL, base);
-  rain_longterm_total = (25.4/10.0)*rain_longterm_total; /* 0.1in to mm */
+  rain_longterm_total = 0.1 * rain_longterm_total; /* 0.1mm to mm */
   syslog(LOG_DEBUG, "rain_longterm_total: %f\n", rain_longterm_total);
   measval_hd( "raingauge", 
 	      "rain_longterm_total", 
@@ -122,12 +122,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
 	      umeterstation.config.dbtype,
               dataset_date, 
               (float)rain_longterm_total);
-  /*
-  measval_db( "raingauge", "rain_total", 
-              dataset_date, 
-              (float)rain_longterm_total, 
-              umeterdb);
-  */
+
   /* Barometer */
   strncpy(umeterstr, (const char *)(datalogdata+18), 5); 
   umeterstr[4] = 0;
@@ -260,7 +255,7 @@ datalogger_rd( unsigned char * datalogdata, int ndat) {
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "umeterstr: %s\n", umeterstr);
   rain_today_total = strtol(umeterstr, NULL, base);
-  rain_today_total = (25.4/10.0)*rain_today_total; /* 0.1in to mm */
+  rain_today_total = 0.1 * rain_today_total; /* 0.1mm to mm */
   syslog(LOG_DEBUG, "rain_today_total: %f\n", rain_today_total);
   measval_hd( "raingauge",
 	      "rain_today_total", 
@@ -397,14 +392,14 @@ packet_rd( unsigned char * packetdata, int ndat) {
   strncpy(umeterstr, (const char *)(packetdata+17), 5); 
   umeterstr[4] = 0;
   rain_longterm_total = (float)strtol(umeterstr, NULL, base);
-  rain_longterm_total = (25.4/10.0)*rain_longterm_total; /* 0.1in to mm */
+  rain_longterm_total = 0.1 * rain_longterm_total; /* 0.1mm steps to mm */
   measval_hd( "raingauge", 
               "rain_longterm_total",
               UMETER,
 	      umeterstation.config.dbtype,
               dataset_date, 
               (float)rain_longterm_total);
-  syslog(LOG_DEBUG, "packet_rd: rain_longterm_total: %f\n", rain_longterm_total);
+  syslog(LOG_DEBUG, "packet_rd: rain_longterm_total (assuming 0.1mm steps): %f\n", rain_longterm_total);
 
   /* Current barometer */
   strncpy(umeterstr, (const char *)(packetdata+21), 5); 
@@ -525,7 +520,7 @@ packet_rd( unsigned char * packetdata, int ndat) {
   strncpy(umeterstr, (const char *)(packetdata+49), 5); 
   umeterstr[4] = 0;
   rain_today_total = (float)strtol(umeterstr, NULL, base);
-  rain_today_total = (25.4/10.0)*rain_today_total; /* 0.1in to mm */
+  rain_today_total = 0.1 * rain_today_total; /* 0.1mm to mm */
   measval_hd( "raingauge", 
 	      "rain_today_total",
 	      UMETER,
@@ -690,7 +685,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "7. umeterstr: %s\n", umeterstr);
   datafield = strtol(umeterstr, NULL, base);
-  datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
+  datafield = 0.1 * datafield; /* 0.1mm to mm */
   syslog(LOG_DEBUG, "7. Rain Total for today: %f\n", datafield);
   measval_hd( "raingauge",
 	      "rain_today", 
@@ -698,7 +693,6 @@ complete_rd( unsigned char * completedata, int ndat) {
 	      umeterstation.config.dbtype,
 	      dataset_date,
               (float)datafield);
-//  measval_db( "raingauge", "rain_today", dataset_date, (float)datafield, umeterdb);
 
   /* 8. Barometer */
   strncpy(umeterstr, (const char *)(completedata+32), 5); 
@@ -1565,7 +1559,7 @@ complete_rd( unsigned char * completedata, int ndat) {
   umeterstr[4] = 0;
   syslog(LOG_DEBUG, "108. umeterstr: %s\n", umeterstr);
   datafield = strtol(umeterstr, NULL, base);
-  datafield = (25.4/10.0)*datafield; /* 0.1in to mm */
+  datafield = 0.1 * datafield; /* 0.1mm to mm */
   syslog(LOG_DEBUG, "108. Longterm Rain Total: %f\n", datafield);
   measval_hd( "raingauge",
 	      "rain_total", 
